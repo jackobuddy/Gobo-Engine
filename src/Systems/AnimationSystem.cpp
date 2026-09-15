@@ -3,8 +3,8 @@
 #include "../Components/SpriteComponent.h"
 #include "../ECS/EntityTemplates.h"
 #include "../Logger/Logger.h"
+#include "../Math/Math.h"
 #include <SDL3/SDL.h>
-#include <glm/glm.hpp>
 
 AnimationSystem::AnimationSystem()
 {
@@ -38,7 +38,7 @@ void AnimationSystem::Update()
 		if (animation->loops)
 			frame = frame % animation->numFrames;
 		else
-			frame = glm::clamp(frame, 
+			frame = Clamp(frame, 
 				static_cast<Uint64>(0), static_cast<Uint64>(animation->numFrames - 1));
 		
 		// Set the current frame and adjust the Source Rectangle of the Sprite. 

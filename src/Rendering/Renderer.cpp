@@ -1,8 +1,8 @@
 #include "Renderer.h"
 #include "Window.h"
 #include "../Logger/Logger.h"
+#include "../Math/Math.h"
 #include <SDL3/SDL.h>
-#include <glm/glm.hpp>
 
 Renderer::Renderer(std::shared_ptr<Window> w)
 {
@@ -67,7 +67,7 @@ bool Renderer::SetVSyncMode(int m)
 	}
 	
 	// Keep our vsync setting in the proper range
-	vsyncMode = glm::clamp(m, -1, 1);
+	vsyncMode = Clamp(m, -1, 1);
 	if (not SDL_SetRenderVSync(renderer, vsyncMode))
 	{
 		vsyncMode = old_v; 

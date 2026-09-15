@@ -4,9 +4,6 @@
 #include <cstddef>
 #include <cmath>
 
-// TODO: This is a work-in-progress with the hope to eventually decouple oursellves from
-// the GLM Math library. Lots of additions will be needed first. 
-
 // ----------------------------------------------------------------------------
 // A 2-Deminsional Vector that stores values x and y. 
 // ----------------------------------------------------------------------------
@@ -28,8 +25,16 @@ struct Vector2
 		this->y = value; 
 	}
 
-	float& operator [](int i) { return ((&x)[i]); }
-	const float& operator [](int i) const { return ((&x)[i]); }
+	float& operator [](int i) 
+	{ 
+		assert(i >= 0 && i < 2);
+		return ((&x)[i]); 
+	}
+	const float& operator [](int i) const 
+	{ 
+		assert(i >= 0 && i < 2);
+		return ((&x)[i]); 
+	}
 
 	Vector2& operator *=(float s)
 	{
@@ -101,6 +106,11 @@ inline Vector2 operator -(const Vector2& a, const Vector2& b)
 	return (Vector2(a.x - b.x, a.y - b.y));
 }
 
+inline float Dot(const Vector2& a, const Vector2& b)
+{
+	return (a.x * b.x + a.y * b.y);
+}
+
 // ----------------------------------------------------------------------------
 // A 3-Deminsional Vector that stores values x, y, and z. 
 // ----------------------------------------------------------------------------
@@ -126,13 +136,13 @@ struct Vector3
 
 	float& operator [](int i) 
 	{ 
-		assert(i < 2);
+		assert(i >= 0 && i < 3);
 		return ((&x)[i]); 
 	}
 
 	const float& operator [](int i) const 
 	{ 
-		assert(i < 2);
+		assert(i >= 0 && i < 3);
 		return ((&x)[i]); 
 	}
 
@@ -208,4 +218,43 @@ inline Vector3 operator +(const Vector3& a, const Vector3& b)
 inline Vector3 operator -(const Vector3& a, const Vector3& b)
 {
 	return (Vector3(a.x - b.x, a.y - b.y, a.z - b.z));
+}
+
+inline float Dot(const Vector3& a, const Vector3& b)
+{
+	return (a.x * b.x + a.y * b.y + a.z * b.z);
+}
+
+// ----------------------------------------------------------------------------
+// Other Math functions. 
+// ----------------------------------------------------------------------------
+inline float Clamp(float a, float min, float max)
+{
+	if (a < min) a = min; 
+	if (a > max) a = max; 
+	return a; 
+}
+
+inline int Clamp(int a, int min, int max)
+{
+	if (a < min) a = min; 
+	if (a > max) a = max; 
+	return a; 
+}
+
+inline std::uint64_t Clamp(std::uint64_t a, std::uint64_t min, std::uint64_t max)
+{
+	if (a < min) a = min;
+	if (a > max) a = max;
+	return a;
+}
+
+inline float Floor(float value)
+{
+	return std::floor(value);
+}
+
+inline int FloorToInt(float value)
+{
+	return static_cast<int>(std::floor(value));
 }

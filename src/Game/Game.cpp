@@ -29,7 +29,6 @@
 #include <SDL3_image/SDL_image.h>
 #include <iostream>
 #include <memory>
-#include <glm/glm.hpp>
 #include <fstream>
 
 int Game::mapWidth = 1920;
@@ -125,7 +124,7 @@ int Game::Run()
 		currentTick = SDL_GetTicks(); 
 
 		// Get Delta Seconds
-		deltaSeconds = glm::clamp((currentTick - millisecsPreviousFrame) / 1000.0f, 0.0f, 0.2f);
+		deltaSeconds = Clamp((currentTick - millisecsPreviousFrame) / 1000.0f, 0.0f, 0.2f);
 		// Store the current time to reference next frame
 		millisecsPreviousFrame = currentTick;
 	}

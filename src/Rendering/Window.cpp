@@ -1,8 +1,8 @@
 #include "Window.h"
 #include "../Logger/Logger.h"
 #include "../Game/Game.h"
+#include "../Math/Math.h"
 #include <SDL3/SDL.h>
-#include <glm/glm.hpp>
 
 Window::Window(int windowWidth, int windowHeight)
 {
@@ -257,13 +257,13 @@ bool Window::RefreshWindowMode()
 
 void Window::SetWidth(int w)
 {
-	int val = glm::clamp(w, 800, 3840);
+	int val = Clamp(w, 800, 3840);
 	width = val; 
 }
 
 void Window::SetHeight(int h)
 {
-	int val = glm::clamp(h, 600, 2160);
+	int val = Clamp(h, 600, 2160);
 	height = val;
 }
 

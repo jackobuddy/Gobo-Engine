@@ -7,7 +7,6 @@
 #include "../Components/KeyboardControlledComponent.h"
 #include "../Events/EventManager.h"
 #include "../Logger/Logger.h"
-#include <glm/glm.hpp>
 
 // This System adds basic up, right, down, left movement, switching the sprite and 
 // adding the velocity based on the arrow key pressed. 

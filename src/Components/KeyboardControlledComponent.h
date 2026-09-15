@@ -3,8 +3,6 @@
 #include "../ECS/Component.h"
 #include "Math/Math.h"
 
-#include <glm/glm.hpp>
-
 struct KeyboardControlledComponent
 {
 	Vector2 upVelocity = Vector2(0);

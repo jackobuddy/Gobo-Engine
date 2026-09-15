@@ -5,7 +5,6 @@
 #include "../Components/TransformComponent.h"
 #include "../Rendering/Camera.h"
 #include <SDL3/SDL.h>
-#include <glm/glm.hpp>
 
 class CameraMovementSystem : public System
 {

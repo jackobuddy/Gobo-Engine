@@ -5,7 +5,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(SDL3_image CONFIG REQUIRED)
-find_package(glm CONFIG REQUIRED)
 file(GLOB_RECURSE GOBO_SOURCE_FILES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
@@ -17,7 +16,6 @@ target_include_directories(GoboEngine PRIVATE
 target_link_libraries(GoboEngine PRIVATE
     SDL3::SDL3
     SDL3_image::SDL3_image-shared
-    glm::glm
 )
 add_custom_command(TARGET GoboEngine POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -32,4 +30,5 @@ add_custom_command(TARGET GoboEngine POST_BUILD
 )
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT GoboEngine)
 set_property(TARGET GoboEngine PROPERTY
-    VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+    VS_DEBUGGER_WORKING_DIRECTORY
+    "${CMAKE_CURRENT_BINARY_DIR}/Debug")
