@@ -1,0 +1,5 @@
+{
+  "name": "gobo-engine",
+  "version-string": "0.1.0", 
+  "dependencies": ["glm", "sdl3", { "name": "sdl3-image", "features": [ "png" ] }]
+}

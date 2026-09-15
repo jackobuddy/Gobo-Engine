@@ -1,0 +1,29 @@
+# Internal department documents
+/docs/
+
+# Visual Studio and CMake user state
+/.vs/
+/out/
+/build/
+/x64/
+/vcpkg_installed/
+CMakeUserPresets.json
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+# Compiler and generated runtime output
+*.obj
+*.pdb
+*.ilk
+*.tlog
+*.lastbuildstate
+*.exe
+*.dll
+*.exp
+*.log
+
+# Legacy local build files and vendored libraries
+/libs/
+/Gobo Engine.vcxproj
+/Gobo Engine.vcxproj.filters
