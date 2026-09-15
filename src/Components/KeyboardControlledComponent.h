@@ -1,19 +1,20 @@
 #pragma once
 
 #include "../ECS/Component.h"
+#include "Math/Math.h"
 
 #include <glm/glm.hpp>
 
 struct KeyboardControlledComponent
 {
-	glm::vec2 upVelocity = glm::vec2(0); 
-	glm::vec2 rightVelocity = glm::vec2(0);
-	glm::vec2 downVelocity = glm::vec2(0);
-	glm::vec2 leftVelocity = glm::vec2(0);
+	Vector2 upVelocity = Vector2(0);
+	Vector2 rightVelocity = Vector2(0);
+	Vector2 downVelocity = Vector2(0);
+	Vector2 leftVelocity = Vector2(0);
 
-	KeyboardControlledComponent(glm::vec2 upVelocity = glm::vec2(0),
-		glm::vec2 rightVelocity = glm::vec2(0), glm::vec2 downVelocity = glm::vec2(0), 
-		glm::vec2 leftVelocity = glm::vec2(0)) 
+	KeyboardControlledComponent(Vector2 upVelocity = Vector2(0),
+		Vector2 rightVelocity = Vector2(0), Vector2 downVelocity = Vector2(0),
+		Vector2 leftVelocity = Vector2(0))
 	{
 		this->upVelocity = upVelocity;
 		this->rightVelocity = rightVelocity;

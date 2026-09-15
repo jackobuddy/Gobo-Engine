@@ -45,6 +45,32 @@ public:
 	// Processes the destruction of an Entity
 	void ProcessEntityDestruction(const Entity& entity); 
 
+	// Assigns a unique Tag to a given Entity. Unlike Groups, tags are unique and can
+	// only be assigned to a single Entity. 
+	void TagEntity(Entity entity, const std::string& tag);
+	// Returns true if the given Entity has the Tag assigned to it, otherwise returns false. 
+	bool EntityHasTag(Entity entity, const std::string& tag) const; 
+	// Returns the Entity assigned to the given Tag. 
+	Entity GetEntityByTag(const std::string& tag) const; 
+	// Removes the unique Tag assigned to the given Entity. 
+	// TODO: We want Entities to be able to have multiple tags. This function will need
+	// to take in a tag as a std::string& tag and only remove the given tag from the Entity, 
+	// returning True on success or otherwise False. 
+	void RemoveEntityTag(Entity entity); 
+
+	// Adds the given Entity to the given Group. Unlike Tags, Groups may have multiple
+	// Entities assigned to them at once. 
+	void GroupEntity(Entity entity, const std::string& group); 
+	// Returns true if the given Entity is a part of the provided Group, otherwise false. 
+	bool EntityBelongsToGroup(Entity entity, const std::string& group) const; 
+	// Returns a vector containing all of the Entities in a given Group. 
+	std::vector<Entity> GetEntitiesByGroup(const std::string& group) const; 
+	// Removes an Entity from the given Group. 
+	// TODO: We want Entities to be able to belong to multiple groups. This function will need
+	// to take in a group as a std::string& group and only remove the given group from the Entity,
+	// returning True on success or otherwise False. 
+	void RemoveEntityGroup(Entity entity); 
+
 	// Adds a Component to an Entity.
 	template <typename TComponent, typename ...TArgs> void AddComponent(Entity entity, TArgs&& ... args); 
 	// Removes a Component from an Entity.
@@ -86,7 +112,18 @@ private:
 	// Keeps track of the number of entities in the world
 	int numEntities = 0; 
 	// List of Entities awaiting creation in the next World Update
-	std::set<Entity> entitiesToBeAdded; 
+	std::set<Entity> entitiesToBeAdded;
+	// Tracks Entity Tags. Each tag can only be assigned to one Entity, and each Entity
+	// can only have a single tag. 
+	// TODO: We should make some nice, understandable getters for these. 
+	// TODO: Entities should be able to have more than one unique tag. 
+	std::unordered_map<std::string, Entity> entityPerTag;
+	std::unordered_map<int, std::string> tagPerEntity; 
+	// Tracks Entity Groups. Each group can have more than one Entity in it. 
+	// TODO: We should make some nice, understandable getters for these. 
+	// TODO: Entities should be able to have more than one group they are a part of. 
+	std::unordered_map<std::string, std::set<Entity>> entitiesPerGroup; 
+	std::unordered_map<int, std::string> groupPerEntity; 
 	// List of Entities awaiting destruction in the next World Update
 	std::set<Entity> entitiesToBeDestroyed; 
 	// List of Entities that require System Membership Refresh

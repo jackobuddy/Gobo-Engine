@@ -4,10 +4,11 @@
 #include "../Components/SpriteComponent.h"
 #include "../Components/AnimationComponent.h"
 #include "../Components/BoxCollisionComponent.h"
+#include "../Components/HealthComponent.h"
 
 // Characters are a subclassification of Actors, therefore also Entities. They represent
-// Actors that have Sprites, Animations, and Box Collisions in addition to the Transform
-// and RigidBody Components added by Actor. 
+// Actors that have Sprites, Animations, Health, and Box Collisions in addition to the 
+// Transform and RigidBody Components added by Actor. 
 class Character : public Actor
 {
 	friend class World; 
@@ -37,6 +38,10 @@ public:
 		int frameSpeedRate = 1;
 		bool loops = true;
 	};
+	struct HealthConfig
+	{
+		int healthPercentage = 100;
+	};
 	// Configures a Character prior to creation. Contains actor, animation, collision, 
 	// and sprite subsections. 
 	struct Config
@@ -44,6 +49,7 @@ public:
 		Actor::Config actor;
 		AnimationConfig animation;
 		CollisionConfig collision;
+		HealthConfig health;
 		SpriteConfig sprite;
 	};
 
@@ -57,6 +63,7 @@ private:
 			c.collision.offsetX, c.collision.offsetY); 
 		AddComponent<AnimationComponent>(c.animation.numFrames, c.animation.frameSpeedRate,
 			c.animation.loops); 
+		AddComponent<HealthComponent>(c.health.healthPercentage); 
 	}
 
 	static Character Create(Entity entity, const Config& config)

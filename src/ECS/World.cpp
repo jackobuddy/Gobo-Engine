@@ -86,7 +86,10 @@ void World::ProcessEntityDestruction(const Entity& entity)
 
 	// Unenroll the entity from all Systems. 
 	RemoveEntityFromSystems(entity);
+	RemoveEntityTag(entity); 
+	RemoveEntityGroup(entity); 
 
+	// Clean out our Component Pools
 	for (size_t componentID = 0; componentID < componentPools.size(); ++componentID)
 	{
 		if (componentID < signature.size() and
@@ -101,6 +104,73 @@ void World::ProcessEntityDestruction(const Entity& entity)
 	++entityGenerations[entity.id]; 
 	// Make the Entity ID availible to be used. 
 	freeIDs.push_back(entity.id);
+}
+
+void World::TagEntity(Entity entity, const std::string& tag)
+{
+	entityPerTag.emplace(tag, entity); 
+	tagPerEntity.emplace(entity.GetID(), tag); 
+}
+
+bool World::EntityHasTag(Entity entity, const std::string& tag) const
+{
+	if (tagPerEntity.find(entity.GetID()) == tagPerEntity.end())
+		return false; 
+	return entityPerTag.find(tag)->second == entity; 
+}
+
+Entity World::GetEntityByTag(const std::string& tag) const
+{
+	return entityPerTag.at(tag); 
+}
+
+void World::RemoveEntityTag(Entity entity)
+{
+	auto taggedEntity = tagPerEntity.find(entity.GetID());
+	if (taggedEntity != tagPerEntity.end())
+	{
+		auto tag = taggedEntity->second; 
+		entityPerTag.erase(tag); 
+		tagPerEntity.erase(taggedEntity); 
+	}
+}
+
+void World::GroupEntity(Entity entity, const std::string& group)
+{
+	entitiesPerGroup.emplace(group, std::set<Entity>()); 
+	entitiesPerGroup[group].emplace(entity); 
+	groupPerEntity.emplace(entity.GetID(), group); 
+}
+
+bool World::EntityBelongsToGroup(Entity entity, const std::string& group) const
+{
+	auto groupEntities = entitiesPerGroup.find(group); 
+	if (groupEntities == entitiesPerGroup.end())
+		return false;
+
+	return groupEntities->second.contains(entity);
+}
+
+std::vector<Entity> World::GetEntitiesByGroup(const std::string& group) const
+{ 
+	auto &setOfEntities = entitiesPerGroup.at(group); 
+	return std::vector<Entity>(setOfEntities.begin(), setOfEntities.end()); 
+}
+
+void World::RemoveEntityGroup(Entity entity)
+{
+	auto groupedEntity = groupPerEntity.find(entity.GetID()); 
+	if (groupedEntity != groupPerEntity.end())
+	{
+		auto group = entitiesPerGroup.find(groupedEntity->second); 
+		if (group != entitiesPerGroup.end())
+		{
+			auto entityInGroup = group->second.find(entity); 
+			if (entityInGroup != group->second.end()) 
+				group->second.erase(entityInGroup); 
+		}
+		groupPerEntity.erase(groupedEntity); 
+	}
 }
 
 void World::AddEntityToSystems(const Entity& entity)

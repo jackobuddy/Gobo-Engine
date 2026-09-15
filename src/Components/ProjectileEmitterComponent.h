@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../ECS/Component.h"
-#include <glm/glm.hpp>
+#include "../Math/Math.h"
 #include <SDL3/SDL.h>
 
 // TODO: This Componet is extremely game-specific. We need to expand this later to 
@@ -10,7 +10,7 @@
 // Creates a Component that fires a projectile at a set frequency automatically. 
 struct ProjectileEmitterComponent
 {
-	glm::vec2 projectileVelocity = glm::vec2(0); 
+	Vector2 projectileVelocity = Vector2(0);
 	// How often the projectile emitter repeats firing, in milliseconds. 
 	int repeatFrequency = 1000; 
 	// How long the projectile is alive for, in milliseconds. 
@@ -22,7 +22,7 @@ struct ProjectileEmitterComponent
 	// Can this projectile harm a "friendly" player target? 
 	bool isFriendly = false; 
 
-	ProjectileEmitterComponent(glm::vec2 projectileVelocity = glm::vec2(0),
+	ProjectileEmitterComponent(Vector2 projectileVelocity = Vector2(0),
 		int repeatFrequency = 1000, int projectileDuration = 10000,
 		int hitPercentDamage = 10, bool isFriendly = false)
 	{

@@ -38,6 +38,17 @@ public:
 	bool operator > (const Entity& other) const { 
 		return std::tie(world, id, generation) > std::tie(other.world, other.id, other.generation); }
 
+	// Adds a Tag to the Entity. Unlike Groups, Tags are unique to only a single Entity. 
+	// TODO: We want to be able to assign multiple unique tags to Entities. 
+	void Tag(const std::string& tag); 
+	// Returns true if the Entity has the given Tag, otherwise false. 
+	bool HasTag(const std::string& tag) const; 
+	// Assigns the Entity to the given Group. Unlike Tags, Groups can have multiple Entities. 
+	// TODO: We would like Entities to be assignable to multiple Groups. 
+	void Group(const std::string& group); 
+	// Returns true if the Entity belongs to the given Group, otherwise false. 
+	bool BelongsToGroup(const std::string& group) const; 
+
 	// Adds a Component to this Entity. 
 	template <typename TComponent, typename ...TArgs> void AddComponent(TArgs&&... args);
 	template <typename TComponent> void RemoveComponent();

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../ECS/System.h"
+#include "../Math/Math.h"
 #include "../Components/ProjectileEmitterComponent.h"
 #include "../Components/TransformComponent.h"
 #include "../Components/RigidBodyComponent.h"
@@ -49,7 +50,7 @@ public:
 					if (not emitter or not transform or not rigidBody)
 						continue; 
 
-					glm::vec2 projectilePosition = transform->position;
+					Vector2 projectilePosition = transform->position;
 
 					const SpriteComponent* sprite = entity.GetComponent<SpriteComponent>(); 
 
@@ -59,7 +60,7 @@ public:
 						projectilePosition.y += transform->scale.y * sprite->height / 2; 
 					}
 
-					glm::vec2 projectileVelocity = emitter->projectileVelocity; 
+					Vector2 projectileVelocity = emitter->projectileVelocity; 
 					int directionX = 0;
 					int directionY = 0;
 					if (rigidBody->velocity.x > 0) directionX = 1; 
@@ -72,6 +73,7 @@ public:
 						projectileVelocity.y = emitter->projectileVelocity.y; 
 
 					Entity projectile = entity.GetWorld()->CreateEntity();
+					projectile.Group("projectiles"); 
 					projectile.AddComponent<TransformComponent>(projectilePosition, 
 						transform->scale, transform->rotation); 
 					projectile.AddComponent<RigidBodyComponent>(projectileVelocity);
@@ -100,7 +102,7 @@ public:
 			// Check if the lapsed time is greater than the repeat frequency
 			if (SDL_GetTicks() - emitter->lastEmissionTime > emitter->repeatFrequency)
 			{
-				glm::vec2 projectilePosition = transform->position; 
+				Vector2 projectilePosition = transform->position; 
 
 				const SpriteComponent* sprite = entity.GetComponent<SpriteComponent>();
 				if (sprite)
@@ -111,6 +113,7 @@ public:
 
 				// Add a new Projectile Entity. 
 				Entity projectile = world->CreateEntity();
+				projectile.Group("projectiles"); 
 				projectile.AddComponent<TransformComponent>(projectilePosition, 
 					transform->scale, transform->rotation); 
 				projectile.AddComponent<RigidBodyComponent>(emitter->projectileVelocity); 

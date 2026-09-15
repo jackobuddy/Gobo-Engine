@@ -1,8 +1,8 @@
 #pragma once
 
-#include <glm/glm.hpp>
 #include <string>
 #include "../Logger/Logger.h"
+#include "../Math/Math.h"
 
 const int minViewWidth = 800; 
 const int maxViewWidth = 3840; 
@@ -12,13 +12,13 @@ const int maxViewHeight = 2160;
 class Camera
 {
 public: 
-	Camera(glm::vec2 position = glm::vec2(0), glm::vec2 viewSize = glm::vec2(1280, 720))
+	Camera(Vector2 position = Vector2(0), Vector2 viewSize = Vector2(1280, 720))
 	{
 		this->position = position; 
 		SetViewSize(viewSize); 
 	}
 
-	void SetViewSize(glm::vec2 viewSize)
+	void SetViewSize(Vector2 viewSize)
 	{
 		// View Width
 		if (viewSize.x < minViewWidth)
@@ -52,10 +52,10 @@ public:
 		this->viewSize.y = viewSize.y;
 	}
 
-	glm::vec2 GetViewSize() const { return viewSize; }
+	Vector2 GetViewSize() const { return viewSize; }
 
-	glm::vec2 position = glm::vec2(0);
+	Vector2 position = Vector2(0);
 
 private: 
-	glm::vec2 viewSize = glm::vec2(1280,720); 
+	Vector2 viewSize = Vector2(1280,720);
 };

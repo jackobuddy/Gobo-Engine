@@ -1,4 +1,5 @@
 #include "Game.h"
+#include "../Math/Math.h"
 #include "../Rendering/Window.h"
 #include "../Logger/Logger.h"
 #include "../ECS/World.h"
@@ -76,8 +77,8 @@ int Game::Initialize()
 		return 1;  
 
 	// Initialize our ingame camera
-	camera.position = glm::vec2(0); 
-	camera.SetViewSize(glm::vec2(1280, 720)); 
+	camera.position = Vector2(0); 
+	camera.SetViewSize(Vector2(1280, 720)); 
 
 	// Set the Main Game Loop to be running
 	isRunning = true; 
@@ -150,7 +151,7 @@ void Game::Setup()
 
 	/// Smoke test
 	// Setup our map's camera
-	camera.SetViewSize(glm::vec2(1280, 720));
+	camera.SetViewSize(Vector2(1280, 720));
 
 	// Add assets to Asset Manger
 	SDL_Renderer* r = renderer->GetSDLRenderer();
@@ -183,7 +184,8 @@ void Game::Setup()
 			mapFile.ignore(); 
 
 			Entity tile = world->CreateEntity(); 
-			tile.AddComponent<TransformComponent>(glm::vec2(x * (tileScale * tileSize), y * (tileScale * tileSize)), glm::vec2(tileScale, tileScale), 0.0); 
+			tile.Group("tiles"); 
+			tile.AddComponent<TransformComponent>(Vector2(x * (tileScale * tileSize), y * (tileScale * tileSize)), Vector2(tileScale, tileScale), 0.0);
 			tile.AddComponent<SpriteComponent>("jungle-tm", tileSize, tileSize, -1, false, srcRectX, srcRectY); 
 		}
 	}
@@ -193,58 +195,58 @@ void Game::Setup()
 	mapWidth = static_cast<int>(mapNumCols * tileSize * tileScale); 
 	mapHeight = static_cast<int>(mapNumRows * tileSize * tileScale); 
 
-	// Create the chopper
-	/*
-	Actor::Config config;
-	config.position = glm::vec2(600, 600);
-	config.scale = glm::vec2(tileScale, tileScale);
-	Actor chopper = world->CreateEntity<Actor>(config);
-	chopper.AddComponent<SpriteComponent>("chopper-image", 32, 32, 1);
-	chopper.AddComponent<AnimationComponent>(2, 15, true);
-	chopper.AddComponent<ProjectileEmitterComponent>(glm::vec2(500, 500), 0, 10000, 0, true); 
-	chopper.AddComponent<KeyboardControlledComponent>(glm::vec2(0,-200), glm::vec2(200,0), glm::vec2(0, 200), glm::vec2(-200,0)); 
-	chopper.AddComponent<CameraFollowComponent>(32, 32);
-	chopper.AddComponent<HealthComponent>(100); 
-	*/
-
-	// Configure our Player. 
+	// Configure our Player Helicopter.  
 	Character::Config playerConfig{
-		.actor = { .position = glm::vec2(600), .scale = glm::vec2(tileScale) },
+		.actor = { .position = Vector2(600), .scale = Vector2(tileScale) },
 		.animation = { .numFrames = 2, .frameSpeedRate = 15, .loops = true },
 		.collision = { .width = 32, .height = 32 },
 		.sprite = { .assetID = "chopper-image", .width = 32.0, .height = 32.0, .layer = 1 }};
 
 	Character player = world->CreateEntity<Character>(playerConfig); 
-	player.AddComponent<ProjectileEmitterComponent>(glm::vec2(500, 500), 0, 10000, 0, true);
-	player.AddComponent<KeyboardControlledComponent>(glm::vec2(0, -200), glm::vec2(200, 0), glm::vec2(0, 200), glm::vec2(-200, 0));
-	player.AddComponent<CameraFollowComponent>(32, 32);
-	player.AddComponent<HealthComponent>(100);
+	player.Tag("player"); 
+	player.AddComponent<ProjectileEmitterComponent>(Vector2(500, 500), 0, 10000, 20, true);
+	player.AddComponent<KeyboardControlledComponent>(Vector2(0, -200), Vector2(200, 0), Vector2(0, 200), Vector2(-200, 0));
+	player.AddComponent<CameraFollowComponent>(32, 32); 
 	
+	// Set up the UI Radar element
+	Actor::Config radarConfig = {
+		.position = Vector2(GetScreenWidth() - 138, 10), 
+		.scale = Vector2(tileScale, tileScale) };
 
-	// Create the Radar
-	Entity radar = world->CreateEntity();
-	radar.AddComponent<TransformComponent>(glm::vec2(GetScreenWidth() - 138, 10), glm::vec2(tileScale, tileScale), 0.0);
-	radar.AddComponent<RigidBodyComponent>();
+	Actor radar = world->CreateEntity<Actor>(radarConfig); 
 	radar.AddComponent<SpriteComponent>("radar-image", 64.0f, 64.0f, 2, true);
 	radar.AddComponent<AnimationComponent>(8, 5, true);
 
 	// Create the tank
-	Entity tank = world->CreateEntity(); 
-	tank.AddComponent<TransformComponent>(glm::vec2(100.0, 400), glm::vec2(tileScale, tileScale), 0.0);
-	tank.AddComponent<RigidBodyComponent>(glm::vec2(0, 0)); 
-	tank.AddComponent<SpriteComponent>("tank-image", 32.0f, 32.0f);
-	tank.AddComponent<BoxCollisionComponent>(32, 32); 
-	tank.AddComponent<ProjectileEmitterComponent>(glm::vec2(150, 0), 5000, 5000, 0, false); 
-	tank.AddComponent<HealthComponent>(100); 
+	Character::Config tankConfig = {
+		.actor {
+			.position = Vector2(100.0, 400), .scale = Vector2(tileScale, tileScale) },
+		.collision {
+			.width = 32, .height = 32 },
+		.sprite {
+			.assetID = "tank-image", .width = 32.0f, .height = 32.0f }};
+
+	Character tank = world->CreateEntity<Character>(tankConfig); 
+	tank.Group("enemies"); 
+	tank.AddComponent<ProjectileEmitterComponent>(Vector2(150, 0), 5000, 5000, 15, false);
 
 	// Create the truck
-	Entity truck = world->CreateEntity();
-	truck.AddComponent<TransformComponent>(glm::vec2(700, 400.0), glm::vec2(tileScale, tileScale), 0.0);
-	truck.AddComponent<RigidBodyComponent>(glm::vec2(0, 0));
-	truck.AddComponent<SpriteComponent>("truck-image", 32.0f , 32.0f);
-	truck.AddComponent<BoxCollisionComponent>(32, 32);
-	truck.AddComponent<ProjectileEmitterComponent>(glm::vec2(0, 250), 1000, 2000, 0, false);
-	truck.AddComponent<HealthComponent>(100); 
+	Character::Config truckConfig = {
+		.actor {
+			.position = Vector2(700.0, 400.0), .scale = Vector2(tileScale, tileScale) },
+		.collision {
+			.width = 32, .height = 32 },
+		.sprite {
+			.assetID = "truck-image", .width = 32.0f, .height = 32.0f } };
+
+	Character truck = world->CreateEntity<Character>(truckConfig); 
+	truck.Group("enemies"); 
+	truck.AddComponent<ProjectileEmitterComponent>(Vector2(0, 250), 1000, 2000, 10, false);
+
+	// Math Library Test
+	Vector2 testVec = Vector2(10.0f, 20.0f); 
+	testVec.x = testVec.x + 1.0f; 
+	Logger::Log("Test Vec X = " + std::to_string(testVec.x)); 
 }
 
 void Game::ProcessInput()

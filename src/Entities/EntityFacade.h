@@ -35,6 +35,11 @@ public:
 	int GetID() const { return entity.GetID(); }
 	Entity GetEntity() const { return entity; }
 
+	void Tag(const std::string& tag) { entity.Tag(tag); }
+	bool HasTag(const std::string& tag) const { return entity.HasTag(tag); }
+	void Group(const std::string& group) { entity.Group(group); }
+	bool BelongsToGroup(const std::string& group) const { return entity.BelongsToGroup(group); }
+
 protected:
 	explicit EntityFacade(Entity entity) : entity(entity) {}
 

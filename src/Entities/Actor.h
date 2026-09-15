@@ -4,6 +4,7 @@
 #include "../Components/TransformComponent.h"
 #include "../Components/RigidBodyComponent.h"
 #include "../Logger/Logger.h"
+#include "../Math/Math.h"
 
 // An Actor is a subclassification of Entity that is intended to be placed in the world. 
 // Actors come prebuilt with a Transform Component and a RigidBody Component. 
@@ -14,13 +15,13 @@ class Actor : public EntityFacade
 public:
 	struct Config
 	{
-		glm::vec2 position {0.0f, 0.0f};
-		glm::vec2 scale {1.0f, 1.0f};
+		Vector2 position {0.0f, 0.0f};
+		Vector2 scale {1.0f, 1.0f};
 		double rotation = 0.0; 
-		glm::vec2 velocity = glm::vec2(0.0, 0.0);
+		Vector2 velocity = Vector2(0.0, 0.0);
 	};
 
-	glm::vec2 GetLocation() const
+	Vector2 GetLocation() const
 	{
 		const TransformComponent* transform = GetComponent<TransformComponent>(); 
 		if (not transform)
@@ -31,7 +32,7 @@ public:
 		return transform->position; 
 	}
 
-	void SetLocation(glm::vec2 location)
+	void SetLocation(Vector2 location)
 	{
 		TransformComponent* transform = GetComponent<TransformComponent>(); 
 		if (not transform)
