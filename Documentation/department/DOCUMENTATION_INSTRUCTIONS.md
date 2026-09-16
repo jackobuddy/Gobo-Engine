@@ -4,9 +4,9 @@ Last updated: 2026-09-16 CDT
 
 ## Authority and boundaries
 
-- The engine documentation team may edit only this Engine repository's `docs/Documentation` engineering-wiki directory, top-level `Documentation` Designer Guide directory, and root `README.md`.
+- The documentation team may edit only the suite-root `docs/Documentation` Engineering Wiki directory, suite-root `Documentation` Designer Guide directory, and suite-root `README.md`.
 - Never edit Engine source, build files, dependencies, assets, generated output, the Game Template, test games, or another department's files.
-- Treat the sibling `GoboGameTemplate` project as read-only reference material. It shows the supported designer-facing integration path.
+- Treat `Projects/GoboGameTemplate` as read-only reference material. It shows the supported designer-facing integration path.
 
 ## Two documentation audiences
 
@@ -17,9 +17,9 @@ Last updated: 2026-09-16 CDT
 
 ## Every review
 
-1. Inspect current Engine source and its root README.
-2. Inspect the sibling `GoboGameTemplate` source, CMake files, and setup script to verify the intended user workflow.
-3. Refresh this Designer wiki and Engine README for changed public behavior, lifecycle order, templates, configuration, and examples.
+1. Inspect current `Engine` source, the suite-root README, and suite CMake/scripts.
+2. Inspect `Projects/GoboGameTemplate` source, CMake files, and setup script to verify the intended user workflow.
+3. Refresh both wikis and the suite README for changed public behavior, lifecycle order, templates, configuration, and examples.
 4. Clearly label prototype, smoke-test, or unavailable features and never present them as stable designer tools.
 5. Keep the site directly usable from `Documentation/index.html`: no server, build, or package installation.
 6. Keep markup, navigation, search, links, and examples synchronized and validate the site data before completing a review.

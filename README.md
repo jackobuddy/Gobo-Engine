@@ -1,6 +1,6 @@
-# Gobo Engine
+# Gobo Engine Suite
 
-Gobo Engine is an in-progress 2D game engine for Windows, written in C++20 and built with CMake. The Engine builds as the <code>Gobo::Engine</code> library; create games from the sibling <code>GoboGameTemplate</code> project rather than adding game code to this repository.
+Gobo Engine Suite contains the reusable Gobo Engine library, an example game, and a game-project template. It is a Windows C++20/CMake project.
 
 ## Prerequisites
 
@@ -14,13 +14,13 @@ Install:
 
 The setup script bootstraps the repository's included copy of vcpkg and configures CMake. No separate global vcpkg installation is required.
 
-## Clone and set up
+## Clone, set up, and build
 
 Open PowerShell and clone the repository:
 
 ```powershell
-git clone --recurse-submodules <repository-url>
-cd "Gobo Engine"
+git clone https://github.com/jackobuddy/Gobo-Engine.git
+cd Gobo-Engine
 ```
 
 If the repository was cloned without submodules, initialize them:
@@ -32,7 +32,7 @@ git submodule update --init --recursive
 Run the setup script:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+.\scripts\bootstrap.ps1
 ```
 
 This script:
@@ -42,27 +42,24 @@ This script:
 3. Configures the `windows-x64` CMake preset.
 4. Installs the SDL3 and SDL3_image dependencies declared in `vcpkg.json`.
 
-## Build the Engine
-
-Build the Debug configuration:
-
-```powershell
 cmake --build --preset windows-x64-debug
 ```
 
-This builds the Engine library. To build and run a game, follow the Designer Guide and use a copy of the sibling `GoboGameTemplate` project.
+The bootstrap script initializes the vcpkg submodule, bootstraps vcpkg, and configures the root CMake preset. The Debug build creates the Engine library and the enabled example game.
 
-## Create and run a game
+## Create a local game project
 
-Copy `GoboGameTemplate` to create your own game project, keeping it beside `Gobo Engine`. Then run the setup script from your copied game folder:
+From the repository root, run:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
-cmake --build --preset windows-x64-debug
-.\out\build\windows-x64\Debug\GoboGameTemplate.exe
+.\New-GoboProject.ps1 -Name MyGame
 ```
 
-The template links to `Gobo::Engine`, provides the `IGame` callback class to customize, and copies required runtime DLLs beside the game executable.
+The name must start with a letter and contain only letters, numbers, and underscores. The script copies `Projects/GoboGameTemplate` to `Projects/MyGame`, removes template build output, and updates the project name in its CMake and vcpkg files. Add `-InitializeGit` to initialize a separate Git repository in the new project.
+
+> The project-creation script is currently located at the repository root. If it is later moved to `scripts`, use `./scripts/New-GoboProject.ps1` instead.
+
+Open `Projects/MyGame` in Visual Studio, or configure and build it with its included CMake presets.
 
 ## Visual Studio workflow
 
@@ -70,7 +67,7 @@ The template links to `Gobo::Engine`, provides the `IGame` callback class to cus
 2. Choose **Open a local folder**.
 3. Select the repository root—the folder containing `CMakeLists.txt`.
 4. Wait for CMake configuration to finish.
-5. For the Engine, build the `GoboEngine` target. For a game, open the copied template and choose its executable startup item.
+5. Choose `GoboExampleGame` to run the included example, or open a project created under `Projects` and choose that game's executable.
 6. Select a Windows x64 Debug configuration.
 7. Press `F5` to build and run.
 
@@ -84,13 +81,15 @@ The template links to `Gobo::Engine`, provides the `IGame` callback class to cus
 
 ## Repository layout
 
-- `src/` — engine source code
+- `Engine/` — reusable Engine library and source code
+- `Projects/ExampleGame/` — included example game
+- `Projects/GoboGameTemplate/` — source copied by the new-project script
 - `Documentation/` — offline Designer Guide; open `index.html` directly in a browser
-- `../GoboGameTemplate/` — starting point for a game project; copy it before editing
+- `docs/Documentation/` — offline Engineering Wiki
 - `scripts/bootstrap.ps1` — dependency and CMake setup script
-- `external/vcpkg/` — vcpkg Git submodule
+- `Engine/external/vcpkg/` — vcpkg Git submodule
 - `CMakeLists.txt` — CMake target and dependency configuration
 
 ## Notes
 
-Gobo Engine is under active development. Several gameplay-facing systems are prototypes, including projectiles, health, tags, and groups. See `Documentation/index.html` for the current Designer Guide.
+Gobo Engine is under active development. Several gameplay-facing systems are prototypes, including projectiles, health, tags, and groups. See `Documentation/index.html` for the Designer Guide.
