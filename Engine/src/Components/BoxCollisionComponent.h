@@ -1,0 +1,18 @@
+#pragma once
+
+struct BoxCollisionComponent
+{
+public:
+	int width = 0; 
+	int height = 0; 
+	int offsetX = 0; 
+	int offsetY = 0; 
+
+	BoxCollisionComponent(int width = 0, int height = 0, int offsetX = 0, int offsetY = 0)
+	{
+		this->width = width; 
+		this->height = height; 
+		this->offsetX = offsetX; 
+		this->offsetY = offsetY; 
+	}
+};

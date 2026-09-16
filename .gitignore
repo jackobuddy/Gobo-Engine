@@ -1,18 +1,23 @@
-# Internal department documents
+# User-created projects are local to this clone.
+/Projects/*
+!/Projects/GameTemplate/
+!/Projects/GameTemplate/**
+!/Projects/ExampleGame/
+!/Projects/ExampleGame/**
+# Internal department reports remain outside the distributable suite.
 /docs/
-
-# Visual Studio and CMake user state
-/.vs/
-/out/
-/build/
-/x64/
-/vcpkg_installed/
-CMakeUserPresets.json
+# Generated CMake and Visual Studio state anywhere in the suite.
+**/.vs/
+**/out/
+**/build/
+**/x64/
+**/vcpkg_installed/
+**/CMakeUserPresets.json
 *.user
 *.suo
 *.VC.db
 *.VC.opendb
-# Compiler and generated runtime output
+# Compiler and generated runtime output.
 *.obj
 *.pdb
 *.ilk
@@ -22,8 +27,7 @@ CMakeUserPresets.json
 *.dll
 *.exp
 *.log
-
-# Legacy local build files and vendored libraries
+# Legacy local-only files at the suite root.
 /libs/
 /Gobo Engine.vcxproj
 /Gobo Engine.vcxproj.filters

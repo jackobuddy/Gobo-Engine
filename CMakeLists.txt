@@ -1,37 +1,20 @@
 cmake_minimum_required(VERSION 3.28)
-project(GoboEngine VERSION 0.1.0 LANGUAGES CXX)
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
-find_package(SDL3 CONFIG REQUIRED)
-find_package(SDL3_image CONFIG REQUIRED)
-set(GOBO_ENGINE_SOURCES
-    src/Application/Application.cpp
-    src/Application/GameContext.cpp
-    src/AssetManager/AssetManager.cpp
-    src/Components/SpriteComponent.cpp
-    src/ECS/Component.cpp
-    src/ECS/Entity.cpp
-    src/ECS/System.cpp
-    src/ECS/World.cpp
-    src/Logger/Logger.cpp
-    src/Rendering/Renderer.cpp
-    src/Rendering/Window.cpp
-    src/Systems/AnimationSystem.cpp
-    src/Systems/CollisionSystem.cpp
-    src/Systems/MovementSystem.cpp
-    src/Systems/RenderCollisionSystem.cpp
-    src/Systems/RenderSystem.cpp
+
+project(GoboEngineSuite VERSION 0.1.0 LANGUAGES CXX)
+
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+option(GOBO_BUILD_EXAMPLE
+    "Build the official Gobo Engine example game"
+    ON
 )
-file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-add_library(GoboEngine STATIC
-    ${GOBO_ENGINE_SOURCES}
-    ${GOBO_ENGINE_HEADERS} "src/GoboEngine.h")
-add_library(Gobo::Engine ALIAS GoboEngine)
-target_include_directories(GoboEngine PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(GoboEngine PUBLIC
-    SDL3::SDL3
-    SDL3_image::SDL3_image-shared)
-set_target_properties(GoboEngine PROPERTIES FOLDER "Engine")
+
+add_subdirectory(Engine)
+
+if(GOBO_BUILD_EXAMPLE)
+    add_subdirectory(Projects/ExampleGame)
+
+    set_property(DIRECTORY PROPERTY
+        VS_STARTUP_PROJECT GoboExampleGame
+    )
+endif()
