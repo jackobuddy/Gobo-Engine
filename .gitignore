@@ -1,7 +1,7 @@
 # User-created projects are local to this clone.
 /Projects/*
-!/Projects/GameTemplate/
-!/Projects/GameTemplate/**
+!/Projects/GoboGameTemplate/
+!/Projects/GoboGameTemplate/**
 !/Projects/ExampleGame/
 !/Projects/ExampleGame/**
 # Internal department reports remain outside the distributable suite.

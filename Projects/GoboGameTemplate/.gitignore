@@ -1,0 +1,14 @@
+/.vs/
+/out/
+/build/
+/x64/
+/vcpkg_installed/
+CMakeUserPresets.json
+*.user
+*.suo
+*.VC.db
+*.VC.opendb
+*.obj
+*.pdb
+*.exe
+*.dll
