@@ -1,6 +1,6 @@
 # Gobo Engine
 
-Gobo Engine is an in-progress 2D game engine for Windows, written in C++20 and built with CMake. It currently uses SDL3 and SDL3_image, which are installed through the included vcpkg submodule.
+Gobo Engine is an in-progress 2D game engine for Windows, written in C++20 and built with CMake. The Engine builds as the <code>Gobo::Engine</code> library; create games from the sibling <code>GoboGameTemplate</code> project rather than adding game code to this repository.
 
 ## Prerequisites
 
@@ -42,7 +42,7 @@ This script:
 3. Configures the `windows-x64` CMake preset.
 4. Installs the SDL3 and SDL3_image dependencies declared in `vcpkg.json`.
 
-## Build and run
+## Build the Engine
 
 Build the Debug configuration:
 
@@ -50,13 +50,19 @@ Build the Debug configuration:
 cmake --build --preset windows-x64-debug
 ```
 
-Run the built executable:
+This builds the Engine library. To build and run a game, follow the Designer Guide and use a copy of the sibling `GoboGameTemplate` project.
+
+## Create and run a game
+
+Copy `GoboGameTemplate` to create your own game project, keeping it beside `Gobo Engine`. Then run the setup script from your copied game folder:
 
 ```powershell
-.\out\build\windows-x64\Debug\GoboEngine.exe
+powershell -ExecutionPolicy Bypass -File scripts/bootstrap.ps1
+cmake --build --preset windows-x64-debug
+.\out\build\windows-x64\Debug\GoboGameTemplate.exe
 ```
 
-The build copies required runtime DLLs and the `assets` directory beside the executable.
+The template links to `Gobo::Engine`, provides the `IGame` callback class to customize, and copies required runtime DLLs beside the game executable.
 
 ## Visual Studio workflow
 
@@ -64,7 +70,7 @@ The build copies required runtime DLLs and the `assets` directory beside the exe
 2. Choose **Open a local folder**.
 3. Select the repository root—the folder containing `CMakeLists.txt`.
 4. Wait for CMake configuration to finish.
-5. Choose the `GoboEngine.exe` startup item.
+5. For the Engine, build the `GoboEngine` target. For a game, open the copied template and choose its executable startup item.
 6. Select a Windows x64 Debug configuration.
 7. Press `F5` to build and run.
 
@@ -79,12 +85,12 @@ The build copies required runtime DLLs and the `assets` directory beside the exe
 ## Repository layout
 
 - `src/` — engine source code
-- `assets/` — current demo textures and tilemap data
-- `docs/documentation/` — offline engineering wiki; open `index.html` directly in a browser
+- `Documentation/` — offline Designer Guide; open `index.html` directly in a browser
+- `../GoboGameTemplate/` — starting point for a game project; copy it before editing
 - `scripts/bootstrap.ps1` — dependency and CMake setup script
 - `external/vcpkg/` — vcpkg Git submodule
 - `CMakeLists.txt` — CMake target and dependency configuration
 
 ## Notes
 
-Gobo Engine is under active development. Several systems are still prototype or smoke-test implementations, including gameplay-facing projectiles, health, tags, groups, and example scene setup. See the engineering wiki for current API behavior and known limitations.
+Gobo Engine is under active development. Several gameplay-facing systems are prototypes, including projectiles, health, tags, and groups. See `Documentation/index.html` for the current Designer Guide.
