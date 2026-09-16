@@ -1,6 +1,5 @@
 #include "Window.h"
 #include "../Logger/Logger.h"
-#include "../Game/Game.h"
 #include "../Math/Math.h"
 #include <SDL3/SDL.h>
 

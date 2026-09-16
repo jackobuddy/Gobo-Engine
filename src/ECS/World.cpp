@@ -1,5 +1,4 @@
 #include "World.h"
-#include "../Game/Game.h"
 #include "../Logger/Logger.h"
 #include "../Systems/MovementSystem.h"
 #include "../Entities/EntityFacade.h"

@@ -5,30 +5,33 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(SDL3_image CONFIG REQUIRED)
-file(GLOB_RECURSE GOBO_SOURCE_FILES CONFIGURE_DEPENDS
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
-    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h"
+set(GOBO_ENGINE_SOURCES
+    src/Application/Application.cpp
+    src/Application/GameContext.cpp
+    src/AssetManager/AssetManager.cpp
+    src/Components/SpriteComponent.cpp
+    src/ECS/Component.cpp
+    src/ECS/Entity.cpp
+    src/ECS/System.cpp
+    src/ECS/World.cpp
+    src/Logger/Logger.cpp
+    src/Rendering/Renderer.cpp
+    src/Rendering/Window.cpp
+    src/Systems/AnimationSystem.cpp
+    src/Systems/CollisionSystem.cpp
+    src/Systems/MovementSystem.cpp
+    src/Systems/RenderCollisionSystem.cpp
+    src/Systems/RenderSystem.cpp
 )
-add_executable(GoboEngine ${GOBO_SOURCE_FILES} "src/Math/Math.h")
-target_include_directories(GoboEngine PRIVATE
-    "${CMAKE_CURRENT_SOURCE_DIR}/src"
-)
-target_link_libraries(GoboEngine PRIVATE
+file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
+add_library(GoboEngine STATIC
+    ${GOBO_ENGINE_SOURCES}
+    ${GOBO_ENGINE_HEADERS} "src/GoboEngine.h")
+add_library(Gobo::Engine ALIAS GoboEngine)
+target_include_directories(GoboEngine PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(GoboEngine PUBLIC
     SDL3::SDL3
-    SDL3_image::SDL3_image-shared
-)
-add_custom_command(TARGET GoboEngine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            $<TARGET_RUNTIME_DLLS:GoboEngine>
-            $<TARGET_FILE_DIR:GoboEngine>
-    COMMAND_EXPAND_LISTS
-)
-add_custom_command(TARGET GoboEngine POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
-            "${CMAKE_CURRENT_SOURCE_DIR}/assets"
-            "$<TARGET_FILE_DIR:GoboEngine>/assets"
-)
-set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT GoboEngine)
-set_property(TARGET GoboEngine PROPERTY
-    VS_DEBUGGER_WORKING_DIRECTORY
-    "${CMAKE_CURRENT_BINARY_DIR}/Debug")
+    SDL3_image::SDL3_image-shared)
+set_target_properties(GoboEngine PROPERTIES FOLDER "Engine")

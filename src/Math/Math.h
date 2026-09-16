@@ -3,6 +3,7 @@
 #include <cassert>
 #include <cstddef>
 #include <cmath>
+#include <cstdint>
 
 // ----------------------------------------------------------------------------
 // A 2-Deminsional Vector that stores values x and y. 

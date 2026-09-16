@@ -10,5 +10,5 @@ public:
 	CollisionSystem(); 
 	~CollisionSystem(); 
 
-	void Update(std::unique_ptr<EventManager>& eventManager);
+	void Update(EventManager& eventManager);
 };

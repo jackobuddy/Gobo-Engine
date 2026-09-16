@@ -22,6 +22,8 @@ public:
 	// successful and false if not. (0 = off, 1 = on, -1 = adaptive). The given m
 	// value is first clamped between -1 and 1 to ensure a valid input. 
 	bool SetVSyncMode(int m); 
+	// Applies a Render View Configuration. 
+	bool SetRenderViewConfig(RenderViewConfig config); 
 	// Returns the current VSync Mode (0 = off, 1 = on, -1 = adaptive).
 	int GetVSyncMode() const { return vsyncMode; }
 	// This function destroys the SDL Renderer and cleans up gracefully. 
@@ -39,8 +41,6 @@ private:
 	std::shared_ptr<Window> window = nullptr; 
 	// Stores the current VSync Mode (0 = off; 1 = on; -1 = adaptive).
 	int vsyncMode;
-	// Sets up the Logical Presentation of the game
-	bool SetLogicalPresentation(RenderViewConfig config); 
 	// Stores the currently set config for the logical presentation
 	RenderViewConfig presentationConfig; 
 };

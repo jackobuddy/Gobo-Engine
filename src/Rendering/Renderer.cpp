@@ -47,7 +47,7 @@ bool Renderer::Initialize()
 	// Set the Logcial Presentatin Mode
 	// TODO: Get the default project settings for the Logical Presentation Mode. 
 	RenderViewConfig config; 
-	if (not SetLogicalPresentation(config))
+	if (not SetRenderViewConfig(config))
 	{
 		Logger::Error("Failed to set Logical Presentation Mode. ");
 		return false; 
@@ -84,7 +84,7 @@ void Renderer::Destroy()
 	renderer = nullptr; 
 }
 
-bool Renderer::SetLogicalPresentation(RenderViewConfig config)
+bool Renderer::SetRenderViewConfig(RenderViewConfig config)
 {
 	if (not renderer or config.renderWidth <= 400 or config.renderHeight <= 300)
 		return false; 

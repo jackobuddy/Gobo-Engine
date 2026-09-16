@@ -13,7 +13,7 @@ RenderSystem::RenderSystem()
 	RequireComponent<SpriteComponent>(); 
 }
 
-void RenderSystem::Update(SDL_Renderer* renderer, std::unique_ptr<AssetManager>& assetManager, Camera camera)
+void RenderSystem::Update(SDL_Renderer* renderer, AssetManager& assetManager, Camera camera)
 {
 	// TODO: We only need to resort this list when the list has changed. 
 	// Break all the Entities into renderableEntity structs. 
@@ -51,7 +51,7 @@ void RenderSystem::Update(SDL_Renderer* renderer, std::unique_ptr<AssetManager>&
 			sprite->width * transform->scale.x,
 			sprite->height * transform->scale.y};
 		
-		SDL_Texture* texture = assetManager->GetTexture(sprite->assetID); 
+		SDL_Texture* texture = assetManager.GetTexture(sprite->assetID); 
 		if (not texture)
 		{
 			Logger::Error("GetTexture failed to return a valid texture for rendering.");

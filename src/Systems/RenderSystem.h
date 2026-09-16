@@ -15,7 +15,7 @@ class RenderSystem : public System
 {
 public:
 	RenderSystem(); 
-	void Update(SDL_Renderer* renderer, std::unique_ptr<AssetManager>& assetManager, Camera camera); 
+	void Update(SDL_Renderer* renderer, AssetManager& assetManager, Camera camera); 
 	void AddEntityToSystem(Entity entity) override;
 	void RemoveEntityFromSystem(Entity entity) override;
 

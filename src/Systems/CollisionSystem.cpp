@@ -16,7 +16,7 @@ CollisionSystem::~CollisionSystem()
 {
 }
 
-void CollisionSystem::Update(std::unique_ptr<EventManager>& eventManager)
+void CollisionSystem::Update(EventManager& eventManager)
 {
 	auto entities = GetSystemEntities(); 
 	// Check from each Entity that the System is interested in. 
@@ -61,7 +61,7 @@ void CollisionSystem::Update(std::unique_ptr<EventManager>& eventManager)
 			if (isColliding)
 			{
 				// Send a Collision Event to the Event Manager. 
-				eventManager->EmitEvent<CollisionEvent>(a, b); 
+				eventManager.EmitEvent<CollisionEvent>(a, b); 
 			}
 		}
 	}
