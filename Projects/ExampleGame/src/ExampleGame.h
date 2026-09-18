@@ -14,8 +14,5 @@ public:
 
 private:
 	void OnKeyPressed(KeyPressedEvent& event); 
-
-	GameContext* context = nullptr; 
-	Vector2 worldSize = Vector2(1920.0f, 1080.0f); 
 	bool isDebugMode = false; 
 };

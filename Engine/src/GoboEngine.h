@@ -17,6 +17,7 @@
 #include "Components/TransformComponent.h"
 #include "ECS/Entity.h"
 #include "ECS/World.h"
+#include "Entities/EntityObject.h"
 #include "Entities/Actor.h"
 #include "Entities/Character.h"
 #include "Events/CollisionEvent.h"

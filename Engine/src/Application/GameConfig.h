@@ -18,6 +18,19 @@ struct ClearColor
 	std::uint8_t a = 255; 
 };
 
+// Configures what Systems to use in the game. 
+struct SystemsConfig
+{
+	bool useAnimationSystem = true;
+	bool useCameraMovementSystem = true; 
+	bool useCollisionSystem = true; 
+	bool useKeyboardControlSystem = true; 
+	bool useMovementSystem = true; 
+	bool useProjectileLifecycleSystem = true; 
+	bool useRenderCollisionSystem = true; 
+	bool useRenderingSystem = true; 
+};
+
 // Configures the default game project settings. 
 struct GameConfig
 {
@@ -27,6 +40,8 @@ struct GameConfig
 	WindowConfig window{}; 
 	// Defines your basic rendering configuration. 
 	RenderViewConfig render{}; 
+	// Defines what Systems to use in the game. 
+	SystemsConfig systems; 
 	// Sets the starting camera position. 
 	Vector2 cameraPosition = Vector2(0.0f); 
 	// Sets the default VSync setting. 

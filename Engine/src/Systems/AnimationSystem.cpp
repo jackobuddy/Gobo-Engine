@@ -43,6 +43,6 @@ void AnimationSystem::Update()
 		
 		// Set the current frame and adjust the Source Rectangle of the Sprite. 
 		animation->SetCurrentFrame(frame);
-		sprite->srcRect.x = static_cast<float>(animation->GetCurrentFrame() * sprite->width);
+		sprite->srcRect.x = static_cast<float>(animation->GetCurrentFrame() * sprite->GetWidth());
 	}
 }

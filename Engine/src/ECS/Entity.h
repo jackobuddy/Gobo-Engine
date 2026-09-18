@@ -4,6 +4,7 @@
 #include <memory>
 
 class World; 
+class CollisionEvent; 
 
 class Entity
 {
@@ -11,7 +12,9 @@ class Entity
 
 public:
 	Entity(const Entity& entity) = default;
+	Entity(): id(-1), world(nullptr), generation(0) {}
 	~Entity() = default; 
+
 	// Destroys the Entity. Destruction occurs at the end of the current game frame. 
 	void Destroy(); 
 	// Returns a copy of the Entity's ID

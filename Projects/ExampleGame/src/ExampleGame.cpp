@@ -1,6 +1,8 @@
 #include "ExampleGame.h"
-#include "Systems/DamageSystem.h"
-#include "Systems/KeyboardControlSystem.h"
+#include "Entities/player.h"
+#include "Entities/tank.h"
+#include "Entities/truck.h"
+#include "Entities/radar.h"
 #include "Systems/ProjectileEmitSystem.h"
 #include <SDL3/SDL.h>
 #include <fstream>
@@ -24,27 +26,22 @@ GameConfig Game::Configure() const
 
 void Game::Stop(GameContext& context)
 {
-    this->context = nullptr;
 }
 
 void Game::Start(GameContext& context)
 {
-    this->context = &context;
     World& world = context.GetWorld();
     AssetManager& assets = context.GetAssets();
     SDL_Renderer* renderer = context.GetSDLRenderer();
+	EventManager& events = context.GetEvents();
 
-    world.AddSystem<RenderSystem>();
-    world.AddSystem<MovementSystem>();
-    world.AddSystem<AnimationSystem>();
-    world.AddSystem<CollisionSystem>();
-    world.AddSystem<RenderCollisionSystem>();
-    world.AddSystem<DamageSystem>();
-    world.AddSystem<KeyboardControlSystem>();
-    world.AddSystem<CameraMovementSystem>();
+	// Add our custom Projectile Emit System
     world.AddSystem<ProjectileEmitSystem>();
-    world.AddSystem<ProjectileLifecycleSystem>();
     
+	// Subscribe to events. 
+	if (auto* system = world.GetSystem<ProjectileEmitSystem>())
+		system->SubscribeToEvents(events);
+
 	// Setup our map's camera
 	context.GetCamera().SetViewSize(Vector2(1280, 720));
 
@@ -77,108 +74,48 @@ void Game::Start(GameContext& context)
 			float srcRectX = std::atoi(&ch) * tileSize;
 			mapFile.ignore();
 
-			Entity tile = world.CreateEntity();
+			Entity tile = world.CreateAutoNamedEntity("tile");
 			tile.Group("tiles");
 			tile.AddComponent<TransformComponent>(Vector2(x * (tileScale * tileSize), y * (tileScale * tileSize)), Vector2(tileScale, tileScale), 0.0);
-			tile.AddComponent<SpriteComponent>("jungle-tm", tileSize, tileSize, -1, false, srcRectX, srcRectY);
+			tile.AddComponent<SpriteComponent>("jungle-tm", tileSize, tileSize, -1, false, false, srcRectX, srcRectY);
 		}
 	}
 	mapFile.close();
 
 	// Set the map's width and height. 
-	worldSize = Vector2(mapNumCols * tileSize * tileScale, mapNumRows * tileSize * tileScale); 
+	world.SetWorldSize(Vector2(mapNumCols * tileSize * tileScale, mapNumRows * tileSize * tileScale)); 
+	
+	// Create our game objects. 
+	Player& player = world.CreateCharacter<Player>("player");
+	Character& tank1 = world.CreateCharacter<Tank>("tank1");
+	tank1.SetLocation(Vector2(438, 384));
+	Character& tank2 = world.CreateCharacter<Tank>("tank2");
+	tank2.SetLocation(Vector2(838, 684));
+	Character& truck1 = world.CreateCharacter<Truck>("truck1");
 
-	// Configure our Player Helicopter.  
-	Character::Config playerConfig{
-		.actor = {.position = Vector2(600), .scale = Vector2(tileScale) },
-		.animation = {.numFrames = 2, .frameSpeedRate = 15, .loops = true },
-		.collision = {.width = 32, .height = 32 },
-		.sprite = {.assetID = "chopper-image", .width = 32.0, .height = 32.0, .layer = 1 } };
-
-	Character player = world.CreateEntity<Character>(playerConfig);
-	player.Tag("player");
-	player.AddComponent<ProjectileEmitterComponent>(Vector2(500, 500), 0, 10000, 20, true);
-	player.AddComponent<KeyboardControlledComponent>(Vector2(0, -200), Vector2(200, 0), Vector2(0, 200), Vector2(-200, 0));
-	player.AddComponent<CameraFollowComponent>(32, 32);
-
-	// Set up the UI Radar element
+	// Set up the UI Radar element. We make our config here so we can use the render context. 
 	Actor::Config radarConfig = {
 		.position = Vector2(context.GetRenderer().GetRenderViewConfig().renderWidth - 138, 10),
 		.scale = Vector2(tileScale, tileScale) };
 
-	Actor radar = world.CreateEntity<Actor>(radarConfig);
-	radar.AddComponent<SpriteComponent>("radar-image", 64.0f, 64.0f, 2, true);
-	radar.AddComponent<AnimationComponent>(8, 5, true);
-
-	// Create the tank
-	Character::Config tankConfig = {
-		.actor {
-			.position = Vector2(100.0, 400), .scale = Vector2(tileScale, tileScale) },
-		.collision {
-			.width = 32, .height = 32 },
-		.sprite {
-			.assetID = "tank-image", .width = 32.0f, .height = 32.0f } };
-
-	Character tank = world.CreateEntity<Character>(tankConfig);
-	tank.Group("enemies");
-	tank.AddComponent<ProjectileEmitterComponent>(Vector2(150, 0), 5000, 5000, 15, false);
-
-	// Create the truck
-	Character::Config truckConfig = {
-		.actor {
-			.position = Vector2(700.0, 400.0), .scale = Vector2(tileScale, tileScale) },
-		.collision {
-			.width = 32, .height = 32 },
-		.sprite {
-			.assetID = "truck-image", .width = 32.0f, .height = 32.0f } };
-
-	Character truck = world.CreateEntity<Character>(truckConfig);
-	truck.Group("enemies");
-	truck.AddComponent<ProjectileEmitterComponent>(Vector2(0, 250), 1000, 2000, 10, false);
+	Actor& radar = world.CreateActor<Radar>("radar", radarConfig);
 }
 
 void Game::BeginFrame(GameContext& context)
 {
-	World& world = context.GetWorld();
-	EventManager& events = context.GetEvents();
-	events.SubscribeToEvent<KeyPressedEvent>(
-		this, &Game::OnKeyPressed);
-	if (auto* system = world.GetSystem<DamageSystem>())
-		system->SubscribeToEvents(events);
-	if (auto* system = world.GetSystem<KeyboardControlSystem>())
-		system->SubscribeToEvents(events);
-	if (auto* system = world.GetSystem<ProjectileEmitSystem>())
-		system->SubscribeToEvents(events);
 }
+
 void Game::OnKeyPressed(KeyPressedEvent& event)
 {
-	if (not context) return;
-	if (event.symbol == SDLK_ESCAPE)
-		context->RequestQuit();
-	else if (event.symbol == SDLK_F1)
-		isDebugMode = not isDebugMode;
+	if (not GetContext()) return;
 }
 
 void Game::Update(GameContext& context, float deltaSeconds)
 {
 	World& world = context.GetWorld();
 	EventManager& events = context.GetEvents();
-	if (auto* s = world.GetSystem<MovementSystem>())
-		s->Update(deltaSeconds);
-	if (auto* s = world.GetSystem<AnimationSystem>())
-		s->Update();
-	if (auto* s = world.GetSystem<CollisionSystem>())
-		s->Update(events);
-	if (auto* s = world.GetSystem<DamageSystem>())
-		s->Update();
-	if (auto* s = world.GetSystem<KeyboardControlSystem>())
-		s->Update();
-	if (auto* s = world.GetSystem<CameraMovementSystem>())
-		s->Update(context.GetCamera(), worldSize);
 	if (auto* s = world.GetSystem<ProjectileEmitSystem>())
 		s->Update(world);
-	if (auto* s = world.GetSystem<ProjectileLifecycleSystem>())
-		s->Update();
 }
 
 void Game::Render(GameContext& context)

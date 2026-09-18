@@ -10,6 +10,13 @@ public:
 	CollisionEvent(Entity a, Entity b): a(a), b(b) {}; 
 	~CollisionEvent() {}; 
 
+	Entity other(const Entity& self) const
+	{
+		if (self==a) return b; 
+		if (self==b) return a; 
+		return {}; 
+	}
+
 	Entity a; 
 	Entity b; 
 };

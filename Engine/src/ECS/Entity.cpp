@@ -1,5 +1,6 @@
 #include "Entity.h"
 #include "World.h"
+#include "../Events/CollisionEvent.h"
 
 void Entity::Destroy()
 {

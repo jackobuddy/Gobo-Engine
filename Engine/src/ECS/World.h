@@ -4,17 +4,23 @@
 #include "Component.h"
 #include "System.h"
 #include "Pool.h"
-#include "../Entities/EntityFacade.h"
+#include "../Entities/EntityObject.h"
 #include "../Logger/Logger.h"
+#include "../Entities/Actor.h"
+#include "../Entities/Character.h"
 #include <unordered_map>
 #include <typeindex>
 #include <set>
 #include <memory>
 #include <concepts>
 #include <utility>
+#include <stdexcept>
+#include <functional>
 
-template <typename T>
-concept EntityFacadeType = std::derived_from<T, EntityFacade>;
+class EventManager; 
+
+// template <typename T>
+// concept EntityFacadeType = std::derived_from<T, EntityFacade>;
 
 // The World manages the creation and destruction of entities, systems, 
 // and components. It is like the scene manager. 
@@ -36,8 +42,43 @@ public:
 	// This allows us to wait until the end of each frame to create and delete Entities. 
 	void Update();
 
+	// Stores a vector of Entity Objects in existance. 
+	std::vector<std::unique_ptr<EntityObject>> entityObjects; 
+	std::unordered_map<std::string, Entity> entitiesByName; 
+	std::vector<std::string> nameByEntityID; 
 	// Queues a new Entity to be created at the end of the current frame cycle. 
-	Entity CreateEntity();
+	Entity AllocateEntityHandle();
+	Entity CreateEntity(const std::string& name);
+	Entity CreateAutoNamedEntity(const std::string& baseName); 
+
+	// Creates a new Actor-type Entity. 
+	template <typename TActor = Actor>
+		requires std::derived_from<TActor, Actor>
+	TActor& CreateActor(const std::string& name, const Actor::Config& config = {})
+	{
+		return CreateObject<TActor>(name, config);
+	}
+	// Creates a new Character-type Entity. 
+	template <typename TCharacter = Character>
+	requires std::derived_from<TCharacter, Character>
+	TCharacter& CreateCharacter(const std::string& name, const Character::Config& config = {})
+	{
+		return CreateObject<TCharacter>(name, config);
+	}
+
+	EntityObject* FindObject(const std::string& name);
+	EntityObject* GetObject(Entity entity); 
+	std::string GenerateUniqueName(const std::string& baseName);
+	std::unordered_map<std::string, std::uint64_t> nextNameSuffix;
+	void RemoveName(Entity entity);
+	Entity FindEntity(const std::string& name) const;
+	Character* FindCharacter(const std::string& name);
+
+	template <typename TObject>
+	TObject* FindObjectAs(const std::string& name)
+	{
+		return dynamic_cast<TObject*>(FindObject(name));
+	}
 	// Returns if an Entity is still considered alive by the World
 	bool IsEntityAlive(const Entity& entity) const; 
 	// Queues an Entity to be destroyed. 
@@ -71,6 +112,24 @@ public:
 	// returning True on success or otherwise False. 
 	void RemoveEntityGroup(Entity entity); 
 
+	void SetWorldSize(Vector2 worldSize)
+	{
+		this->worldSize = Vector2 (std::max(0.0f, worldSize.x), std::max(0.0f, worldSize.y));
+	}
+	Vector2 GetWorldSize() const { return worldSize; }
+
+	// Requests that the game be ended. 
+	void RequestQuit()
+	{
+		if (quitRequestHandler)
+			quitRequestHandler();
+	}
+	// Used to set up our handler for quitting the game. Ran during Application Initialize. 
+	void SetQuitRequestHandler(std::function<void()> handler)
+	{
+		quitRequestHandler = std::move(handler);
+	}
+
 	// Adds a Component to an Entity.
 	template <typename TComponent, typename ...TArgs> void AddComponent(Entity entity, TArgs&& ... args); 
 	// Removes a Component from an Entity.
@@ -90,12 +149,19 @@ public:
 	template <typename TSystem> bool HasSystem() const ; 
 	// Get a System in the world. 
 	template <typename TSystem> TSystem* GetSystem() const; 
+	// Creates a new Entity with a auto-generated name. 
+	template <typename TObject, typename... TArgs>
+	TObject& CreateAutoNamedObject(const std::string& baseName, TArgs&&... args); 
+	// Creates a new game object. 
+	template <typename TObject, typename... TArgs>
+	TObject& CreateObject(const std::string& name, TArgs&&... args);
 
-	template <EntityFacadeType TEntity, typename... TArgs>
-	TEntity CreateEntity(TArgs&&... args); 
 private:
 	// Refreshes an Entity's System memberships based on requirements
 	void RefreshSystemMembership(Entity entity);
+	// Validates that a given Entity name isn't taken. 
+	bool IsNameAvailable(const std::string& name) const
+		{ return not name.empty() and not entitiesByName.contains(name); }
 	// Add the given Entity to the Systems it has the requirements for. 
 	void AddEntityToSystems(const Entity& entity);
 	// Removes an Entity from all of its Systems. 
@@ -105,10 +171,17 @@ private:
 
 	// Used to confirm if the request to access a Component is valid
 	bool IsValidComponetAccess(const Entity& entity, unsigned int componentID) const; 
+	void CommitObject(Entity entity, const std::string& name, std::unique_ptr<EntityObject> object);
+	void CancelEntityCreation(Entity entity);
 
 	// Keeps track of if a World Instance already exists
 	static bool worldExists; 
 
+	// Handler used to request quitting the game from the World. 
+	std::function<void()> quitRequestHandler;
+
+	// Set size of the world map. The Camera System uses this to determine the bounds of the map. 
+	Vector2 worldSize = Vector2(1920, 1080); 
 	// Keeps track of the number of entities in the world
 	int numEntities = 0; 
 	// List of Entities awaiting creation in the next World Update
@@ -331,11 +404,41 @@ inline TSystem* World::GetSystem() const
 	return static_cast<TSystem*>(system->second.get()); 
 }
 
-template<EntityFacadeType TEntity, typename ...TArgs>
-inline TEntity World::CreateEntity(TArgs && ...args)
+template <typename TObject, typename... TArgs>
+TObject& World::CreateObject(const std::string& name, TArgs&&... args)
 {
-	Entity entity = CreateEntity(); 
-	return TEntity::Create(entity, std::forward<TArgs>(args)...); 
+	static_assert(std::derived_from<TObject, EntityObject>);
+
+	if (!IsNameAvailable(name))
+		throw std::runtime_error("Entity name is unavailable: " + name);
+
+	Entity handle = AllocateEntityHandle();
+
+	try
+	{
+		auto object = std::make_unique<TObject>(handle, name, std::forward<TArgs>(args)...);
+
+		TObject& result = *object;
+
+		CommitObject(handle, name, std::move(object));
+
+		result.OnCreated();
+		return result;
+	}
+	catch (...)
+	{
+		CancelEntityCreation(handle);
+		throw;
+	}
+}
+
+template <typename TObject, typename... TArgs>
+TObject& World::CreateAutoNamedObject(const std::string& baseName, TArgs&&... args)
+{
+	return CreateObject<TObject>(
+		GenerateUniqueName(baseName),
+		std::forward<TArgs>(args)...
+	);
 }
 
 #include "EntityTemplates.h"

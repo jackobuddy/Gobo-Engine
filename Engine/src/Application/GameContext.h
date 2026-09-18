@@ -1,5 +1,7 @@
 #pragma once
 
+#include "../Entities/EntityObject.h"
+
 class AssetManager; 
 class Camera; 
 class EventManager; 
@@ -19,6 +21,7 @@ public:
 	Camera& GetCamera() const; 
 	Renderer& GetRenderer() const; 
 	SDL_Renderer* GetSDLRenderer() const; 
+	EntityObject* FindObject(const std::string name) const; 
 	void RequestQuit(); 
 
 private:

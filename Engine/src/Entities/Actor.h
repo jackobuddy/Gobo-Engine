@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../Entities/EntityFacade.h"
+#include "../Entities/EntityObject.h"
 #include "../Components/TransformComponent.h"
 #include "../Components/RigidBodyComponent.h"
 #include "../Logger/Logger.h"
@@ -9,9 +9,8 @@
 // An Actor is a subclassification of Entity that is intended to be placed in the world. 
 // Actors come prebuilt with a Transform Component and a RigidBody Component. 
 // The starting values of the built in Component is applied from a given Actor::Config. 
-class Actor : public EntityFacade
+class Actor : public EntityObject
 {
-	friend class World; 
 public:
 	struct Config
 	{
@@ -21,9 +20,30 @@ public:
 		Vector2 velocity = Vector2(0.0, 0.0);
 	};
 
-	Vector2 GetLocation() const
+	Actor(Entity entity, std::string name, const Config& config)
+		: EntityObject(entity, std::move(name))
 	{
-		const TransformComponent* transform = GetComponent<TransformComponent>(); 
+		AddComponent<TransformComponent>(config.position, config.scale, config.rotation);
+		entity.AddComponent<RigidBodyComponent>(config.velocity);
+	}
+
+	void ApplyActorConfig(const Config& config)
+	{
+		TransformComponent* transform = GetComponent<TransformComponent>(); 
+		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>(); 
+
+		if (not transform or not rigidBody)
+			return; 
+
+		transform->position = config.position; 
+		transform->scale = config.scale; 
+		transform->rotation = config.rotation;
+		rigidBody->velocity = config.velocity;
+	}
+
+	Vector2 GetLocation()
+	{
+		const TransformComponent* transform = GetTransform(); 
 		if (not transform)
 		{
 			Logger::Error("Actor has no TransformComponent. ");
@@ -31,7 +51,6 @@ public:
 		}
 		return transform->position; 
 	}
-
 	void SetLocation(Vector2 location)
 	{
 		TransformComponent* transform = GetComponent<TransformComponent>(); 
@@ -42,15 +61,96 @@ public:
 		}
 		transform->position = location; 
 	}
-
-protected:
-	Actor(Entity entity, const Config& config) : EntityFacade(entity)
+	void SetLocation(float width, float height)
 	{
-		AddComponent<TransformComponent>(config.position, config.scale, config.rotation); 
-		entity.AddComponent<RigidBodyComponent>(config.velocity);
+		TransformComponent* transform = GetComponent<TransformComponent>();
+		if (not transform)
+		{
+			Logger::Error("Actor has no TransformComponent. ");
+			return;
+		}
+		transform->position = Vector2(width, height);
 	}
 
-private:
-	static Actor Create(Entity entity, const Config& config = {})
-	{ return Actor(entity, config); }
+	Vector2 GetScale()
+	{
+		const TransformComponent* transform = GetTransform();
+		if (not transform)
+		{
+			Logger::Error("Actor has no TransformComponent. ");
+			return {};
+		}
+		return transform->scale;
+	}
+	void SetScale(Vector2& scale)
+	{
+		TransformComponent* transform = GetTransform();
+		if (not transform)
+		{
+			Logger::Error("Actor has no TransformComponent. ");
+			return;
+		}
+		transform->scale = scale;  
+	}
+	void SetScale(float xScale, float yScale)
+	{
+		TransformComponent* transform = GetTransform();
+		if (not transform)
+		{
+			Logger::Error("Actor has no TransformComponent. ");
+			return;
+		}
+		transform->scale = Vector2(xScale, yScale);
+	}
+
+	double GetRotation() 
+	{
+		const TransformComponent* transform = GetTransform();
+		if (not transform)
+		{
+			Logger::Error("Actor has no TransformComponent. ");
+			return 0.0;
+		}
+		return transform->rotation;
+	}
+	void SetRotation(double rotation)
+	{
+		TransformComponent* transform = GetTransform(); 
+		if (not transform)
+		{
+			Logger::Error("Actor has no TransformComponent. "); 
+			return; 
+		}
+		transform->rotation = rotation; 
+	}
+
+	Vector2 GetVelocity()
+	{
+		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>(); 
+		if (not rigidBody)
+			Logger::Error("Actor has no RigidBodyComponent. ");
+			return Vector2(0); 
+		return rigidBody->velocity; 
+	}
+	void SetVelocity(Vector2& velocity)
+	{
+		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>();
+		if (not rigidBody)
+			Logger::Error("Actor has no RigidBodyComponent. ");
+			return; 
+		rigidBody->velocity = velocity; 
+	}
+	void SetVelocity(float xVelocity, float yVelocity)
+	{
+		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>();
+		if (not rigidBody)
+			Logger::Error("Actor has no RigidBodyComponent. ");
+		return;
+		rigidBody->velocity = Vector2(xVelocity, yVelocity);
+	}
+
+	// Returns a pointer to the Actor's Transform Component
+	TransformComponent* GetTransform() { return GetComponent<TransformComponent>(); }
+	// Returns a pointer to the Actor's Rigid Body Component
+	RigidBodyComponent* GetRigidBody() { return GetComponent<RigidBodyComponent>(); }
 };

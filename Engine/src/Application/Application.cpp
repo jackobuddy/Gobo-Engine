@@ -5,6 +5,9 @@
 #include "../AssetManager/AssetManager.h"
 #include "../Events/EventManager.h"
 #include "../Events/KeyPressedEvent.h"
+#include "../Events/KeyReleasedEvent.h"
+#include "../Events/MouseDownEvent.h"
+#include "../Events/MouseUpEvent.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include "../Rendering/Renderer.h"
@@ -36,12 +39,13 @@ bool Application::Initialize(const GameConfig& config)
 
 	// Initialize our world and managers. 
 	world = std::make_unique<World>(); 
+	world->SetQuitRequestHandler([this](){ isRunning=false; });
 	assetManager = std::make_unique<AssetManager>(); 
 	eventManager = std::make_unique<EventManager>(); 
 	camera.position = config.cameraPosition; 
 	camera.SetViewSize(Vector2(static_cast<float>(config.render.renderWidth), 
 		static_cast<float>(config.render.renderHeight)));
-	
+
 	isRunning = true; 
 	isShutdown = false; 
 	return true; 
@@ -56,6 +60,12 @@ void Application::ProcessInput(GameContext& context)
 			context.RequestQuit(); 
 		else if (event.type == SDL_EVENT_KEY_DOWN)
 			eventManager->EmitEvent<KeyPressedEvent>(event.key.key); 
+		else if (event.type == SDL_EVENT_KEY_UP)
+			eventManager->EmitEvent<KeyReleasedEvent>(event.key.key); 
+		else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+			eventManager->EmitEvent<MouseDownEvent>(event.key.key); 
+		else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+			eventManager->EmitEvent<MouseUpEvent>(event.key.key);
 	}
 }
 
@@ -78,7 +88,9 @@ void Application::Shutdown()
 
 int Application::Run(IGame& game)
 {
-	const GameConfig config = game.Configure(); 
+	const GameConfig config = game.Configure(); // Game-side config setup 
+	game.PostConfigure(config); // Engine-side System Spinups
+
 	if (config.targetFPS <= 0)
 	{
 		Logger::Error("GameConfig targetFPS must be greater than zero. ");
@@ -91,7 +103,8 @@ int Application::Run(IGame& game)
 	}
 
 	GameContext context(*world, *assetManager, *eventManager, camera, *renderer, isRunning); 
-	game.Start(context); 
+	game.PreStart(context); // Engine-side Start
+	game.Start(context); // Game-side Start
 
 	std::uint64_t previousTick = SDL_GetTicks(); 
 	float deltaSeconds = 0.0f; 
@@ -99,12 +112,12 @@ int Application::Run(IGame& game)
 
 	while (isRunning)
 	{
-		eventManager->Reset(); 
 		game.BeginFrame(context); 
 		ProcessInput(context); 
 		if (not isRunning) break; 
 
-		game.Update(context, deltaSeconds); 
+		game.PreUpdate(context, deltaSeconds); // Engine-side Update
+		game.Update(context, deltaSeconds);  // Game-side Update
 		world->Update(); 
 		if (not isRunning) break; 
 
@@ -128,7 +141,8 @@ int Application::Run(IGame& game)
 		previousTick = currentTick; 
 	}
 
-	game.Stop(context); 
+	game.Stop(context); // Game-side
+	game.PostStop(context); // Engine-side
 	Shutdown(); 
 	return 0; 
 }

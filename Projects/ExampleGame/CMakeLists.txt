@@ -13,9 +13,9 @@ add_executable(GoboExampleGame
     src/main.cpp
     src/ExampleGame.cpp
     src/ExampleGame.h
-    src/Systems/DamageSystem.h
-    src/Systems/KeyboardControlSystem.h
-    src/Systems/ProjectileEmitSystem.h)
+    
+    "../../Engine/src/Systems/KeyboardControlSystem.h"
+    src/Systems/ProjectileEmitSystem.h "src/Entities/player.h" "src/Entities/tank.h" "src/Entities/truck.h" "src/Entities/radar.h" "src/Entities/enemy.h")
 target_link_libraries(GoboExampleGame PRIVATE Gobo::Engine)
 add_custom_command(TARGET GoboExampleGame POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

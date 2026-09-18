@@ -68,23 +68,19 @@ public:
 	EventManager() { Logger::Log("EventManager created. "); };
 	~EventManager() { Logger::Log("EventManager destroyed. "); };
 
-	// Clears the subscriber list
-	void Reset() { subscribers.clear(); };
-
 	// Subscribe to an Event Type <T>.
 	// In our implementation, a listener subscribes to an Event, triggering
 	// a callback function when that Event occurs. 
 	template <typename TEvent, typename TOwner>
-	void SubscribeToEvent(TOwner* ownerInstance, void (TOwner::*callbackFunction)(TEvent&))
+	void SubscribeToEvent(TOwner* owner, void (TOwner::* callback)(TEvent&))
 	{
-		// Ensure we have a valid Handler List before trying to add the subscriber to it. 
-		if (not subscribers[typeid(TEvent)].get())
-			subscribers[typeid(TEvent)] = std::make_unique<HandlerList>(); 
+		if (!subscribers[typeid(TEvent)])
+			subscribers[typeid(TEvent)] = std::make_unique<HandlerList>();
 
-		// Get our subscriber and add them to the Handler List stored in subscribers. 
-		auto subscriber = std::make_unique<EventCallback<TOwner, TEvent>>(ownerInstance, callbackFunction);
+		auto subscriber = std::make_unique<EventCallback<TOwner, TEvent>>(owner, callback);
+
 		subscribers[typeid(TEvent)]->push_back(std::move(subscriber));
-	}; 
+	}
 
 	// Unsubscribes an owner from events, used in the case of destruction. 
 	void UnsubscribeOwner(const void* owner)

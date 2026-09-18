@@ -16,7 +16,7 @@ CollisionSystem::~CollisionSystem()
 {
 }
 
-void CollisionSystem::Update(EventManager& eventManager)
+void CollisionSystem::Update(World& world, EventManager& eventManager)
 {
 	auto entities = GetSystemEntities(); 
 	// Check from each Entity that the System is interested in. 
@@ -62,6 +62,7 @@ void CollisionSystem::Update(EventManager& eventManager)
 			{
 				// Send a Collision Event to the Event Manager. 
 				eventManager.EmitEvent<CollisionEvent>(a, b); 
+				world.GetObject(a)->OnCollision(b); 
 			}
 		}
 	}

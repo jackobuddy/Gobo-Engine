@@ -38,7 +38,7 @@ void RenderSystem::Update(SDL_Renderer* renderer, AssetManager& assetManager, Ca
 		const TransformComponent* transform = entity.GetComponent<TransformComponent>(); 
 		const SpriteComponent* sprite = entity.GetComponent<SpriteComponent>(); 
 
-		if (not transform or not sprite)
+		if (not transform or not sprite or sprite->GetIsHidden())
 			continue;
 
 		// Set the source Rectangle
@@ -48,8 +48,8 @@ void RenderSystem::Update(SDL_Renderer* renderer, AssetManager& assetManager, Ca
 		SDL_FRect destRect = {
 			transform->position.x - (sprite->isFixed ? 0 : camera.position.x),
 			transform->position.y - (sprite->isFixed ? 0 : camera.position.y),
-			sprite->width * transform->scale.x,
-			sprite->height * transform->scale.y};
+			sprite->GetWidth() * transform->scale.x,
+			sprite->GetHeight() * transform->scale.y};
 		
 		SDL_Texture* texture = assetManager.GetTexture(sprite->assetID); 
 		if (not texture)

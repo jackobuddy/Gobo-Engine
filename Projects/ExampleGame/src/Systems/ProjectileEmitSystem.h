@@ -41,7 +41,7 @@ public:
 		{
 			for (auto entity : GetSystemEntities())
 			{
-				if (entity.HasComponent<CameraFollowComponent>())
+				if (entity.HasTag("player"))
 				{
 					const ProjectileEmitterComponent* emitter = entity.GetComponent<ProjectileEmitterComponent>(); 
 					const TransformComponent* transform = entity.GetComponent<TransformComponent>(); 
@@ -56,8 +56,8 @@ public:
 
 					if (entity.HasComponent<SpriteComponent>() and sprite)
 					{
-						projectilePosition.x += transform->scale.x * sprite->width / 2; 
-						projectilePosition.y += transform->scale.y * sprite->height / 2; 
+						projectilePosition.x += transform->scale.x * sprite->GetWidth() / 2; 
+						projectilePosition.y += transform->scale.y * sprite->GetHeight() / 2; 
 					}
 
 					Vector2 projectileVelocity = emitter->projectileVelocity; 
@@ -72,7 +72,7 @@ public:
 					if (projectileVelocity.x == 0 and projectileVelocity.y == 0)
 						projectileVelocity.y = emitter->projectileVelocity.y; 
 
-					Entity projectile = entity.GetWorld()->CreateEntity();
+					Entity projectile = entity.GetWorld()->CreateAutoNamedEntity("projectile");
 					projectile.Group("projectiles"); 
 					projectile.AddComponent<TransformComponent>(projectilePosition, 
 						transform->scale, transform->rotation); 
@@ -107,12 +107,12 @@ public:
 				const SpriteComponent* sprite = entity.GetComponent<SpriteComponent>();
 				if (sprite)
 				{
-					projectilePosition.x += transform->scale.x * sprite->width / 2; 
-					projectilePosition.y += transform->scale.y * sprite->height / 2; 
+					projectilePosition.x += transform->scale.x * sprite->GetWidth() / 2; 
+					projectilePosition.y += transform->scale.y * sprite->GetHeight() / 2; 
 				}
 
 				// Add a new Projectile Entity. 
-				Entity projectile = world.CreateEntity();
+				Entity projectile = world.CreateAutoNamedEntity("projectile");
 				projectile.Group("projectiles"); 
 				projectile.AddComponent<TransformComponent>(projectilePosition, 
 					transform->scale, transform->rotation); 

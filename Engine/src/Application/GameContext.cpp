@@ -16,4 +16,9 @@ Camera& GameContext::GetCamera() const { return camera; }
 Renderer& GameContext::GetRenderer() const { return renderer; }
 SDL_Renderer* GameContext::GetSDLRenderer() const { return renderer.GetSDLRenderer(); }
 
+EntityObject* GameContext::FindObject(const std::string name) const
+{
+	{ return world.FindObject(name); }
+}
+
 void GameContext::RequestQuit() { isRunning = false; }

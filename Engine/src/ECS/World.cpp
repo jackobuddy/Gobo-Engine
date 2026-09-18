@@ -2,6 +2,8 @@
 #include "../Logger/Logger.h"
 #include "../Systems/MovementSystem.h"
 #include "../Entities/EntityFacade.h"
+#include "../Events/CollisionEvent.h"
+#include "../Events/EventManager.h"
 #include <stdexcept>
 #include <concepts>
 #include <type_traits>
@@ -26,7 +28,7 @@ World::~World()
 	worldExists = false; 
 }
 
-Entity World::CreateEntity()
+Entity World::AllocateEntityHandle()
 {
 	int entityID; 
 	// Get the next availible Entity ID if there are none free. 
@@ -39,6 +41,12 @@ Entity World::CreateEntity()
 		// Make sure the Entity Component Signatures vector can fit the new Entity. 
 		if (entityID >= entityComponentSignatures.size())
 			entityComponentSignatures.resize(entityID + 1);
+
+		if (entityID >= entityObjects.size())
+			entityObjects.resize(entityID + 1);
+
+		if (entityID >= nameByEntityID.size())
+			nameByEntityID.resize(entityID + 1);
 	}
 	// Otherwise, reuse an old ID. 
 	else
@@ -57,6 +65,144 @@ Entity World::CreateEntity()
 
 	// Logger::Log("Entity queued for creation. ID = " + std::to_string(entityID));
 	return entity; 
+}
+
+Entity World::CreateEntity(const std::string& name)
+{
+	EntityObject& object = CreateObject<EntityObject>(name);
+	return object.GetEntity();
+}
+
+Entity World::CreateAutoNamedEntity(const std::string& baseName)
+{
+	return CreateEntity(GenerateUniqueName(baseName));
+}
+
+void World::CommitObject(Entity entity, const std::string& name, 
+	std::unique_ptr<EntityObject> object)
+{
+	const int id = entity.GetID();
+
+	entityObjects[id] = std::move(object);
+	nameByEntityID[id] = name;
+	entitiesByName.emplace(name, entity);
+}
+
+void World::CancelEntityCreation(Entity entity)
+{
+	if (!IsEntityAlive(entity))
+		return;
+
+	const int id = entity.GetID();
+
+	entitiesToBeAdded.erase(entity);
+	entitiesNeedingRefresh.erase(entity);
+	entitiesToBeDestroyed.erase(entity);
+
+	RemoveEntityFromSystems(entity);
+	RemoveEntityTag(entity);
+	RemoveEntityGroup(entity);
+	RemoveName(entity);
+
+	const Signature signature = entityComponentSignatures[id];
+
+	for (std::size_t componentID = 0; componentID < componentPools.size(); ++componentID)
+		{
+			if (componentID < signature.size() && signature.test(componentID) &&
+				componentPools[componentID])
+			{
+				componentPools[componentID]->Remove(id);
+			}
+		}
+
+	entityObjects[id].reset();
+	entityComponentSignatures[id].reset();
+
+	++entityGenerations[id];
+	freeIDs.push_back(id);
+}
+
+EntityObject* World::GetObject(Entity entity)
+{
+	if (!IsEntityAlive(entity))
+		return nullptr;
+
+	const int id = entity.GetID();
+
+	if (id < 0 or static_cast<std::size_t>(id) >= entityObjects.size())
+		return nullptr;
+
+	EntityObject* object = entityObjects[id].get();
+
+	if (!object or object->GetEntity() != entity)
+		return nullptr;
+
+	return object;
+}
+
+EntityObject* World::FindObject(const std::string& name)
+{
+	auto found = entitiesByName.find(name);
+
+	if (found == entitiesByName.end())
+		return nullptr;
+
+	return GetObject(found->second);
+}
+
+Entity World::FindEntity(const std::string& name) const
+{
+	auto found = entitiesByName.find(name);
+
+	if (found == entitiesByName.end() or not IsEntityAlive(found->second))
+			return {};
+
+	return found->second;
+}
+
+Character* World::FindCharacter(const std::string& name)
+{
+	return dynamic_cast<Character*>(FindObject(name));
+}
+
+std::string World::GenerateUniqueName(const std::string& baseName)
+{
+	if (!entitiesByName.contains(baseName))
+		return baseName;
+
+	std::uint64_t& nextSuffix = nextNameSuffix[baseName];
+
+	if (nextSuffix == 0)
+		nextSuffix = 1;
+
+	std::string candidate;
+
+	do
+	{
+		candidate = baseName + "_" + std::to_string(nextSuffix++);
+	} while (entitiesByName.contains(candidate));
+
+	return candidate;
+}
+
+void World::RemoveName(Entity entity)
+{
+	const int id = entity.GetID();
+
+	if (id < 0 or static_cast<std::size_t>(id) >= nameByEntityID.size())
+		return;
+
+	const std::string name = nameByEntityID[id];
+
+	if (name.empty())
+		return;
+
+	auto found = entitiesByName.find(name);
+
+	if (found != entitiesByName.end() and found->second == entity)
+		entitiesByName.erase(found);
+
+	nameByEntityID[id].clear();
 }
 
 bool World::IsEntityAlive(const Entity& entity) const
@@ -87,6 +233,11 @@ void World::ProcessEntityDestruction(const Entity& entity)
 	RemoveEntityFromSystems(entity);
 	RemoveEntityTag(entity); 
 	RemoveEntityGroup(entity); 
+
+	if (auto* object = GetObject(entity))
+		object->OnDestroyed();
+	RemoveName(entity);
+	entityObjects[id].reset();
 
 	// Clean out our Component Pools
 	for (size_t componentID = 0; componentID < componentPools.size(); ++componentID)

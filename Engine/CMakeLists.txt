@@ -11,7 +11,7 @@ set(GOBO_ENGINE_SOURCES
     src/Application/Application.cpp
     src/Application/GameContext.cpp
     src/AssetManager/AssetManager.cpp
-    src/Components/SpriteComponent.cpp
+    
     src/ECS/Component.cpp
     src/ECS/Entity.cpp
     src/ECS/System.cpp
@@ -33,7 +33,7 @@ file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
 add_library(GoboEngine STATIC
     ${GOBO_ENGINE_SOURCES}
     ${GOBO_ENGINE_HEADERS}
-)
+ "src/Events/KeyReleasedEvent.h" "src/Events/MouseDownEvent.h" "src/Events/MouseUpEvent.h" "src/Entities/EntityObject.h")
 
 add_library(Gobo::Engine ALIAS GoboEngine)
 

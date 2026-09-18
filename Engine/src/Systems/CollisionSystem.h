@@ -10,5 +10,5 @@ public:
 	CollisionSystem(); 
 	~CollisionSystem(); 
 
-	void Update(EventManager& eventManager);
+	void Update(World& world, EventManager& eventManager);
 };
