@@ -25,4 +25,6 @@ void Game::Render(GameContext& context)
 {
 }
 
-void Game::Stop(GameContext& context) { this->context = nullptr; }
+void Game::Stop(GameContext& context) 
+{
+}

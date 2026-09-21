@@ -6,6 +6,6 @@
 class MouseDownEvent : public Event
 {
 public:
-	SDL_Keycode symbol; 
-	MouseDownEvent(SDL_Keycode symbol): symbol(symbol) {};
+	SDL_MouseButtonFlags button; 
+	MouseDownEvent(SDL_MouseButtonFlags button): button(button) {};
 };

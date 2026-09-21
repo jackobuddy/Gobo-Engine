@@ -6,6 +6,6 @@
 class MouseUpEvent : public Event
 {
 public:
-	SDL_Keycode symbol; 
-	MouseUpEvent(SDL_Keycode symbol): symbol(symbol) {};
+	SDL_MouseButtonFlags button;
+	MouseUpEvent(SDL_MouseButtonFlags button): button(button) {};
 };

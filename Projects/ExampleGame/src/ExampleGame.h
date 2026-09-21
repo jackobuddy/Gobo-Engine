@@ -11,8 +11,4 @@ public:
 	void Update(GameContext& context, float deltaSeconds) override; 
 	void Render(GameContext& context) override; 
 	void Stop(GameContext& context) override; 
-
-private:
-	void OnKeyPressed(KeyPressedEvent& event); 
-	bool isDebugMode = false; 
 };

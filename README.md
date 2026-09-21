@@ -42,10 +42,13 @@ This script:
 3. Configures the `windows-x64` CMake preset.
 4. Installs the SDL3 and SDL3_image dependencies declared in `vcpkg.json`.
 
+Build the suite’s Debug configuration:
+
+```powershell
 cmake --build --preset windows-x64-debug
 ```
 
-The bootstrap script initializes the vcpkg submodule, bootstraps vcpkg, and configures the root CMake preset. The Debug build creates the Engine library and the enabled example game.
+The Debug build creates the reusable `GoboEngine` static library and, by default, the `GoboExampleGame` executable. To configure without the example game, use CMake with `-DGOBO_BUILD_EXAMPLE=OFF`.
 
 ## Create a local game project
 
@@ -59,7 +62,19 @@ The name must start with a letter and contain only letters, numbers, and undersc
 
 > The project-creation script is currently located at the repository root. If it is later moved to `scripts`, use `./scripts/New-GoboProject.ps1` instead.
 
-Open `Projects/MyGame` in Visual Studio, or configure and build it with its included CMake presets.
+Build the new project from its own folder:
+
+```powershell
+cd Projects\MyGame
+.\scripts\bootstrap.ps1
+cmake --build --preset windows-x64-debug
+```
+
+The template’s CMake project adds `../../Engine` and links its executable to the `Gobo::Engine` target. Your game owns its own `assets/` folder; add images, maps, sounds, and other game content there rather than to Engine.
+
+## Use the Engine from a game project
+
+Gobo Engine is a static CMake library, not a standalone game executable. A game project links to `Gobo::Engine`, includes `<GoboEngine.h>`, implements an `IGame`, and gives that object to `Application::Run`. The supplied template already wires this up, so copying it is the supported starting point.
 
 ## Visual Studio workflow
 

@@ -53,7 +53,7 @@ public:
 	}
 	void SetLocation(Vector2 location)
 	{
-		TransformComponent* transform = GetComponent<TransformComponent>(); 
+		TransformComponent* transform = GetTransform(); 
 		if (not transform)
 		{
 			Logger::Error("Actor has no TransformComponent. ");
@@ -63,7 +63,7 @@ public:
 	}
 	void SetLocation(float width, float height)
 	{
-		TransformComponent* transform = GetComponent<TransformComponent>();
+		TransformComponent* transform = GetTransform();
 		if (not transform)
 		{
 			Logger::Error("Actor has no TransformComponent. ");
@@ -72,9 +72,9 @@ public:
 		transform->position = Vector2(width, height);
 	}
 
-	Vector2 GetScale()
+	Vector2 GetScale() const 
 	{
-		const TransformComponent* transform = GetTransform();
+		const TransformComponent* transform = GetComponent<TransformComponent>();
 		if (not transform)
 		{
 			Logger::Error("Actor has no TransformComponent. ");
@@ -103,9 +103,9 @@ public:
 		transform->scale = Vector2(xScale, yScale);
 	}
 
-	double GetRotation() 
+	double GetRotation() const
 	{
-		const TransformComponent* transform = GetTransform();
+		const TransformComponent* transform = GetComponent<TransformComponent>();
 		if (not transform)
 		{
 			Logger::Error("Actor has no TransformComponent. ");
@@ -124,28 +124,34 @@ public:
 		transform->rotation = rotation; 
 	}
 
-	Vector2 GetVelocity()
+	Vector2 GetVelocity() const
 	{
-		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>(); 
+		const RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>(); 
 		if (not rigidBody)
+		{
 			Logger::Error("Actor has no RigidBodyComponent. ");
 			return Vector2(0); 
+		}
 		return rigidBody->velocity; 
 	}
 	void SetVelocity(Vector2& velocity)
 	{
-		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>();
+		RigidBodyComponent* rigidBody = GetRigidBody();
 		if (not rigidBody)
+		{
 			Logger::Error("Actor has no RigidBodyComponent. ");
 			return; 
+		}
 		rigidBody->velocity = velocity; 
 	}
 	void SetVelocity(float xVelocity, float yVelocity)
 	{
-		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>();
+		RigidBodyComponent* rigidBody = GetRigidBody();
 		if (not rigidBody)
+		{
 			Logger::Error("Actor has no RigidBodyComponent. ");
-		return;
+			return;
+		}
 		rigidBody->velocity = Vector2(xVelocity, yVelocity);
 	}
 

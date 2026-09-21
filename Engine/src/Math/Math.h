@@ -46,6 +46,8 @@ struct Vector2
 
 	Vector2& operator /=(float s)
 	{
+		if (s == 0.0f)
+			return (*this);
 		s = 1.0f / s; 
 		x *= s; 
 		y *= s; 
@@ -74,6 +76,8 @@ inline Vector2 operator *(const Vector2& v, float s)
 
 inline Vector2 operator /(const Vector2& v, float s)
 {
+	if (s == 0.0f)
+		return Vector2{};
 	s = 1.0f / s; 
 	return Vector2(v.x * s, v.y * s); 
 }
@@ -157,6 +161,8 @@ struct Vector3
 
 	Vector3& operator /=(float s)
 	{
+		if (s == 0.0f)
+			return (*this);
 		s = 1.0f / s;
 		x *= s;
 		y *= s;
@@ -188,6 +194,8 @@ inline Vector3 operator *(const Vector3& v, float s)
 
 inline Vector3 operator /(const Vector3& v, float s)
 {
+	if (s == 0.0f)
+		return Vector3{};
 	s = 1.0f / s;
 	return Vector3(v.x * s, v.y * s, v.z * s);
 }

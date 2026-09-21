@@ -105,11 +105,6 @@ void Game::BeginFrame(GameContext& context)
 {
 }
 
-void Game::OnKeyPressed(KeyPressedEvent& event)
-{
-	if (not GetContext()) return;
-}
-
 void Game::Update(GameContext& context, float deltaSeconds)
 {
 	World& world = context.GetWorld();
@@ -120,18 +115,4 @@ void Game::Update(GameContext& context, float deltaSeconds)
 
 void Game::Render(GameContext& context)
 {
-	World& world = context.GetWorld();
-	Camera& camera = context.GetCamera();
-	camera.position.x = Floor(camera.position.x);
-	camera.position.y = Floor(camera.position.y);
-
-	if (auto* s = world.GetSystem<RenderSystem>())
-		s->Update(context.GetSDLRenderer(),
-			context.GetAssets(), camera);
-	
-	if (isDebugMode)
-	{
-		if (auto* s = world.GetSystem<RenderCollisionSystem>())
-			s->Update(context.GetSDLRenderer(), camera);
-	}
 }

@@ -11,12 +11,14 @@
 #include <Systems/ProjectileLifecycleSystem.h>
 #include <Systems/KeyboardControlSystem.h>
 #include <Application/GameContext.h>
+#include <Application/Application.h>
 
 class GameContext; 
 
 class IGame
 {
 public: 
+	friend class Application;
 	virtual ~IGame() = default; 
 
 	virtual GameConfig Configure() const { return {}; }
@@ -26,11 +28,17 @@ public:
 	virtual void Stop(GameContext& context) {}
 	virtual void Start(GameContext& context) {}
 
+	bool GetDebugMode() const { return isDebugMode; }
+	void SetDebugMode(bool debugMode) { isDebugMode = debugMode; }
+
+protected:
+	GameContext* GetContext() { return context; }
+
 	void PreStart(GameContext& context)
 	{
 		this->context = &context;
 		World& world = context.GetWorld();
-		EventManager& events = context.GetEvents(); 
+		EventManager& events = context.GetEvents();
 		if (systems.useRenderingSystem) world.AddSystem<RenderSystem>();
 		if (systems.useCollisionSystem) world.AddSystem<CollisionSystem>();
 		if (systems.useAnimationSystem) world.AddSystem<AnimationSystem>();
@@ -38,17 +46,17 @@ public:
 		if (systems.useRenderCollisionSystem) world.AddSystem<RenderCollisionSystem>();
 		if (systems.useCameraMovementSystem) world.AddSystem<CameraMovementSystem>();
 		if (systems.useProjectileLifecycleSystem) world.AddSystem<ProjectileLifecycleSystem>();
-		if (systems.useKeyboardControlSystem) 
-		{	
-			world.AddSystem<KeyboardControlSystem>(); 
+		if (systems.useKeyboardControlSystem)
+		{
+			world.AddSystem<KeyboardControlSystem>();
 			if (auto* system = world.GetSystem<KeyboardControlSystem>())
 				system->SubscribeToEvents(events);
 		}
 	}
-	void PreUpdate(GameContext& context, float deltaSeconds) 
+	void PreUpdate(GameContext& context, float deltaSeconds)
 	{
 		World& world = context.GetWorld();
-		Vector2 worldSize = world.GetWorldSize(); 
+		Vector2 worldSize = world.GetWorldSize();
 		EventManager& events = context.GetEvents();
 		if (auto* s = world.GetSystem<MovementSystem>())
 			s->Update(deltaSeconds);
@@ -65,13 +73,28 @@ public:
 	}
 	void PostConfigure(GameConfig config) { systems = config.systems; }
 	void PostStop(GameContext& context) { ClearContext(); }
+	void PreRender(GameContext& context) const
+	{
+		World& world = context.GetWorld();
+		Camera& camera = context.GetCamera();
+		camera.position.x = Floor(camera.position.x);
+		camera.position.y = Floor(camera.position.y);
 
-protected:
-	GameContext* GetContext() { return context; }
+		if (auto* s = world.GetSystem<RenderSystem>())
+			s->Update(context.GetSDLRenderer(),
+				context.GetAssets(), camera);
+
+		if (isDebugMode)
+		{
+			if (auto* s = world.GetSystem<RenderCollisionSystem>())
+				s->Update(context.GetSDLRenderer(), camera);
+		}
+	}
 
 private:
 	void ClearContext() { context = nullptr; }
 
 	SystemsConfig systems; 
 	GameContext* context = nullptr;
+	bool isDebugMode = false; 
 };

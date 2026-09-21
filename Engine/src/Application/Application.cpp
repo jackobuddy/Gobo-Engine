@@ -63,9 +63,9 @@ void Application::ProcessInput(GameContext& context)
 		else if (event.type == SDL_EVENT_KEY_UP)
 			eventManager->EmitEvent<KeyReleasedEvent>(event.key.key); 
 		else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-			eventManager->EmitEvent<MouseDownEvent>(event.key.key); 
+			eventManager->EmitEvent<MouseDownEvent>(event.button.button); 
 		else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
-			eventManager->EmitEvent<MouseUpEvent>(event.key.key);
+			eventManager->EmitEvent<MouseUpEvent>(event.button.button);
 	}
 }
 
@@ -125,7 +125,8 @@ int Application::Run(IGame& game)
 		SDL_SetRenderDrawColor(rawRenderer, config.clearColor.r, config.clearColor.g, 
 			config.clearColor.b, config.clearColor.a); 
 		SDL_RenderClear(rawRenderer); 
-		game.Render(context); 
+		game.PreRender(context); // Engine-side Rendering
+		game.Render(context); // Game-side Rendering
 		SDL_RenderPresent(rawRenderer); 
 		
 		std::uint64_t currentTick = SDL_GetTicks(); 

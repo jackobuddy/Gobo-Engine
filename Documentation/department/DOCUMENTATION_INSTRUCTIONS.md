@@ -1,6 +1,6 @@
 # Gobo Engine Documentation - Standing Instructions
 
-Last updated: 2026-09-16 CDT
+Last updated: 2026-09-21 CDT
 
 ## Authority and boundaries
 
@@ -19,7 +19,7 @@ Last updated: 2026-09-16 CDT
 
 1. Inspect current `Engine` source, the suite-root README, and suite CMake/scripts.
 2. Inspect `Projects/GoboGameTemplate` source, CMake files, and setup script to verify the intended user workflow.
-3. Refresh both wikis and the suite README for changed public behavior, lifecycle order, templates, configuration, and examples.
+3. Refresh both wikis and the suite README for changed public behavior, lifecycle order, templates, configuration, object callbacks, and examples.
 4. Clearly label prototype, smoke-test, or unavailable features and never present them as stable designer tools.
 5. Keep the site directly usable from `Documentation/index.html`: no server, build, or package installation.
 6. Keep markup, navigation, search, links, and examples synchronized and validate the site data before completing a review.
