@@ -33,7 +33,7 @@ file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
 add_library(GoboEngine STATIC
     ${GOBO_ENGINE_SOURCES}
     ${GOBO_ENGINE_HEADERS}
- "src/Events/KeyReleasedEvent.h" "src/Events/MouseDownEvent.h" "src/Events/MouseUpEvent.h" "src/Entities/EntityObject.h")
+ "src/Events/KeyReleasedEvent.h" "src/Events/MouseDownEvent.h" "src/Events/MouseUpEvent.h" "src/Entities/EntityObject.h" "src/Events/KeyHeldEvent.h" "src/Events/KeyAllEvent.h")
 
 add_library(Gobo::Engine ALIAS GoboEngine)
 

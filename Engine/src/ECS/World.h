@@ -280,9 +280,6 @@ void World::AddComponent(Entity entity, TArgs && ...args)
 
 	// Refresh the System memberships for this Entity. 
 	MarkEntityForRefresh(entity); 
-
-	// Logger::Log("Component added with id = " + std::to_string(componentID) + 
-	// 	" was added to Entity with id = " + std::to_string(entityID)); 
 }
 
 template<typename TComponent>

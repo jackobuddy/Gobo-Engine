@@ -3,6 +3,9 @@
 #include <ECS/System.h>
 #include <ECS/World.h>
 #include <Events/KeyPressedEvent.h>
+#include <Events/KeyAllEvent.h>
+#include <Events/KeyReleasedEvent.h>
+#include <Events/KeyHeldEvent.h>
 #include <Components/RigidBodyComponent.h>
 #include <Components/SpriteComponent.h>
 #include <Components/KeyboardControlledComponent.h>
@@ -25,7 +28,9 @@ public:
 	void SubscribeToEvents(EventManager& eventManager)
 	{
 		eventManager.SubscribeToEvent<KeyPressedEvent>(this, &KeyboardControlSystem::OnKeyPressed);
+		eventManager.SubscribeToEvent<KeyHeldEvent>(this, &KeyboardControlSystem::OnKeyHeld);
 		eventManager.SubscribeToEvent<KeyReleasedEvent>(this, &KeyboardControlSystem::OnKeyReleased);
+		eventManager.SubscribeToEvent<KeyAllEvent>(this, &KeyboardControlSystem::OnAllKeys); 
 	}
 
 	void OnKeyPressed(KeyPressedEvent& event)
@@ -37,12 +42,30 @@ public:
 		}
 	}
 
+	void OnKeyHeld(KeyHeldEvent& event)
+	{
+		for (auto entity : GetSystemEntities())
+		{
+			World* world = entity.GetWorld(); 
+			world->GetObject(entity)->OnKeyHeld(event); 
+		}
+	}
+
 	void OnKeyReleased(KeyReleasedEvent& event)
 	{
 		for (auto entity : GetSystemEntities())
 		{
 			World* world = entity.GetWorld();
 			world->GetObject(entity)->OnKeyReleased(event);
+		}
+	}
+
+	void OnAllKeys(KeyAllEvent& event)
+	{
+		for (auto entity : GetSystemEntities())
+		{
+			World* world = entity.GetWorld(); 
+			world->GetObject(entity)->OnAllKeys(event); 
 		}
 	}
 

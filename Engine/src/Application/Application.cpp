@@ -6,6 +6,8 @@
 #include "../Events/EventManager.h"
 #include "../Events/KeyPressedEvent.h"
 #include "../Events/KeyReleasedEvent.h"
+#include "../Events/KeyHeldEvent.h"
+#include "../Events/KeyAllEvent.h"
 #include "../Events/MouseDownEvent.h"
 #include "../Events/MouseUpEvent.h"
 #include "../Logger/Logger.h"
@@ -56,17 +58,46 @@ void Application::ProcessInput(GameContext& context)
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
+		// Handle Quit Events
 		if (event.type == SDL_EVENT_QUIT)
 			context.RequestQuit(); 
+
+		// KeyDownEvent triggers only the first frame the key is pressed down. 
 		else if (event.type == SDL_EVENT_KEY_DOWN)
-			eventManager->EmitEvent<KeyPressedEvent>(event.key.key); 
+		{
+			const SDL_Keycode key = event.key.key; 
+			
+			if (heldKeys.insert(key).second)
+				eventManager->EmitEvent<KeyPressedEvent>(event.key.key); 
+		}
+
+		// KeyUpEvents trigger only the first frame that the key is released. 
 		else if (event.type == SDL_EVENT_KEY_UP)
-			eventManager->EmitEvent<KeyReleasedEvent>(event.key.key); 
+		{
+			const SDL_Keycode key = event.key.key;
+
+			if (heldKeys.erase(key) > 0)
+				eventManager->EmitEvent<KeyReleasedEvent>(event.key.key); 
+		}
+
+		// Release all keys if the window loses focus
+		else if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
+			heldKeys.clear(); 
+
+		// TODO: We'll want to be able to track if a mouse button is being held down separately
+		// from if it was just pressed. 
 		else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
 			eventManager->EmitEvent<MouseDownEvent>(event.button.button); 
 		else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
 			eventManager->EmitEvent<MouseUpEvent>(event.button.button);
 	}
+
+	// Run the held events for every held key every frame. 
+	for (const SDL_Keycode key : heldKeys)
+		eventManager->EmitEvent<KeyHeldEvent>(key); 
+
+	// Every frame, we allways call a Key All Event, giving the set of held keys. 
+	eventManager->EmitEvent<KeyAllEvent>(heldKeys); 
 }
 
 void Application::Shutdown()

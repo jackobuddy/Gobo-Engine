@@ -4,6 +4,8 @@
 #include "../Rendering/Camera.h"
 #include <cstdint>
 #include <memory>
+#include <unordered_set>
+#include <SDL3/SDL.h>
 
 class AssetManager; 
 class EventManager; 
@@ -34,6 +36,7 @@ private:
 	std::shared_ptr<AssetManager> assetManager; 
 	std::shared_ptr<EventManager> eventManager; 
 	Camera camera; 
+	std::unordered_set<SDL_Keycode> heldKeys; 
 	bool isRunning = false; 
 	bool isShutdown = false; 
 };

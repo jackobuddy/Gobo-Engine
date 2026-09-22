@@ -3,6 +3,8 @@
 #include "../ECS/Entity.h"
 #include "../Events/KeyPressedEvent.h"
 #include "../Events/KeyReleasedEvent.h"
+#include "../Events/KeyHeldEvent.h"
+#include "../Events/KeyAllEvent.h"
 #include <string>
 #include <utility>
 
@@ -26,8 +28,12 @@ public:
 	virtual void OnCollision(Entity& other) {}
     // Triggered when a Key is Pressed, if the Entity has a KeyboardControlledComponent. 
     virtual void OnKeyPressed(KeyPressedEvent& event) {}
+    // Triggered when a Key is being Held Down, if the Entity has a KeyboardControlledComponent. 
+    virtual void OnKeyHeld(KeyHeldEvent& event) {}
     // Triggered when a Key is Released, if the Entity has a KeyboardControlledComponent. 
     virtual void OnKeyReleased(KeyReleasedEvent& event) {}
+    // Triggered once a frame, providing a list of currently Held Keys. 
+    virtual void OnAllKeys(KeyAllEvent& event) {}
 	virtual void OnDestroyed() {}
 
     template <typename TComponent, typename... TArgs>

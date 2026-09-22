@@ -55,61 +55,50 @@ public:
 	// Triggered when a Key is Pressed, if the Entity has a KeyboardControlledComponent. 
 	virtual void OnKeyPressed(KeyPressedEvent& event) override
 	{
-		World* world = GetEntity().GetWorld(); 
-		const auto keyboardControl = GetComponent<KeyboardControlledComponent>();
-		SpriteComponent* sprite = GetComponent<SpriteComponent>();
-		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>();
+		World* world = GetEntity().GetWorld();
 
-		if (not keyboardControl or not sprite or not rigidBody)
+		if (not world)
 			return;
 
-		switch (event.symbol)
-		{
-		case SDLK_UP:
-			rigidBody->velocity = keyboardControl->upVelocity;
-			sprite->srcRect.y = sprite->GetHeight() * 0;
-			break;
-		case SDLK_RIGHT:
-			rigidBody->velocity = keyboardControl->rightVelocity;
-			sprite->srcRect.y = sprite->GetHeight() * 1;
-			break;
-		case SDLK_DOWN:
-			rigidBody->velocity = keyboardControl->downVelocity;
-			sprite->srcRect.y = sprite->GetHeight() * 2;
-			break;
-		case SDLK_LEFT:
-			rigidBody->velocity = keyboardControl->leftVelocity;
-			sprite->srcRect.y = sprite->GetHeight() * 3;
-			break;
-		case SDLK_ESCAPE:
-			world->RequestQuit(); 
-			break; 
-		}
+		if (event.symbol == SDLK_ESCAPE)
+			world->RequestQuit();
 	}
 
-	// Triggered when a Key is Released, if the Entity has a KeyboardControlledComponent. 
-	virtual void OnKeyReleased(KeyReleasedEvent& event) override
+	virtual void OnAllKeys(KeyAllEvent& event) override
 	{
 		const auto keyboardControl = GetComponent<KeyboardControlledComponent>();
 		RigidBodyComponent* rigidBody = GetComponent<RigidBodyComponent>();
+		SpriteComponent* sprite = GetComponent<SpriteComponent>();
 
-		if (not keyboardControl or not rigidBody)
+		if (not keyboardControl or not rigidBody or not sprite)
 			return;
 
-		switch (event.symbol)
+		Vector2 finalVelocity = Vector2(0); 
+		float verticalVelocity = keyboardControl->upVelocity.y; 
+		float horizontalVelocity = keyboardControl->rightVelocity.x; 
+
+		if (event.heldKeys.contains(SDLK_UP))
+			finalVelocity.y += verticalVelocity; 
+		if (event.heldKeys.contains(SDLK_DOWN))
+			finalVelocity.y += verticalVelocity * -1;
+		if (event.heldKeys.contains(SDLK_RIGHT))
+			finalVelocity.x += horizontalVelocity;
+		if (event.heldKeys.contains(SDLK_LEFT))
+			finalVelocity.x += horizontalVelocity * -1;
+
+		// If we have velocity, change our sprite to match it
+		if (std::abs(finalVelocity.x) > 0 or std::abs(finalVelocity.y) > 0)
 		{
-		case SDLK_UP:
-			rigidBody->velocity.y = 0; 
-			break;
-		case SDLK_RIGHT:
-			rigidBody->velocity.x = 0;
-			break;
-		case SDLK_DOWN:
-			rigidBody->velocity.y = 0;
-			break;
-		case SDLK_LEFT:
-			rigidBody->velocity.x = 0;
-			break;
+			if (finalVelocity.x > 0)
+				sprite->srcRect.y = sprite->GetHeight() * 1;
+			if (finalVelocity.x < 0)
+				sprite->srcRect.y = sprite->GetHeight() * 3; 
+			if (finalVelocity.y > 0)
+				sprite->srcRect.y = sprite->GetHeight() * 2; 
+			if (finalVelocity.y < 0)
+				sprite->srcRect.y = sprite->GetHeight() * 0; 
 		}
+
+		rigidBody->velocity = finalVelocity; 
 	}
 };

@@ -23,6 +23,7 @@
 #include "Events/CollisionEvent.h"
 #include "Events/EventManager.h"
 #include "Events/KeyPressedEvent.h"
+#include "Events/KeyHeldEvent.h"
 #include "Math/Math.h"
 #include "Rendering/Camera.h"
 #include "Rendering/Renderer.h"
