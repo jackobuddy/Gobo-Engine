@@ -4,6 +4,7 @@
 #include "Entities/truck.h"
 #include "Entities/radar.h"
 #include "Systems/ProjectileEmitSystem.h"
+#include <Rendering/TextLabel.h>
 #include <SDL3/SDL.h>
 #include <fstream>
 
@@ -41,6 +42,18 @@ void Game::Start(GameContext& context)
 
 	// Setup our map's camera
 	context.GetCamera().SetViewSize(Vector2(1280, 720));
+
+	// Font Label
+	if (assets.AddFont("hud-regular", "assets/engine/fonts/Roboto/Roboto-Regular.ttf", 24.0f))
+	{
+		healthLabel = std::make_unique<TextLabel>(); 
+
+		if (healthLabel->Initialize(renderer, assets.GetFont("hud-regular"), "Health: 100", 
+			SDL_Color {255, 255, 255, 255}))
+				healthLabel->SetPosition(20.0f, 20.0f); 
+		else
+			healthLabel.reset(); 
+	}
 
 	// Add assets to Asset Manger
 	assets.AddTexture(renderer, "tank-image", "./assets/images/tank-panther-right.png");
@@ -115,12 +128,29 @@ void Game::Update(GameContext& context, float deltaSeconds)
 	// Update our custom Projectile Emit System. 
 	if (ProjectileEmitSystem* system = world.GetSystem<ProjectileEmitSystem>())
 		system->Update(world);
+
+	// Update our health tracker
+	if (healthLabel)
+	{
+		Character* player = context.GetWorld().FindCharacter("player");
+		if (player)
+		{
+			const HealthComponent* health = player->GetHealth();
+			if (health)
+			{
+				healthLabel->SetText("Health: " + std::to_string(health->healthPercentage));
+			}
+		}
+	}
 }
 
 void Game::Render(GameContext& context)
 {
+	if (healthLabel)
+		healthLabel->Render(); 
 }
 
 void Game::Stop(GameContext& context)
 {
+	healthLabel.reset(); 
 }

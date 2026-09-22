@@ -7,6 +7,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 find_package(SDL3 CONFIG REQUIRED)
 find_package(SDL3_image CONFIG REQUIRED)
 find_package(SDL3_mixer CONFIG REQUIRED)
+find_package(SDL3_ttf CONFIG REQUIRED)
 
 set(GOBO_ENGINE_SOURCES
     src/Application/Application.cpp
@@ -26,6 +27,7 @@ set(GOBO_ENGINE_SOURCES
     src/Systems/RenderCollisionSystem.cpp
     src/Systems/RenderSystem.cpp
     src/Audio/AudioManager.cpp
+    src/Rendering/TextLabel.cpp
 )
 
 file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
@@ -47,6 +49,7 @@ target_link_libraries(GoboEngine PUBLIC
     SDL3::SDL3
     SDL3_image::SDL3_image-shared
     SDL3_mixer::SDL3_mixer
+    SDL3_ttf::SDL3_ttf
 )
 
 set_target_properties(GoboEngine PROPERTIES

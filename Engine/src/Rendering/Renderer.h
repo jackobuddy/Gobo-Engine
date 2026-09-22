@@ -9,7 +9,7 @@ class Window;
 class Renderer
 {
 public:
-	Renderer(std::shared_ptr<Window> w); 
+	Renderer(std::shared_ptr<Window> window, int initialVSyncMode = 0); 
 	~Renderer(); 
 
 	Renderer(const Renderer&) = delete; // Blocks copying during construction

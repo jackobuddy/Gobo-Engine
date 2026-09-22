@@ -29,7 +29,8 @@ bool Application::Initialize(const GameConfig& config)
 	}
 
 	// Initialize our game window. 
-	window = std::make_shared<Window>(config.window.windowWidth, config.window.windowHeight);
+	window = std::make_shared<Window>(config.window.windowWidth, config.window.windowHeight, 
+		config.window.mode);
 	if (not window->Initialize()) return false; 
 	if (not window->SetTitle(config.title)) return false; 
 	if (not window->SetWindowMode(config.window.mode)) return false; 

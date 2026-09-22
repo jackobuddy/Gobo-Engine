@@ -3,6 +3,8 @@
 #include <string>
 #include <SDL3/SDL.h>
 
+struct TTF_Font; 
+
 class AssetManager
 {
 public:
@@ -24,10 +26,15 @@ public:
 	// TODO: Implement removing a Texture from the Asset Manager
 	// void RemoveTexture(const std::string& assetsID); 
 
+	bool AddFont(const std::string& assetID, const std::string& filepath, float pointSize); 
+	TTF_Font* GetFont(const std::string& assetID); 
+	bool RemoveFont(const std::string& assetID); 
+
 private:
 	// Keeps track of if an Asset Manager Instance already exists
 	static bool managerExists;
 
 	std::map<std::string, SDL_Texture*> textures; 
-	// TODO: Create map for Fonts, audio, etc...
+	std::map<std::string, TTF_Font*> fonts;
+	bool fontLibraryInitialized = false; 
 };

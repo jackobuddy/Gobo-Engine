@@ -3,11 +3,12 @@
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include <SDL3/SDL.h>
+#include <utility>
 
-Renderer::Renderer(std::shared_ptr<Window> w)
+Renderer::Renderer(std::shared_ptr<Window> window, int initialVSyncMode)
 {
-	window = w; 
-	vsyncMode = 1; 
+	this->window = window; 
+	this->vsyncMode = Clamp(initialVSyncMode, -1, 1); 
 }
 
 Renderer::~Renderer()

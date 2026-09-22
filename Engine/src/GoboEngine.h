@@ -29,6 +29,7 @@
 #include "Math/Math.h"
 #include "Rendering/Camera.h"
 #include "Rendering/Renderer.h"
+#include "Rendering/TextLabel.h"
 #include "Systems/AnimationSystem.h"
 #include "Systems/CameraMovementSystem.h"
 #include "Systems/CollisionSystem.h"

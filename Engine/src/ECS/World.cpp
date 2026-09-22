@@ -256,17 +256,50 @@ void World::ProcessEntityDestruction(const Entity& entity)
 	freeIDs.push_back(entity.id);
 }
 
-void World::TagEntity(Entity entity, const std::string& tag)
+bool World::TagEntity(Entity entity, const std::string& tag)
 {
-	entityPerTag.emplace(tag, entity); 
-	tagPerEntity.emplace(entity.GetID(), tag); 
+	if (not IsEntityAlive(entity) or tag.empty())
+		return false; 
+
+	const int id = entity.GetID(); 
+
+	// Reject a tag already owned by a different entity. 
+	const auto requestedTag = entityPerTag.find(tag); 
+	if (requestedTag != entityPerTag.end() and requestedTag->second != entity)
+	{
+		Logger::Error("Tag is already assigned: " + tag);
+		return false; 
+	}
+
+	// Remove this entity's old tag, if it has a different one.
+	const auto currentTag = tagPerEntity.find(id); 
+	if (currentTag != tagPerEntity.end() and currentTag->second != tag)
+	{
+		const auto oldForward = entityPerTag.find(currentTag->second); 
+
+		// Only erase the forward entry if it truly belongs to this entity.
+		if (oldForward != entityPerTag.end() and oldForward->second == entity)
+			entityPerTag.erase(oldForward); 
+
+		tagPerEntity.erase(currentTag); 
+	}
+
+	// Safe assignment of tag. 
+	entityPerTag.insert_or_assign(tag, entity); 
+	tagPerEntity.insert_or_assign(id, tag);
+	return true; 
 }
 
 bool World::EntityHasTag(Entity entity, const std::string& tag) const
 {
-	if (tagPerEntity.find(entity.GetID()) == tagPerEntity.end())
+	if (not IsEntityAlive(entity))
 		return false; 
-	return entityPerTag.find(tag)->second == entity; 
+
+	const auto byEntity = tagPerEntity.find(entity.GetID());
+	const auto byTag = entityPerTag.find(tag); 
+
+	return byEntity != tagPerEntity.end() and byTag != entityPerTag.end() and 
+		byEntity->second == tag and byTag->second == entity; 
 }
 
 Entity World::GetEntityByTag(const std::string& tag) const
@@ -274,53 +307,78 @@ Entity World::GetEntityByTag(const std::string& tag) const
 	return entityPerTag.at(tag); 
 }
 
-void World::RemoveEntityTag(Entity entity)
+bool World::RemoveEntityTag(Entity entity)
 {
-	auto taggedEntity = tagPerEntity.find(entity.GetID());
-	if (taggedEntity != tagPerEntity.end())
-	{
-		auto tag = taggedEntity->second; 
-		entityPerTag.erase(tag); 
-		tagPerEntity.erase(taggedEntity); 
-	}
+	const auto byEntity = tagPerEntity.find(entity.GetID()); 
+	if (byEntity == tagPerEntity.end())
+		return false; 
+
+	const auto byTag = entityPerTag.find(byEntity->second); 
+	if (byTag != entityPerTag.end() and byTag->second == entity)
+		entityPerTag.erase(byTag); 
+
+	tagPerEntity.erase(byEntity); 
+	return true; 
 }
 
-void World::GroupEntity(Entity entity, const std::string& group)
+bool World::GroupEntity(Entity entity, const std::string& group)
 {
-	entitiesPerGroup.emplace(group, std::set<Entity>()); 
-	entitiesPerGroup[group].emplace(entity); 
-	groupPerEntity.emplace(entity.GetID(), group); 
+	if (not IsEntityAlive(entity) or group.empty())
+		return false; 
+
+	const int id = entity.GetID(); 
+	const auto currentGroup = groupPerEntity.find(id); 
+
+	// Already currently assigned.
+	if (currentGroup != groupPerEntity.end() and currentGroup->second == group)
+		return true; 
+
+	// Enforce the current one-group-per-entity policy.
+	RemoveEntityGroup(entity); 
+
+	entitiesPerGroup[group].insert(entity); 
+	groupPerEntity.insert_or_assign(id, group); 
+	return true; 
 }
 
 bool World::EntityBelongsToGroup(Entity entity, const std::string& group) const
 {
-	auto groupEntities = entitiesPerGroup.find(group); 
-	if (groupEntities == entitiesPerGroup.end())
-		return false;
+	if (not IsEntityAlive(entity))
+		return false; 
 
-	return groupEntities->second.contains(entity);
+	const auto byEntity = groupPerEntity.find(entity.GetID()); 
+	const auto byGroup = entitiesPerGroup.find(group); 
+
+	return byEntity != groupPerEntity.end() and byGroup != entitiesPerGroup.end() and
+		byEntity->second == group and byGroup->second.contains(entity); 
 }
 
 std::vector<Entity> World::GetEntitiesByGroup(const std::string& group) const
 { 
-	auto &setOfEntities = entitiesPerGroup.at(group); 
-	return std::vector<Entity>(setOfEntities.begin(), setOfEntities.end()); 
+	const auto found = entitiesPerGroup.find(group); 
+	if (found == entitiesPerGroup.end())
+		return {}; 
+
+	return { found->second.begin(), found->second.end() };
 }
 
-void World::RemoveEntityGroup(Entity entity)
+bool World::RemoveEntityGroup(Entity entity)
 {
-	auto groupedEntity = groupPerEntity.find(entity.GetID()); 
-	if (groupedEntity != groupPerEntity.end())
+	const auto byEntity = groupPerEntity.find(entity.GetID());
+	if (byEntity == groupPerEntity.end())
+		return false; 
+
+	const auto byGroup = entitiesPerGroup.find(byEntity->second);
+	if (byGroup != entitiesPerGroup.end())
 	{
-		auto group = entitiesPerGroup.find(groupedEntity->second); 
-		if (group != entitiesPerGroup.end())
-		{
-			auto entityInGroup = group->second.find(entity); 
-			if (entityInGroup != group->second.end()) 
-				group->second.erase(entityInGroup); 
-		}
-		groupPerEntity.erase(groupedEntity); 
+		byGroup->second.erase(entity); 
+
+		if (byGroup->second.empty())
+			entitiesPerGroup.erase(byGroup); 
 	}
+
+	groupPerEntity.erase(byEntity); 
+	return true; 
 }
 
 void World::AddEntityToSystems(const Entity& entity)

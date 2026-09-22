@@ -3,19 +3,13 @@
 #include "../Math/Math.h"
 #include <SDL3/SDL.h>
 
-Window::Window(int windowWidth, int windowHeight)
+Window::Window(int windowWidth, int windowHeight, WindowMode mode, SDL_WindowFlags flags)
 {
-	// TODO: Allow game projects to set their own default window width, height, and title
-	// or else have the exclusive fullscreen resolution default to the primary display's size
-
-	// TODO: The default fullscreen mode should be set per game project and
-	// adjustable during runtime. 
-	
-	// TODO: Borderless Mode doesn't scale to the width and height. 
 	this->width = windowWidth; 
 	this->height = windowHeight; 
+	this->windowMode = mode;
+	this->creationFlags = flags; 
 	title = "Untitled Gobo Engine Game";
-	windowMode = WindowMode::BorderlessFullscreen;
 }
 
 Window::~Window()
@@ -29,7 +23,7 @@ Window::~Window()
 
 bool Window::Initialize()
 {
-	sdlWindow = SDL_CreateWindow(title.c_str(), width, height, 0);
+	sdlWindow = SDL_CreateWindow(title.c_str(), width, height, creationFlags);
 	if (not sdlWindow)
 	{
 		Logger::SDLError("SDL_CreateWindow failed", SDL_GetError());

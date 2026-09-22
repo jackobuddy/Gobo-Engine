@@ -1,6 +1,7 @@
 #include "AssetManager.h"
 #include "../Logger/Logger.h"
 #include <SDL3_image/SDL_image.h>
+#include <SDL3_ttf/SDL_ttf.h>
 #include <stdexcept>
 
 bool AssetManager::managerExists = false;
@@ -15,23 +16,41 @@ AssetManager::AssetManager()
 
 	managerExists = true;
 	Logger::Log("Asset Manager created.");
+
+	if (not TTF_Init())
+	{
+		Logger::SDLError("TTF_Init failed", SDL_GetError()); 
+	}
+	else
+	{
+		fontLibraryInitialized = true; 
+		Logger::Log("Font Library initialized successfully.");
+	}
 }
 
 AssetManager::~AssetManager()
 {
 	ClearAssets(); 
+
+	if (fontLibraryInitialized)
+	{
+		TTF_Quit();
+		fontLibraryInitialized = false; 
+	}
 	managerExists = false;
 	Logger::Log("Asset Manager destroyed"); 
 }
 
 void AssetManager::ClearAssets()
 {
-	// Deallocates the SDL Textures
 	for (auto texture : textures)
-	{
 		SDL_DestroyTexture(texture.second); 
-	}
 	textures.clear(); 
+
+	for (auto& [id, font] : fonts)
+		TTF_CloseFont(font); 
+	fonts.clear(); 
+
 	Logger::Log("Asset Manager cleared. ");
 }
 
@@ -80,4 +99,51 @@ SDL_Texture* AssetManager::GetTexture(const std::string& assetID)
 {
 	const auto it = textures.find(assetID); 
 	return it == textures.end() ? nullptr : it->second; 
+}
+
+bool AssetManager::AddFont(const std::string& assetID, const std::string& filepath, float pointSize)
+{
+	if (not fontLibraryInitialized)
+	{
+		Logger::Error("Cannot load a font because SDL_ttf is unavailable.");
+		return false; 
+	}
+	if (assetID.empty() or filepath.empty() or pointSize <= 0.0f)
+	{
+		Logger::Error("Font ID, path, and point size must be valid. ");
+		return false; 
+	}
+	if (fonts.contains(assetID))
+	{
+		Logger::Error("Duplicate font ID: " + assetID); 
+		return false; 
+	}
+
+	TTF_Font* font = TTF_OpenFont(filepath.c_str(), pointSize);
+	if (not font)
+	{
+		Logger::SDLError("Failed to load font: " + filepath, SDL_GetError()); 
+		return false; 
+	}
+
+	fonts.emplace(assetID, font); 
+	Logger::Log("Added font: " + assetID); 
+	return true; 
+}
+
+TTF_Font* AssetManager::GetFont(const std::string& assetID)
+{
+	const auto found = fonts.find(assetID); 
+	return found == fonts.end() ? nullptr : found->second; 
+}
+
+bool AssetManager::RemoveFont(const std::string& assetID)
+{
+	const auto found = fonts.find(assetID); 
+	if (found == fonts.end())
+		return false; 
+
+	TTF_CloseFont(found->second); 
+	fonts.erase(found); 
+	return true; 
 }

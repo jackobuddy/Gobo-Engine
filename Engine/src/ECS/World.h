@@ -88,7 +88,7 @@ public:
 
 	// Assigns a unique Tag to a given Entity. Unlike Groups, tags are unique and can
 	// only be assigned to a single Entity. 
-	void TagEntity(Entity entity, const std::string& tag);
+	bool TagEntity(Entity entity, const std::string& tag);
 	// Returns true if the given Entity has the Tag assigned to it, otherwise returns false. 
 	bool EntityHasTag(Entity entity, const std::string& tag) const; 
 	// Returns the Entity assigned to the given Tag. 
@@ -97,11 +97,11 @@ public:
 	// TODO: We want Entities to be able to have multiple tags. This function will need
 	// to take in a tag as a std::string& tag and only remove the given tag from the Entity, 
 	// returning True on success or otherwise False. 
-	void RemoveEntityTag(Entity entity); 
+	bool RemoveEntityTag(Entity entity); 
 
 	// Adds the given Entity to the given Group. Unlike Tags, Groups may have multiple
 	// Entities assigned to them at once. 
-	void GroupEntity(Entity entity, const std::string& group); 
+	bool GroupEntity(Entity entity, const std::string& group); 
 	// Returns true if the given Entity is a part of the provided Group, otherwise false. 
 	bool EntityBelongsToGroup(Entity entity, const std::string& group) const; 
 	// Returns a vector containing all of the Entities in a given Group. 
@@ -110,7 +110,7 @@ public:
 	// TODO: We want Entities to be able to belong to multiple groups. This function will need
 	// to take in a group as a std::string& group and only remove the given group from the Entity,
 	// returning True on success or otherwise False. 
-	void RemoveEntityGroup(Entity entity); 
+	bool RemoveEntityGroup(Entity entity); 
 
 	void SetWorldSize(Vector2 worldSize)
 	{

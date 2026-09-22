@@ -1,5 +1,6 @@
 #pragma once
 #include <string> 
+#include <SDL3/SDL.h>
 
 struct SDL_Window;
 
@@ -12,7 +13,8 @@ enum class WindowMode
 class Window
 {
 public: 
-	Window(int windowWidth = 1920, int windowHeight = 1080); 
+	Window(int windowWidth = 1920, int windowHeight = 1080, 
+		WindowMode mode = WindowMode::Windowed, SDL_WindowFlags flags = 0); 
 	~Window(); 
 
 	Window(const Window&) = delete; // Blocks copying during construction
@@ -63,4 +65,6 @@ private:
 	std::string title;
 	// Stores the Window Display Mode
 	WindowMode windowMode;
+	// SDL Creation Flags
+	SDL_WindowFlags creationFlags = 0;
 };

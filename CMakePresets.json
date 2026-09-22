@@ -14,7 +14,8 @@
       "binaryDir": "${sourceDir}/out/build/windows-x64",
       "toolchainFile": "${sourceDir}/Engine/external/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
-        "VCPKG_TARGET_TRIPLET": "x64-windows"
+        "VCPKG_TARGET_TRIPLET": "x64-windows",
+        "BUILD_TESTING": "ON"
       }
     }
   ],
@@ -28,6 +29,40 @@
       "name": "windows-x64-release",
       "configurePreset": "windows-x64",
       "configuration": "Release"
+    },
+    {
+      "name": "windows-x64-tests-debug",
+      "configurePreset": "windows-x64",
+      "configuration": "Debug",
+      "targets": [ "GoboEngineTests" ]
+    },
+    {
+      "name": "windows-x64-tests-release",
+      "configurePreset": "windows-x64",
+      "configuration": "Release",
+      "targets": [ "GoboEngineTests" ]
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "windows-x64-tests-debug",
+      "configurePreset": "windows-x64",
+      "configuration": "Debug",
+      "output": { "outputOnFailure": true },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": true
+      }
+    },
+    {
+      "name": "windows-x64-tests-release",
+      "configurePreset": "windows-x64",
+      "configuration": "Release",
+      "output": { "outputOnFailure": true },
+      "execution": {
+        "noTestsAction": "error",
+        "stopOnFailure": true
+      }
     }
   ]
 }

@@ -277,7 +277,7 @@ AudioPlaybackID AudioManager::Play(const std::string& audioID, const AudioPlayCo
 		return InvalidAudioPlaybackID;
 	}
 
-	voice->playbackID = nextPlaybackID; 
+	voice->playbackID = nextPlaybackID++;
 	if (nextPlaybackID == InvalidAudioPlaybackID) ++nextPlaybackID; 
 	voice->audioID = audioID; 
 	voice->instanceVolume = instanceVolume; 
