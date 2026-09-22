@@ -9,6 +9,7 @@
 
 class AssetManager; 
 class EventManager; 
+class AudioManager; 
 class IGame; 
 class Renderer; 
 class Window; 
@@ -35,6 +36,7 @@ private:
 	std::shared_ptr<World> world; 
 	std::shared_ptr<AssetManager> assetManager; 
 	std::shared_ptr<EventManager> eventManager; 
+	std::shared_ptr<AudioManager> audioManager; 
 	Camera camera; 
 	std::unordered_set<SDL_Keycode> heldKeys; 
 	bool isRunning = false; 

@@ -24,16 +24,13 @@ GameConfig Game::Configure() const
     return config;
 }
 
-void Game::Stop(GameContext& context)
-{
-}
-
 void Game::Start(GameContext& context)
 {
     World& world = context.GetWorld();
     AssetManager& assets = context.GetAssets();
     SDL_Renderer* renderer = context.GetSDLRenderer();
 	EventManager& events = context.GetEvents();
+	AudioManager& audio = context.GetAudio(); 
 
 	// Add our custom Projectile Emit System
     world.AddSystem<ProjectileEmitSystem>();
@@ -52,6 +49,11 @@ void Game::Start(GameContext& context)
 	assets.AddTexture(renderer, "chopper-image", "./assets/images/chopper-spritesheet.png");
 	assets.AddTexture(renderer, "radar-image", "./assets/images/radar.png");
 	assets.AddTexture(renderer, "bullet-image", "./assets/images/bullet.png");
+
+	// Load audio assets
+	audio.LoadAudio("helicopter-loop", "assets/sounds/helicopter.wav", true);
+	audio.SetBusVolume("SFX", 0.30f);
+	audio.Play("helicopter-loop", { .bus = "SFX", .volume = 1.0f, .loops = -1 });
 
 	// Load the Tilemap
 	float tileSize = 32.0f;
@@ -107,12 +109,18 @@ void Game::BeginFrame(GameContext& context)
 
 void Game::Update(GameContext& context, float deltaSeconds)
 {
+	// Get a reference to our World. 
 	World& world = context.GetWorld();
-	EventManager& events = context.GetEvents();
-	if (auto* s = world.GetSystem<ProjectileEmitSystem>())
-		s->Update(world);
+	
+	// Update our custom Projectile Emit System. 
+	if (ProjectileEmitSystem* system = world.GetSystem<ProjectileEmitSystem>())
+		system->Update(world);
 }
 
 void Game::Render(GameContext& context)
+{
+}
+
+void Game::Stop(GameContext& context)
 {
 }

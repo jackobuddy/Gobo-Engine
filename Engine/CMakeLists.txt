@@ -6,6 +6,7 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 find_package(SDL3 CONFIG REQUIRED)
 find_package(SDL3_image CONFIG REQUIRED)
+find_package(SDL3_mixer CONFIG REQUIRED)
 
 set(GOBO_ENGINE_SOURCES
     src/Application/Application.cpp
@@ -24,6 +25,7 @@ set(GOBO_ENGINE_SOURCES
     src/Systems/MovementSystem.cpp
     src/Systems/RenderCollisionSystem.cpp
     src/Systems/RenderSystem.cpp
+    src/Audio/AudioManager.cpp
 )
 
 file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
@@ -33,7 +35,7 @@ file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
 add_library(GoboEngine STATIC
     ${GOBO_ENGINE_SOURCES}
     ${GOBO_ENGINE_HEADERS}
- "src/Events/KeyReleasedEvent.h" "src/Events/MouseDownEvent.h" "src/Events/MouseUpEvent.h" "src/Entities/EntityObject.h" "src/Events/KeyHeldEvent.h" "src/Events/KeyAllEvent.h")
+ "src/Events/KeyReleasedEvent.h" "src/Events/MouseDownEvent.h" "src/Events/MouseUpEvent.h" "src/Entities/EntityObject.h" "src/Events/KeyHeldEvent.h" "src/Events/KeyAllEvent.h" "src/Audio/AudioManager.h")
 
 add_library(Gobo::Engine ALIAS GoboEngine)
 
@@ -44,6 +46,7 @@ target_include_directories(GoboEngine PUBLIC
 target_link_libraries(GoboEngine PUBLIC
     SDL3::SDL3
     SDL3_image::SDL3_image-shared
+    SDL3_mixer::SDL3_mixer
 )
 
 set_target_properties(GoboEngine PROPERTIES

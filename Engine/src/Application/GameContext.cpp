@@ -2,16 +2,18 @@
 #include "../AssetManager/AssetManager.h"
 #include "../ECS/World.h"
 #include "../Events/EventManager.h"
+#include "../Audio/AudioManager.h"
 #include "../Rendering/Camera.h"
 #include "../Rendering/Renderer.h"
 
-GameContext::GameContext(World& world, AssetManager& assets, EventManager& events, 
+GameContext::GameContext(World& world, AssetManager& assets, EventManager& events, AudioManager& audio,
 	Camera& camera, Renderer& renderer, bool& isRunning) : world(world), assets(assets), 
-	events(events), camera(camera), renderer(renderer), isRunning(isRunning) {}
+	events(events), audio(audio), camera(camera), renderer(renderer), isRunning(isRunning) {}
 
 World& GameContext::GetWorld() const { return world; }
 AssetManager& GameContext::GetAssets() const { return assets; }
 EventManager& GameContext::GetEvents() const { return events; }
+AudioManager& GameContext::GetAudio() const { return audio; }
 Camera& GameContext::GetCamera() const { return camera; }
 Renderer& GameContext::GetRenderer() const { return renderer; }
 SDL_Renderer* GameContext::GetSDLRenderer() const { return renderer.GetSDLRenderer(); }

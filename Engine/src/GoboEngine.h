@@ -5,6 +5,8 @@
 #include "Application/GameContext.h"
 #include "Application/IGame.h"
 #include "AssetManager/AssetManager.h"
+#include "Audio/AudioManager.h"
+#include "Audio/AudioTypes.h"
 #include "Components/AnimationComponent.h"
 #include "Components/BoxCollisionComponent.h"
 #include "Components/CameraFollowComponent.h"

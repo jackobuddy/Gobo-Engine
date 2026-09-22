@@ -2,6 +2,7 @@
 #include "GameContext.h"
 #include "IGame.h"
 #include "../ECS/World.h"
+#include "../Audio/AudioManager.h"
 #include "../AssetManager/AssetManager.h"
 #include "../Events/EventManager.h"
 #include "../Events/KeyPressedEvent.h"
@@ -21,7 +22,7 @@ Application::~Application() { Shutdown(); }
 bool Application::Initialize(const GameConfig& config)
 {
 	// Start up our SDL Video. 
-	if (not SDL_Init(SDL_INIT_VIDEO))
+	if (not SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
 	{
 		Logger::SDLError("SDL_Init failed", SDL_GetError());
 		return false; 
@@ -38,6 +39,10 @@ bool Application::Initialize(const GameConfig& config)
 	if (not renderer->Initialize()) return false;
 	if (not renderer->SetVSyncMode(config.vsyncMode)) return false; 
 	if (not renderer->SetRenderViewConfig(config.render)) return false; 
+
+	// Initialize our audio manager
+	audioManager = std::make_shared<AudioManager>(); 
+	if (not audioManager->Initialize()) return false; 
 
 	// Initialize our world and managers. 
 	world = std::make_unique<World>(); 
@@ -107,12 +112,21 @@ void Application::Shutdown()
 
 	Logger::Log("Game is shutting down...");
 	isRunning = false; 
+
 	// Ensure the game shuts down in the proper order. 
 	eventManager.reset();
 	assetManager.reset();
 	world.reset(); 
+
+	if (audioManager)
+	{
+		audioManager->Shutdown(); 
+		audioManager.reset(); 
+	}
+
 	renderer.reset();
 	window.reset();
+
 	SDL_Quit();
 	isShutdown = true; 
 }
@@ -133,7 +147,7 @@ int Application::Run(IGame& game)
 		return 1; 
 	}
 
-	GameContext context(*world, *assetManager, *eventManager, camera, *renderer, isRunning); 
+	GameContext context(*world, *assetManager, *eventManager, *audioManager, camera, *renderer, isRunning); 
 	game.PreStart(context); // Engine-side Start
 	game.Start(context); // Game-side Start
 
@@ -159,6 +173,7 @@ int Application::Run(IGame& game)
 		game.PreRender(context); // Engine-side Rendering
 		game.Render(context); // Game-side Rendering
 		SDL_RenderPresent(rawRenderer); 
+		audioManager->Update(); 
 		
 		std::uint64_t currentTick = SDL_GetTicks(); 
 		if (config.frameRateIsCapped and renderer->GetVSyncMode() == 0)

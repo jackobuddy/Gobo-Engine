@@ -6,6 +6,7 @@
     {
       "name": "sdl3-image",
       "features": [ "png" ]
-    }
+    },
+    "sdl3-mixer"
   ]
 }
