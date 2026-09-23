@@ -4,18 +4,18 @@
 #include "../Components/TransformComponent.h"
 #include "../Components/SpriteComponent.h"
 #include "../Rendering/Camera.h"
-#include <SDL3/SDL.h>
 #include <vector>
 
 class AssetManager;
 class Entity; 
+class Renderer; 
 
 
 class RenderSystem : public System
 {
 public:
 	RenderSystem(); 
-	void Update(SDL_Renderer* renderer, AssetManager& assetManager, Camera camera); 
+	void Update(Renderer& renderer, AssetManager& assetManager, Camera camera); 
 	void AddEntityToSystem(Entity entity) override;
 	void RemoveEntityFromSystem(Entity entity) override;
 

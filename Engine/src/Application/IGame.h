@@ -77,17 +77,18 @@ protected:
 	{
 		World& world = context.GetWorld();
 		Camera& camera = context.GetCamera();
+		Renderer& renderer = context.GetEngineRenderer(); 
 		camera.position.x = Floor(camera.position.x);
 		camera.position.y = Floor(camera.position.y);
 
 		if (auto* s = world.GetSystem<RenderSystem>())
-			s->Update(context.GetSDLRenderer(),
+			s->Update(renderer,
 				context.GetAssets(), camera);
 
 		if (isDebugMode)
 		{
 			if (auto* s = world.GetSystem<RenderCollisionSystem>())
-				s->Update(context.GetSDLRenderer(), camera);
+				s->Update(renderer, camera);
 		}
 	}
 

@@ -2,8 +2,11 @@
 #include "Window.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
+#include "TextManager.h"
+#include "../AssetManager/AssetManager.h"
 #include <SDL3/SDL.h>
 #include <utility>
+#include <stdexcept>
 
 Renderer::Renderer(std::shared_ptr<Window> window, int initialVSyncMode)
 {
@@ -13,12 +16,7 @@ Renderer::Renderer(std::shared_ptr<Window> window, int initialVSyncMode)
 
 Renderer::~Renderer()
 {
-	if (renderer)
-	{
-		SDL_DestroyRenderer(renderer); 
-		renderer = nullptr;
-	}
-	window = nullptr;
+	Destroy(); 
 }
 
 bool Renderer::Initialize()
@@ -79,12 +77,6 @@ bool Renderer::SetVSyncMode(int m)
 	return true; 
 }
 
-void Renderer::Destroy()
-{
-	SDL_DestroyRenderer(renderer);
-	renderer = nullptr; 
-}
-
 bool Renderer::SetRenderViewConfig(RenderViewConfig config)
 {
 	if (not renderer or config.renderWidth <= 400 or config.renderHeight <= 300)
@@ -99,4 +91,90 @@ bool Renderer::SetRenderViewConfig(RenderViewConfig config)
 
 	presentationConfig = config; 
 	return true; 
+}
+
+bool Renderer::InitializeText(AssetManager& assets)
+{
+	if (not renderer)
+	{
+		Logger::Error(
+			"Cannot initialize text before the SDL renderer."
+		);
+		return false;
+	}
+	textManager = std::make_unique<TextManager>(
+		*renderer, assets
+	);
+	return true;
+}
+
+void Renderer::ShutdownText()
+{
+	textManager.reset();
+}
+
+bool Renderer::RenderText()
+{
+	return textManager ? textManager->Render() : true;
+}
+
+TextManager& Renderer::GetTextManager()
+{
+	if (not textManager)
+		throw std::runtime_error("TextManager is unavailable.");
+	return *textManager;
+}
+
+void Renderer::Destroy()
+{
+	// Mandatory ordering: labels release SDL textures first.
+	textManager.reset();
+	if (renderer)
+	{
+		SDL_DestroyRenderer(renderer);
+		renderer = nullptr;
+	}
+	window.reset();
+}
+
+bool Renderer::BeginFrame(Color clearColor)
+{
+	if (not renderer)
+	{
+		Logger::Error(
+			"Cannot begin a frame without an initialized renderer."
+		);
+		return false;
+	}
+
+	if (not SDL_SetRenderDrawColor(
+		renderer,
+		static_cast<Uint8>(Clamp(clearColor.r, 0, 255)),
+		static_cast<Uint8>(Clamp(clearColor.g, 0, 255)),
+		static_cast<Uint8>(Clamp(clearColor.b, 0, 255)),
+		static_cast<Uint8>(Clamp(clearColor.a, 0, 255))))
+	{
+		Logger::SDLError(
+			"Failed to set the render clear color",
+			SDL_GetError()
+		);
+		return false;
+	}
+
+	if (not SDL_RenderClear(renderer))
+	{
+		Logger::SDLError(
+			"Failed to clear the renderer",
+			SDL_GetError()
+		);
+		return false;
+	}
+
+	return true;
+}
+
+void Renderer::Present()
+{
+	if (renderer)
+		SDL_RenderPresent(renderer);
 }

@@ -40,29 +40,40 @@ target_link_libraries(GoboExampleGame
 )
 
 # Copy required runtime DLLs beside the executable.
-add_custom_command(TARGET GoboExampleGame POST_BUILD
+add_custom_command(
+    TARGET GoboExampleGame
+    POST_BUILD
+
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         $<TARGET_RUNTIME_DLLS:GoboExampleGame>
         $<TARGET_FILE_DIR:GoboExampleGame>
+
     COMMAND_EXPAND_LISTS
 )
 
-# Copy game-owned assets into the fixed runtime working directory.
-add_custom_command(TARGET GoboExampleGame POST_BUILD
+# Copy game-owned assets into the runtime working directory.
+add_custom_command(
+    TARGET GoboExampleGame
+    POST_BUILD
+
     COMMAND ${CMAKE_COMMAND} -E copy_directory_if_different
         "${CMAKE_CURRENT_SOURCE_DIR}/assets"
         "${CMAKE_CURRENT_BINARY_DIR}/assets"
 )
 
-# Copy engine-provided fonts into the fixed runtime working directory.
-add_custom_command(TARGET GoboExampleGame POST_BUILD
+# Copy the license for the Engine's embedded Roboto font.
+# Roboto-Regular.ttf itself is now embedded in GoboEngine and does
+# not need to be copied into the runtime assets directory.
+add_custom_command(
+    TARGET GoboExampleGame
+    POST_BUILD
+
     COMMAND ${CMAKE_COMMAND} -E make_directory
-        "${CMAKE_CURRENT_BINARY_DIR}/assets/engine/fonts/Roboto"
+        "${CMAKE_CURRENT_BINARY_DIR}/licenses/Roboto"
 
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${GOBO_ENGINE_ROOT}/assets/fonts/Roboto/Roboto-Regular.ttf"
         "${GOBO_ENGINE_ROOT}/assets/fonts/Roboto/OFL.txt"
-        "${CMAKE_CURRENT_BINARY_DIR}/assets/engine/fonts/Roboto"
+        "${CMAKE_CURRENT_BINARY_DIR}/licenses/Roboto/OFL.txt"
 )
 
 set_property(
@@ -70,13 +81,14 @@ set_property(
     PROPERTY VS_STARTUP_PROJECT GoboExampleGame
 )
 
-# This must be a concrete path. Do not use a generator expression here.
 set_property(
     TARGET GoboExampleGame
     PROPERTY VS_DEBUGGER_WORKING_DIRECTORY
         "${CMAKE_CURRENT_BINARY_DIR}"
 )
 
-set_target_properties(GoboExampleGame PROPERTIES
-    FOLDER "Projects"
+set_target_properties(
+    GoboExampleGame
+    PROPERTIES
+        FOLDER "Projects"
 )

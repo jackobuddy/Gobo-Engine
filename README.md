@@ -40,7 +40,7 @@ This script:
 1. Synchronizes and initializes Git submodules.
 2. Bootstraps the included vcpkg installation.
 3. Configures the `windows-x64` CMake preset.
-4. Installs the SDL3 and SDL3_image dependencies declared in `vcpkg.json`.
+4. Installs the SDL3, SDL3_image, SDL3_ttf, and SDL3_mixer dependencies declared in `vcpkg.json`.
 
 Build the suite’s Debug configuration:
 

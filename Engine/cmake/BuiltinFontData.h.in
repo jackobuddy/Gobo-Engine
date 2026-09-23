@@ -1,0 +1,10 @@
+#pragma once
+
+#include <cstddef>
+
+namespace BuiltinFontData
+{
+	inline constexpr unsigned char RobotoRegular[] = { @GOBO_DEFAULT_FONT_BYTES@ }; 
+
+	inline constexpr std::size_t RobotoRegularSize = sizeof(RobotoRegular); 
+}

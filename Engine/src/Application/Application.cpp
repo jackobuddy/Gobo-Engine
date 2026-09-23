@@ -48,11 +48,19 @@ bool Application::Initialize(const GameConfig& config)
 	// Initialize our world and managers. 
 	world = std::make_unique<World>(); 
 	world->SetQuitRequestHandler([this](){ isRunning=false; });
-	assetManager = std::make_unique<AssetManager>(); 
+	assetManager = std::make_unique<AssetManager>(*renderer); 
 	eventManager = std::make_unique<EventManager>(); 
 	camera.position = config.cameraPosition; 
 	camera.SetViewSize(Vector2(static_cast<float>(config.render.renderWidth), 
 		static_cast<float>(config.render.renderHeight)));
+
+	if (not assetManager->HasFont(BuiltinAssets::DefaultFontID))
+	{
+		Logger::Error("The Engine default font is unavailable. ");
+		return false; 
+	}
+	if (not renderer->InitializeText(*assetManager))
+		return false; 
 
 	isRunning = true; 
 	isShutdown = false; 
@@ -88,7 +96,12 @@ void Application::ProcessInput(GameContext& context)
 
 		// Release all keys if the window loses focus
 		else if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
+		{
+			for (const SDL_Keycode key : heldKeys)
+				eventManager->EmitEvent<KeyReleasedEvent>(key); 
+
 			heldKeys.clear(); 
+		}
 
 		// TODO: We'll want to be able to track if a mouse button is being held down separately
 		// from if it was just pressed. 
@@ -116,18 +129,19 @@ void Application::Shutdown()
 
 	// Ensure the game shuts down in the proper order. 
 	eventManager.reset();
+	world.reset();
+	// TextLabel textures must be released while both their
+	// fonts and SDL_Renderer are still alive.
+	if (renderer)
+		renderer->ShutdownText();
 	assetManager.reset();
-	world.reset(); 
-
 	if (audioManager)
 	{
-		audioManager->Shutdown(); 
-		audioManager.reset(); 
+		audioManager->Shutdown();
+		audioManager.reset();
 	}
-
 	renderer.reset();
 	window.reset();
-
 	SDL_Quit();
 	isShutdown = true; 
 }
@@ -167,13 +181,30 @@ int Application::Run(IGame& game)
 		world->Update(); 
 		if (not isRunning) break; 
 
-		SDL_Renderer* rawRenderer = renderer->GetSDLRenderer(); 
-		SDL_SetRenderDrawColor(rawRenderer, config.clearColor.r, config.clearColor.g, 
-			config.clearColor.b, config.clearColor.a); 
-		SDL_RenderClear(rawRenderer); 
-		game.PreRender(context); // Engine-side Rendering
-		game.Render(context); // Game-side Rendering
-		SDL_RenderPresent(rawRenderer); 
+		const Color clearColor{
+			config.clearColor.r,
+			config.clearColor.g,
+			config.clearColor.b,
+			config.clearColor.a
+		};
+
+		if (not renderer->BeginFrame(clearColor))
+		{
+			Logger::Error("Failed to begin render frame.");
+			break;
+		}
+
+		game.PreRender(context);
+		game.Render(context);
+
+		if (not renderer->RenderText())
+		{
+			Logger::Error(
+				"One or more text labels failed to render."
+			);
+		}
+		renderer->Present();
+
 		audioManager->Update(); 
 		
 		std::uint64_t currentTick = SDL_GetTicks(); 

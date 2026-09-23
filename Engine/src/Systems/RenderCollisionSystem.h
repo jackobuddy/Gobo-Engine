@@ -2,7 +2,8 @@
 
 #include "../ECS/System.h"
 #include "../Rendering/Camera.h"
-#include "SDL3/SDL.h"
+
+class Renderer; 
 
 class RenderCollisionSystem : public System
 {
@@ -10,5 +11,5 @@ public:
 	RenderCollisionSystem(); 
 	~RenderCollisionSystem(); 
 
-	void Update(SDL_Renderer* renderer, Camera camera); 
+	void Update(Renderer& renderer, Camera camera); 
 };

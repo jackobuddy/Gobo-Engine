@@ -1,14 +1,18 @@
 #pragma once
+
+#include "BuiltinAssets.h"
 #include <map>
 #include <string>
 #include <SDL3/SDL.h>
 
 struct TTF_Font; 
 
+class Renderer; 
+
 class AssetManager
 {
 public:
-	AssetManager(); 
+	AssetManager(Renderer& renderer); 
 	~AssetManager(); 
 
 	AssetManager(const AssetManager&) = delete;
@@ -20,7 +24,7 @@ public:
 	void ClearAssets(); 
 	// Adds a Texture to the Asset Manager with a given assetID. Returns true on success, 
 	// otherwise returns false on failure. 
-	bool AddTexture(SDL_Renderer* renderer, const std::string& assetID, const std::string& filepath);
+	bool AddTexture(const std::string& assetID, const std::string& filepath);
 	// Returns a SDL_Texture* associated with the given assetID. 
 	SDL_Texture* GetTexture(const std::string& assetID); 
 	// TODO: Implement removing a Texture from the Asset Manager
@@ -28,13 +32,16 @@ public:
 
 	bool AddFont(const std::string& assetID, const std::string& filepath, float pointSize); 
 	TTF_Font* GetFont(const std::string& assetID); 
+	bool HasFont(const std::string& assetID); 
 	bool RemoveFont(const std::string& assetID); 
 
 private:
+	bool LoadBuiltinFont(); 
+
 	// Keeps track of if an Asset Manager Instance already exists
 	static bool managerExists;
-
 	std::map<std::string, SDL_Texture*> textures; 
 	std::map<std::string, TTF_Font*> fonts;
 	bool fontLibraryInitialized = false; 
+	Renderer& renderer; 
 };

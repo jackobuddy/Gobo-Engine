@@ -4,8 +4,6 @@
 #include "Entities/truck.h"
 #include "Entities/radar.h"
 #include "Systems/ProjectileEmitSystem.h"
-#include <Rendering/TextLabel.h>
-#include <SDL3/SDL.h>
 #include <fstream>
 
 GameConfig Game::Configure() const
@@ -29,7 +27,6 @@ void Game::Start(GameContext& context)
 {
     World& world = context.GetWorld();
     AssetManager& assets = context.GetAssets();
-    SDL_Renderer* renderer = context.GetSDLRenderer();
 	EventManager& events = context.GetEvents();
 	AudioManager& audio = context.GetAudio(); 
 
@@ -43,25 +40,20 @@ void Game::Start(GameContext& context)
 	// Setup our map's camera
 	context.GetCamera().SetViewSize(Vector2(1280, 720));
 
-	// Font Label
-	if (assets.AddFont("hud-regular", "assets/engine/fonts/Roboto/Roboto-Regular.ttf", 24.0f))
-	{
-		healthLabel = std::make_unique<TextLabel>(); 
-
-		if (healthLabel->Initialize(renderer, assets.GetFont("hud-regular"), "Health: 100", 
-			SDL_Color {255, 255, 255, 255}))
-				healthLabel->SetPosition(20.0f, 20.0f); 
-		else
-			healthLabel.reset(); 
-	}
+	// Health Text Display
+	TextLabelConfig healthConfig{
+		.text = "Health: 100", .position = Vector2(20.0f, 20.0f), 
+		.color = Color{255,255,255,255}, .scale = 1.0f, .layer = 100, .visible = true
+	};
+	context.GetText().Create("hud.health", healthConfig);
 
 	// Add assets to Asset Manger
-	assets.AddTexture(renderer, "tank-image", "./assets/images/tank-panther-right.png");
-	assets.AddTexture(renderer, "truck-image", "./assets/images/truck-ford-left.png");
-	assets.AddTexture(renderer, "jungle-tm", "./assets/tilemaps/jungle.png");
-	assets.AddTexture(renderer, "chopper-image", "./assets/images/chopper-spritesheet.png");
-	assets.AddTexture(renderer, "radar-image", "./assets/images/radar.png");
-	assets.AddTexture(renderer, "bullet-image", "./assets/images/bullet.png");
+	assets.AddTexture("tank-image", "./assets/images/tank-panther-right.png");
+	assets.AddTexture("truck-image", "./assets/images/truck-ford-left.png");
+	assets.AddTexture("jungle-tm", "./assets/tilemaps/jungle.png");
+	assets.AddTexture("chopper-image", "./assets/images/chopper-spritesheet.png");
+	assets.AddTexture("radar-image", "./assets/images/radar.png");
+	assets.AddTexture("bullet-image", "./assets/images/bullet.png");
 
 	// Load audio assets
 	audio.LoadAudio("helicopter-loop", "assets/sounds/helicopter.wav", true);
@@ -110,7 +102,7 @@ void Game::Start(GameContext& context)
 
 	// Set up the UI Radar element. We make our config here so we can use the render context. 
 	Actor::Config radarConfig = {
-		.position = Vector2(context.GetRenderer().GetRenderViewConfig().renderWidth - 138, 10),
+		.position = Vector2(context.GetViewSize().x - 138, 10),
 		.scale = Vector2(tileScale, tileScale) };
 
 	Actor& radar = world.CreateActor<Radar>("radar", radarConfig);
@@ -130,27 +122,21 @@ void Game::Update(GameContext& context, float deltaSeconds)
 		system->Update(world);
 
 	// Update our health tracker
-	if (healthLabel)
+	Character* player = world.FindCharacter("player"); 
+	if (player)
 	{
-		Character* player = context.GetWorld().FindCharacter("player");
-		if (player)
+		const HealthComponent* health = player->GetHealth(); 
+		if (health)
 		{
-			const HealthComponent* health = player->GetHealth();
-			if (health)
-			{
-				healthLabel->SetText("Health: " + std::to_string(health->healthPercentage));
-			}
+			context.GetText().SetText("hud.health", "Health: " + std::to_string(health->healthPercentage));
 		}
 	}
 }
 
 void Game::Render(GameContext& context)
 {
-	if (healthLabel)
-		healthLabel->Render(); 
 }
 
 void Game::Stop(GameContext& context)
 {
-	healthLabel.reset(); 
 }

@@ -267,3 +267,20 @@ inline int FloorToInt(float value)
 {
 	return static_cast<int>(std::floor(value));
 }
+
+// A set of Red / Green / Blue / and Alpha values between 0 and 255. 
+struct Color
+{
+	int r;
+	int g;
+	int b;
+	int a;
+
+	Color(int r = 0, int g = 0, int b = 0, int alpha = 0)
+	{
+		this->r = Clamp(r, 0, 255);
+		this->g = Clamp(g, 0, 255);
+		this->b = Clamp(b, 0, 255);
+		this->a = Clamp(alpha, 0, 255);
+	}
+};

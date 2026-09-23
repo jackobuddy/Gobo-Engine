@@ -102,7 +102,7 @@ TEST_CASE(
         Renderer renderer(window, 0);
 
         REQUIRE(renderer.Initialize());
-        REQUIRE(renderer.GetSDLRenderer() != nullptr);
+        REQUIRE(renderer.IsInitialized()); 
         CHECK(renderer.GetVSyncMode() == 0);
 
         RenderViewConfig config;
@@ -124,11 +124,11 @@ TEST_CASE(
         );
 
         renderer.Destroy();
-        CHECK(renderer.GetSDLRenderer() == nullptr);
+        CHECK_FALSE(renderer.IsInitialized());
 
         // Verify repeated destruction is safe.
         renderer.Destroy();
-        CHECK(renderer.GetSDLRenderer() == nullptr);
+        CHECK_FALSE(renderer.IsInitialized()); 
     }
 
     window->Destroy();

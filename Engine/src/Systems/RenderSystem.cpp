@@ -4,6 +4,7 @@
 #include "../ECS/EntityTemplates.h"
 #include "../AssetManager/AssetManager.h"
 #include "../Rendering/Camera.h"
+#include "../Rendering/Renderer.h"
 #include <SDL3/SDL.h>
 #include <algorithm>
 
@@ -13,9 +14,10 @@ RenderSystem::RenderSystem()
 	RequireComponent<SpriteComponent>(); 
 }
 
-void RenderSystem::Update(SDL_Renderer* renderer, AssetManager& assetManager, Camera camera)
+void RenderSystem::Update(Renderer& renderer, AssetManager& assetManager, Camera camera)
 {
-	// TODO: We only need to resort this list when the list has changed. 
+	SDL_Renderer* naitiveRenderer = renderer.GetNaitiveRenderer(); 
+	
 	// Break all the Entities into renderableEntity structs. 
 	if (needsToResortEntities)
 	{
@@ -59,7 +61,7 @@ void RenderSystem::Update(SDL_Renderer* renderer, AssetManager& assetManager, Ca
 		}
 
 		SDL_RenderTextureRotated(
-			renderer, 
+			naitiveRenderer, 
 			texture,
 			&srcRect, &destRect,
 			transform->rotation, NULL, sprite->flipMode);

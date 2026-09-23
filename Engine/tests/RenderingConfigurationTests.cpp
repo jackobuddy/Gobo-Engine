@@ -34,7 +34,7 @@ TEST_CASE("Rendering wrappers safely destroy partial initialization",
     REQUIRE(window->GetSDLWindow() == nullptr);
     {
         Renderer renderer(window);
-        CHECK(renderer.GetSDLRenderer() == nullptr);
+        CHECK_FALSE(renderer.IsInitialized());
     }
  
     window->Destroy();

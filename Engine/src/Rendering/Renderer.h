@@ -1,10 +1,15 @@
 #pragma once
 
 #include "RenderConfigs.h"
+#include "Math/Math.h"
 #include <memory>
 
 struct SDL_Renderer; 
 class Window; 
+class AssetManager;
+class TextManager; 
+class RenderSystem; 
+class RenderCollisionSystem; 
 
 class Renderer
 {
@@ -28,13 +33,27 @@ public:
 	int GetVSyncMode() const { return vsyncMode; }
 	// This function destroys the SDL Renderer and cleans up gracefully. 
 	void Destroy();
+	bool InitializeText(AssetManager& assets);
+	void ShutdownText();
+	bool RenderText();
+	TextManager& GetTextManager();
+	bool BeginFrame(Color clearColor); 
+	void Present(); 
+	bool IsInitialized() const { return renderer != nullptr; }
+	Vector2 GetViewSize() const { 
+		return Vector2(static_cast<float>(presentationConfig.renderWidth),
+			static_cast<float>(presentationConfig.renderHeight)); }
 
-	// Returns a pointer to the SDL Renderer. 
-	SDL_Renderer* GetSDLRenderer() const { return renderer; }
 	// Returns the current render config for the logical presentation
 	RenderViewConfig GetRenderViewConfig() const { return presentationConfig; }
 
 private:
+	friend class AssetManager;
+	friend class RenderSystem; 
+	friend class RenderCollisionSystem; 
+
+	SDL_Renderer* GetNaitiveRenderer() const { return renderer; }
+
 	// Stores the main SDL Renderer for the game application. 
 	SDL_Renderer* renderer = nullptr;
 	// Stores a pointer to the SDL Window
@@ -43,4 +62,5 @@ private:
 	int vsyncMode;
 	// Stores the currently set config for the logical presentation
 	RenderViewConfig presentationConfig; 
+	std::unique_ptr<TextManager> textManager; 
 };

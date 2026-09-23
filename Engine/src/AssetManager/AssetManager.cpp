@@ -1,12 +1,14 @@
 #include "AssetManager.h"
+#include "BuiltinFontData.h"
 #include "../Logger/Logger.h"
+#include "../Rendering/Renderer.h"
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <stdexcept>
 
 bool AssetManager::managerExists = false;
 
-AssetManager::AssetManager()
+AssetManager::AssetManager(Renderer& renderer): renderer(renderer)
 {
 	if (managerExists)
 	{
@@ -26,6 +28,9 @@ AssetManager::AssetManager()
 		fontLibraryInitialized = true; 
 		Logger::Log("Font Library initialized successfully.");
 	}
+
+	if (not LoadBuiltinFont())
+		Logger::Error("Gobo Engine default font is unavailable.");
 }
 
 AssetManager::~AssetManager()
@@ -54,7 +59,7 @@ void AssetManager::ClearAssets()
 	Logger::Log("Asset Manager cleared. ");
 }
 
-bool AssetManager::AddTexture(SDL_Renderer* renderer, const std::string& assetID, const std::string& filepath)
+bool AssetManager::AddTexture(const std::string& assetID, const std::string& filepath)
 {	
 	// Ensure we aren't creating a duplicate assetID. 
 	if (textures.contains(assetID))
@@ -70,7 +75,7 @@ bool AssetManager::AddTexture(SDL_Renderer* renderer, const std::string& assetID
 		SDL_DestroySurface(surface); 
 		return false; 
 	}
-	SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer ,surface); 
+	SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer.GetNaitiveRenderer(), surface);
 	if (texture == NULL)
 	{
 		Logger::Error("Failed to create Texture from file = " + filepath); 
@@ -113,6 +118,11 @@ bool AssetManager::AddFont(const std::string& assetID, const std::string& filepa
 		Logger::Error("Font ID, path, and point size must be valid. ");
 		return false; 
 	}
+	if (assetID.rfind("gobo.", 0) == 0)
+	{
+		Logger::Error("Font IDs beginning with gobo. are reserved.");
+		return false; 
+	}
 	if (fonts.contains(assetID))
 	{
 		Logger::Error("Duplicate font ID: " + assetID); 
@@ -137,13 +147,49 @@ TTF_Font* AssetManager::GetFont(const std::string& assetID)
 	return found == fonts.end() ? nullptr : found->second; 
 }
 
+bool AssetManager::HasFont(const std::string& assetID)
+{
+	return fonts.contains(assetID); 
+}
+
 bool AssetManager::RemoveFont(const std::string& assetID)
 {
+	if (assetID == BuiltinAssets::DefaultFontID)
+	{
+		Logger::Error("The Engine default font cannot be removed.");
+		return false; 
+	}
 	const auto found = fonts.find(assetID); 
 	if (found == fonts.end())
 		return false; 
 
 	TTF_CloseFont(found->second); 
 	fonts.erase(found); 
+	return true; 
+}
+
+bool AssetManager::LoadBuiltinFont()
+{
+	SDL_IOStream* stream = SDL_IOFromConstMem(
+		BuiltinFontData::RobotoRegular, 
+		BuiltinFontData::RobotoRegularSize
+	); 
+
+	if (not stream)
+	{
+		Logger::SDLError("Failed to open embedded deafult font data", SDL_GetError());
+		return false; 
+	}
+
+	TTF_Font* font = TTF_OpenFontIO(stream, true, BuiltinAssets::DefaultFontPointSize);
+
+	if (not font)
+	{
+		SDL_CloseIO(stream); 
+		Logger::SDLError("Failed to open embedded default font", SDL_GetError()); 
+		return false; 
+	}
+
+	fonts.emplace(BuiltinAssets::DefaultFontID, font); 
 	return true; 
 }

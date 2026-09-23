@@ -5,6 +5,7 @@
 #include "../Audio/AudioManager.h"
 #include "../Rendering/Camera.h"
 #include "../Rendering/Renderer.h"
+#include "../Rendering/TextManager.h"
 
 GameContext::GameContext(World& world, AssetManager& assets, EventManager& events, AudioManager& audio,
 	Camera& camera, Renderer& renderer, bool& isRunning) : world(world), assets(assets), 
@@ -13,10 +14,11 @@ GameContext::GameContext(World& world, AssetManager& assets, EventManager& event
 World& GameContext::GetWorld() const { return world; }
 AssetManager& GameContext::GetAssets() const { return assets; }
 EventManager& GameContext::GetEvents() const { return events; }
+TextManager& GameContext::GetText() const { return renderer.GetTextManager(); }
 AudioManager& GameContext::GetAudio() const { return audio; }
 Camera& GameContext::GetCamera() const { return camera; }
-Renderer& GameContext::GetRenderer() const { return renderer; }
-SDL_Renderer* GameContext::GetSDLRenderer() const { return renderer.GetSDLRenderer(); }
+Vector2 GameContext::GetViewSize() const { return renderer.GetViewSize(); }
+Renderer& GameContext::GetEngineRenderer() const { return renderer; }
 
 EntityObject* GameContext::FindObject(const std::string name) const
 {

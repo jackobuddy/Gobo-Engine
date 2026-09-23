@@ -7,8 +7,7 @@
 class KeyAllEvent : public Event
 {
 public:
-	SDL_Keycode symbol; 
 	std::unordered_set<SDL_Keycode> heldKeys;
-	KeyAllEvent(std::unordered_set<SDL_Keycode> heldKeys): symbol(symbol), 
-		heldKeys(heldKeys) {};
+	KeyAllEvent(std::unordered_set<SDL_Keycode> keys): 
+		heldKeys(std::move(keys)) {};
 };

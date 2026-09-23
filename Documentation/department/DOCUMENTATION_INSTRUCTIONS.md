@@ -1,6 +1,6 @@
 # Gobo Engine Documentation - Standing Instructions
 
-Last updated: 2026-09-21 CDT
+Last updated: 2026-09-23 CDT
 
 ## Authority and boundaries
 
