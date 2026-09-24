@@ -4,6 +4,7 @@
 #include <Components/ProjectileEmitterComponent.h>
 #include <Components/KeyboardControlledComponent.h>
 #include <Components/CameraFollowComponent.h>
+#include <Components/MouseControlledComponent.h>
 #include <Components/ProjectileComponent.h>
 
 class Player : public Character
@@ -13,7 +14,7 @@ public:
 
 	// Define my configuration for the player at game state here. 
 	Character::Config playerConfig{
-		.actor = {.position = Vector2(500, 600), .scale = Vector2(2.0) },
+		.actor = {.position = Vector2(500, 600), .scale = Vector2(2.0), },
 		.animation = {.numFrames = 2, .frameSpeedRate = 15, .loops = true },
 		.collision = {.width = 32, .height = 32 },
 		.sprite = {.assetID = "chopper-image", .width = 32.0, .height = 32.0, .layer = 1} };
@@ -25,8 +26,13 @@ public:
 		Tag("player");
 		AddComponent<ProjectileEmitterComponent>(Vector2(500, 500), 0, 10000, 20, true);
 		AddComponent<KeyboardControlledComponent>(Vector2(0, -200), Vector2(200, 0), Vector2(0, 200), Vector2(-200, 0));
+		AddComponent<MouseControlledComponent>(); 
 		AddComponent<CameraFollowComponent>(32, 32);
 	} 
+
+	virtual void Update(float deltaSeconds)
+	{
+	}
 
 	// On Collision Event for our Player. 
 	virtual void OnCollision(Entity& other) override
@@ -50,6 +56,16 @@ public:
 				other.Destroy();
 			}
 		}
+	}
+
+	virtual void OnLeftClicked() override
+	{
+		Logger::Log("OUCH!");
+	}
+
+	virtual void OnRightClicked() override
+	{
+		Logger::Log("OWIE!"); 
 	}
 
 	// Triggered when a Key is Pressed, if the Entity has a KeyboardControlledComponent. 
@@ -100,5 +116,29 @@ public:
 		}
 
 		rigidBody->velocity = finalVelocity; 
+	}
+
+	virtual void OnLeftMouseButtonPressed(LeftMouseButtonPressedEvent& event) override
+	{
+	}
+
+	virtual void OnRightMouseButtonPressed(RightMouseButtonPressedEvent& event) override
+	{
+	}
+
+	virtual void OnLeftMouseButtonHeld(LeftMouseButtonHeldEvent& event) override
+	{
+	}
+
+	virtual void OnRightMouseButtonHeld(RightMouseButtonHeldEvent& event) override
+	{
+	}
+
+	virtual void OnLeftMouseButtonReleased(LeftMouseButtonReleasedEvent& event) override
+	{
+	}
+
+	virtual void OnRightMouseButtonReleased(RightMouseButtonReleasedEvent& event) override
+	{
 	}
 };

@@ -21,8 +21,6 @@ public:
 	KeyboardControlSystem() 
 	{
 		RequireComponent<KeyboardControlledComponent>(); 
-		RequireComponent<SpriteComponent>(); 
-		RequireComponent<RigidBodyComponent>(); 
 	}
 
 	void SubscribeToEvents(EventManager& eventManager)

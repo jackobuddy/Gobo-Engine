@@ -18,6 +18,7 @@ public:
 		Vector2 scale {1.0f, 1.0f};
 		double rotation = 0.0; 
 		Vector2 velocity = Vector2(0.0, 0.0);
+		bool updates = true; 
 	};
 
 	Actor(Entity entity, std::string name, const Config& config)
@@ -39,6 +40,7 @@ public:
 		transform->scale = config.scale; 
 		transform->rotation = config.rotation;
 		rigidBody->velocity = config.velocity;
+		this->Updates = config.updates;
 	}
 
 	Vector2 GetLocation()

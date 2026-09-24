@@ -73,11 +73,11 @@ set(GOBO_ENGINE_SOURCES
     src/Rendering/Window.cpp
 
     src/Scenes/SceneManager.cpp
-    src/Systems/AnimationSystem.cpp
-    src/Systems/CollisionSystem.cpp
-    src/Systems/MovementSystem.cpp
-    src/Systems/RenderCollisionSystem.cpp
-    src/Systems/RenderSystem.cpp
+    
+    
+    
+    
+    
     src/Rendering/TextLabel.cpp
     src/Rendering/TextManager.cpp
 )
@@ -94,7 +94,7 @@ add_library(
     STATIC
     ${GOBO_ENGINE_SOURCES}
     ${GOBO_ENGINE_HEADERS}
-)
+ "src/Systems/MouseControlSystem.h" "src/Components/MouseControlledComponent.h" "src/Events/RightMouseButtonPressedEvent.h" "src/Events/LeftMouseButtonHeldEvent.h" "src/Events/RightMouseButtonHeldEvent.h" "src/Events/RightMouseButtonReleasedEvent.h" "src/Systems/MouseCollisionSystem.h")
 
 add_library(Gobo::Engine ALIAS GoboEngine)
 

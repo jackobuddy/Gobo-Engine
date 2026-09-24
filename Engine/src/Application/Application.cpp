@@ -11,8 +11,12 @@
 #include "../Events/KeyReleasedEvent.h"
 #include "../Events/KeyHeldEvent.h"
 #include "../Events/KeyAllEvent.h"
-#include "../Events/MouseDownEvent.h"
-#include "../Events/MouseUpEvent.h"
+#include "../Events/LeftMouseButtonPressedEvent.h"
+#include "../Events/RightMouseButtonPressedEvent.h"
+#include "../Events/LeftMouseButtonHeldEvent.h"
+#include "../Events/RightMouseButtonHeldEvent.h"
+#include "../Events/LeftMouseButtonReleasedEvent.h"
+#include "../Events/RightMouseButtonReleasedEvent.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include "../Rendering/Renderer.h"
@@ -79,6 +83,30 @@ bool Application::Initialize(const GameConfig& config)
 void Application::ProcessInput(GameContext& context)
 {
 	EventManager& events = context.GetEvents(); 
+
+	// Get the mouse's position in the world
+	const auto getMouseWorldPosition = [&](float windowX, float windowY, Vector2& worldPosition,
+			bool& insideView) -> bool
+	{
+		Vector2 renderPosition;
+
+		if (not renderer or not renderer->WindowToRender(Vector2(windowX, windowY), renderPosition))
+		{
+			return false;
+		}
+
+		const Vector2 renderSize = renderer->GetViewSize();
+
+		// Letterbox bars are outside the logical drawing area.
+		insideView = renderPosition.x >= 0.0f && renderPosition.y >= 0.0f &&
+			renderPosition.x < renderSize.x && renderPosition.y < renderSize.y;
+
+		const Vector2 cameraPosition = context.GetCamera().position;
+
+		worldPosition = Vector2(renderPosition.x + cameraPosition.x, renderPosition.y + cameraPosition.y);
+		return true;
+	};
+
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
@@ -115,11 +143,44 @@ void Application::ProcessInput(GameContext& context)
 
 		// TODO: We'll want to be able to track if a mouse button is being held down separately
 		// from if it was just pressed. 
-		else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
-			events.EmitEvent<MouseDownEvent>(event.button.button); 
-		else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
-			events.EmitEvent<MouseUpEvent>(event.button.button);
+		else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN or event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+		{
+			Vector2 mouseWorld; 
+			bool insideView = false; 
+			getMouseWorldPosition(event.button.x, event.button.y, mouseWorld, insideView); 
+
+			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) 
+			{
+				if (event.button.button == SDL_BUTTON_LEFT)
+					events.EmitEvent<LeftMouseButtonPressedEvent>(mouseWorld);
+				else if (event.button.button == SDL_BUTTON_RIGHT)
+					events.EmitEvent<RightMouseButtonPressedEvent>(mouseWorld);
+			}
+			else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+			{
+				if (event.button.button == SDL_BUTTON_LEFT)
+					events.EmitEvent<LeftMouseButtonReleasedEvent>(mouseWorld);
+				else if (event.button.button == SDL_BUTTON_RIGHT)
+					events.EmitEvent<RightMouseButtonReleasedEvent>(mouseWorld);
+			}
+		}
 	}
+
+	// Check if the mouse buttons are held down
+	Vector2 mouseWorld;
+	bool insideView = false;
+	getMouseWorldPosition(event.button.x, event.button.y, mouseWorld, insideView);
+
+	SDL_MouseButtonFlags button = SDL_GetMouseState(NULL, NULL); 
+	if (button & SDL_BUTTON_LMASK)
+	{
+		events.EmitEvent<LeftMouseButtonHeldEvent>(mouseWorld);
+	}
+	if (button & SDL_BUTTON_RMASK)
+	{
+		events.EmitEvent<RightMouseButtonHeldEvent>(mouseWorld);
+	}
+
 
 	// Run the held events for every held key every frame. 
 	for (const SDL_Keycode key : heldKeys)

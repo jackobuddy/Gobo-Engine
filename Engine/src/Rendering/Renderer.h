@@ -47,6 +47,9 @@ public:
 	// Returns the current render config for the logical presentation
 	RenderViewConfig GetRenderViewConfig() const { return presentationConfig; }
 
+	// Converts Window Coordinates to Rendering Coordinates
+	bool WindowToRender(Vector2 windowPosition, Vector2& renderPosition) const;
+
 private:
 	friend class AssetManager;
 	friend class RenderSystem; 

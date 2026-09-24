@@ -1,5 +1,8 @@
 #pragma once
 #include "../ECS/System.h"
+#include "../ECS/EntityTemplates.h"
+#include "../Components/TransformComponent.h"
+#include "../Components/RigidBodyComponent.h"
 
 
 // The Movement System requires a Transform Component and a Rigid Body Component. 
@@ -7,11 +10,26 @@
 class MovementSystem: public System
 {
 public: 
-	// Requires entities that have TransformComponents. 
-	MovementSystem(); 
+	MovementSystem()
+	{
+		RequireComponent<TransformComponent>();
+		RequireComponent<RigidBodyComponent>();
+	}
 	~MovementSystem() = default; 
 
-	// Updates entity position based on its velocity every frame
-	// of the game loop
-	void Update(float deltaSeconds); 
+	void Update(float deltaSeconds)
+	{
+		for (auto entity : GetSystemEntities())
+		{
+			TransformComponent* transform = entity.GetComponent<TransformComponent>();
+			const RigidBodyComponent* rigidbody = entity.GetComponent<RigidBodyComponent>();
+
+			if (not transform or not rigidbody)
+				continue;
+
+			// Update the X and Y position based on Velocity. 
+			transform->position.x += rigidbody->velocity.x * deltaSeconds;
+			transform->position.y += rigidbody->velocity.y * deltaSeconds;
+		}
+	}
 };

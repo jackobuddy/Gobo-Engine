@@ -178,3 +178,21 @@ void Renderer::Present()
 	if (renderer)
 		SDL_RenderPresent(renderer);
 }
+
+bool Renderer::WindowToRender(Vector2 windowPosition, Vector2& renderPosition) const
+{
+	if (not renderer)
+		return false;
+
+	float x = 0.0f;
+	float y = 0.0f;
+
+	if (not SDL_RenderCoordinatesFromWindow(renderer, windowPosition.x, windowPosition.y, &x, &y))
+	{
+		Logger::SDLError("Mouse coordinate conversion failed", SDL_GetError());
+		return false;
+	}
+
+	renderPosition = Vector2(x, y);
+	return true;
+}

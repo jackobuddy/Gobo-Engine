@@ -233,7 +233,7 @@ void SceneManager::BeginFrame(GameContext& context)
 void SceneManager::Update(
     GameContext& context, float deltaSeconds)
 {
-    if (!activeScene)
+    if (not activeScene)
         return;
     try { activeScene->Update(context, deltaSeconds); }
     catch (const std::exception& error)
@@ -245,6 +245,12 @@ void SceneManager::Update(
     {
         Logger::Error("Scene Update failed.");
         quitRequestHandler();
+    }
+
+    // Run each Entity's Update. 
+    for (auto& entity : context.GetWorld().entityObjects)
+    {
+        if (entity and entity->Updates) entity->Update(deltaSeconds); 
     }
 }
 

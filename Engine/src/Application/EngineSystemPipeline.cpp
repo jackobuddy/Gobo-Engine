@@ -9,6 +9,8 @@
 #include "../Systems/CameraMovementSystem.h"
 #include "../Systems/CollisionSystem.h"
 #include "../Systems/KeyboardControlSystem.h"
+#include "../Systems/MouseCollisionSystem.h"
+#include "../Systems/MouseControlSystem.h"
 #include "../Systems/MovementSystem.h"
 #include "../Systems/ProjectileLifecycleSystem.h"
 #include "../Systems/RenderCollisionSystem.h"
@@ -38,6 +40,18 @@ void EngineSystemPipeline::Install(World& world, EventManager& events) const
     {
         world.AddSystem<KeyboardControlSystem>(); 
         if (auto* system = world.GetSystem<KeyboardControlSystem>())
+            system->SubscribeToEvents(events); 
+    }
+    if (config.useMouseControlSystem)
+    {
+        world.AddSystem<MouseControlSystem>();
+        if (auto* system = world.GetSystem<MouseControlSystem>())
+            system->SubscribeToEvents(events); 
+    }
+    if (config.useMouseCollisionSystem)
+    {
+        world.AddSystem<MouseCollisionSystem>(); 
+        if (auto* system = world.GetSystem<MouseCollisionSystem>())
             system->SubscribeToEvents(events); 
     }
 }

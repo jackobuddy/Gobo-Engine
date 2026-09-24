@@ -25,6 +25,8 @@ struct SystemsConfig
 	bool useCameraMovementSystem = true; 
 	bool useCollisionSystem = true; 
 	bool useKeyboardControlSystem = true; 
+	bool useMouseCollisionSystem = true; 
+	bool useMouseControlSystem = true; 
 	bool useMovementSystem = true; 
 	bool useProjectileLifecycleSystem = true; 
 	bool useRenderCollisionSystem = true; 
