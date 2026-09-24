@@ -36,6 +36,9 @@ struct GameConfig
 {
 	// The title displayed on the game window and application. 
 	std::string title = "Untitled Gobo Game";
+	// ID of the Scene that the Engine starts after Game::Start. 
+	// The ID must be registered in Game::RegisterScene(). 
+	std::string startingScene; 
 	// Defines your basic configuration of the game window. 
 	WindowConfig window{}; 
 	// Defines your basic rendering configuration. 

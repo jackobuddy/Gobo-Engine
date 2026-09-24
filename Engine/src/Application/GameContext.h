@@ -2,25 +2,29 @@
 
 #include "../Entities/EntityObject.h"
 #include "../Math/Math.h"
+#include <string>
 
-class AssetManager; 
-class Camera; 
-class EventManager; 
-class AudioManager; 
-class TextManager; 
-class Renderer; 
-class World; 
+class AssetManager;
+class AudioManager;
+class Camera;
+class EventManager;
+class Renderer;
+class SceneManager; 
+class TextManager;
+class World;
+class WorldHost;
 
 class GameContext
 {
 public: 
-	GameContext(World& world, AssetManager& assets, EventManager& events, AudioManager& audio, Camera& camera, 
-		Renderer& renderer, bool& isRunning); 
+	GameContext(WorldHost& worldHost, AssetManager& assets, AudioManager& audio, 
+		Camera& camera, Renderer& renderer, SceneManager& scenes, bool& isRunning);
 
 	World& GetWorld() const; 
 	AssetManager& GetAssets() const; 
 	EventManager& GetEvents() const; 
 	AudioManager& GetAudio() const; 
+	SceneManager& GetScenes() const;
 	TextManager& GetText() const; 
 	Camera& GetCamera() const; 
 	Vector2 GetViewSize() const; 
@@ -28,14 +32,11 @@ public:
 	void RequestQuit(); 
 
 private:
-	friend class IGame; 
-
-	Renderer& GetEngineRenderer() const; 
-	World& world; 
+	WorldHost& worldHost; 
 	AssetManager& assets; 
-	EventManager& events; 
 	AudioManager& audio; 
 	Camera& camera; 
 	Renderer& renderer;
+	SceneManager& scenes;
 	bool& isRunning; 
 };

@@ -56,9 +56,10 @@ configure_file(
 set(GOBO_ENGINE_SOURCES
     src/Application/Application.cpp
     src/Application/GameContext.cpp
-
+    src/Application/EngineSystemPipeline.cpp
     src/AssetManager/AssetManager.cpp
-
+    src/Application/WorldHost.cpp
+    src/Application/WorldSession.cpp
     src/Audio/AudioManager.cpp
 
     src/ECS/Component.cpp
@@ -71,6 +72,7 @@ set(GOBO_ENGINE_SOURCES
     src/Rendering/Renderer.cpp
     src/Rendering/Window.cpp
 
+    src/Scenes/SceneManager.cpp
     src/Systems/AnimationSystem.cpp
     src/Systems/CollisionSystem.cpp
     src/Systems/MovementSystem.cpp
@@ -92,7 +94,7 @@ add_library(
     STATIC
     ${GOBO_ENGINE_SOURCES}
     ${GOBO_ENGINE_HEADERS}
- "src/Rendering/TextLabelConfig.h" "src/Rendering/TextManager.h")
+)
 
 add_library(Gobo::Engine ALIAS GoboEngine)
 

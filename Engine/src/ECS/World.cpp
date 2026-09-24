@@ -9,27 +9,74 @@
 #include <type_traits>
 #include <utility>
 
-bool World::worldExists = false; 
 
 World::World()
 {
-	if (worldExists)
-	{
-		Logger::Error("Cannot create world! Another World already exists!");
-		throw std::runtime_error("Another World already exists.");
-	}
-	worldExists = true; 
-
 	Logger::Log("World created."); 
 }
 
 World::~World()
 {
-	worldExists = false; 
+	Shutdown(); 
+}
+
+void World::Shutdown()
+{
+	if (isShuttingDown or isShutdown) return ; 
+
+	// Prevents multiple Shutdown() calls. 
+	isShuttingDown = true; 
+
+	// Objects that survived until World shutdown still receive their lifecycle callback 
+	// exactly once. Already destroyed slots are null. 
+	for (auto& object : entityObjects)
+	{
+		if (not object)
+			continue; 
+
+		try
+		{
+			object->OnDestroyed(); 
+		}
+		catch (const std::exception& error)
+		{
+			Logger::Error("EntityObject::OnDestroyed failed: " + std::string(error.what()));
+		}
+		catch (...)
+		{
+			Logger::Error("EntityObject::OnDestroyed failed with an unknown exception. ");
+		}
+	}
+
+	isShutdown = true; 
+
+	entitiesToBeAdded.clear();
+	entitiesNeedingRefresh.clear();
+	entitiesToBeDestroyed.clear();
+	systems.clear();
+	entityObjects.clear();
+	entitiesByName.clear();
+	nameByEntityID.clear();
+	nextNameSuffix.clear();
+	entityPerTag.clear();
+	tagPerEntity.clear();
+	entitiesPerGroup.clear();
+	groupPerEntity.clear();
+	componentPools.clear();
+	entityComponentSignatures.clear();
+	entityGenerations.clear();
+	freeIDs.clear();
+	numEntities = 0;
+
+	isShuttingDown = false; 
+	Logger::Log("World destroyed."); 
 }
 
 Entity World::AllocateEntityHandle()
 {
+	if (isShuttingDown or isShutdown) 
+		throw std::runtime_error("Cannot create an Entity while World is shutting down."); 
+
 	int entityID; 
 	// Get the next availible Entity ID if there are none free. 
 	if (freeIDs.empty())
@@ -209,14 +256,15 @@ bool World::IsEntityAlive(const Entity& entity) const
 {
 	const int entityID = entity.GetID(); 
 
-	return entity.world == this and
-		entityID >= 0 and 
+	return not isShutdown and entity.world == this and entityID >= 0 and 
 		static_cast<size_t>(entityID) < entityGenerations.size() and
 		entity.generation == entityGenerations[entityID]; 
 }
 
 void World::DestroyEntity(Entity entity)
 {
+	if (isShuttingDown or isShutdown) return; 
+
 	entitiesToBeDestroyed.insert(entity); 
 }
 
@@ -440,6 +488,8 @@ void World::RefreshSystemMembership(Entity entity)
 
 void World::Update()
 {
+	if (isShuttingDown or isShutdown) return; 
+
 	// Add the Entities waiting to be added. 
 	if (entitiesToBeAdded.size() > 0)
 	{

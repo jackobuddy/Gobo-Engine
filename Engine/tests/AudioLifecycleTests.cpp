@@ -93,3 +93,17 @@ TEST_CASE(
     CHECK_NOTHROW(audio.Shutdown());
     CHECK_NOTHROW(audio.Shutdown());
 }
+
+TEST_CASE(
+    "AudioManager StopAll is repeatable",
+    "[audio][lifecycle][scenes]")
+{
+    SDLHintScope driver(SDL_HINT_AUDIO_DRIVER, "dummy");
+    REQUIRE(driver.WasSet());
+    AudioManager audio;
+    if (!audio.Initialize())
+        SKIP("SDL dummy audio driver is unavailable.");
+    CHECK_NOTHROW(audio.StopAll());
+    CHECK_NOTHROW(audio.StopAll());
+    CHECK_NOTHROW(audio.Shutdown());
+}

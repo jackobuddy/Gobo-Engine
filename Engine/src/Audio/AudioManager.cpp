@@ -221,6 +221,20 @@ void AudioManager::StopBus(const std::string& bus)
 	busIt->second.paused = false; 
 }
 
+void AudioManager::StopAll()
+{
+	if (not mixer) return; 
+
+	MIX_StopAllTracks(mixer, 0); 
+
+	for (auto& [busName, bus] : buses)
+	{
+		for (AudioVoice& voice : bus.voices)
+			ResetVoice(voice); 
+		bus.paused = false; 
+	}
+}
+
 AudioPlaybackID AudioManager::Play(const std::string& audioID, const AudioPlayConfig& config)
 {
 	auto audioIt = audioAssets.find(audioID); 

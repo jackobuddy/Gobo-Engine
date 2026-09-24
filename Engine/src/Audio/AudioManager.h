@@ -29,6 +29,7 @@ public:
 	void PauseBus(const std::string& bus); 
 	void ResumeBus(const std::string& bus); 
 	void StopBus(const std::string& bus); 
+	void StopAll(); 
 
 	AudioPlaybackID Play(const std::string& audioID, const AudioPlayConfig& config = {});
 	AudioPlaybackID PlaySFX(const std::string& id, float volume = 1.0f); 

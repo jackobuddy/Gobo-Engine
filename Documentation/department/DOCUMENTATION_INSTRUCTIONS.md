@@ -11,7 +11,7 @@ Last updated: 2026-09-23 CDT
 ## Two documentation audiences
 
 - Maintain `docs/Documentation` as the Engineering wiki. It documents Engine internals for programmers maintaining the Engine.
-- Maintain this `Documentation` site as the Designer wiki. It documents only the public, game-author-facing surface: creating a game from the template, `IGame`, `GameConfig`, `GameContext`, and supported gameplay-facing Engine types.
+- Maintain this `Documentation` site as the Designer wiki. It documents only the public, game-author-facing surface: creating a game from the template, `IGame`, `GameConfig`, `GameContext`, Scene workflow, and supported gameplay-facing Engine types.
 - Use clear everyday language. Explain technical words when needed. Include short, working-context examples whenever they help a designer get started.
 - Do not expose internal ownership, raw SDL setup, implementation-only system mechanics, or unfinished APIs as normal designer workflows.
 
@@ -19,7 +19,7 @@ Last updated: 2026-09-23 CDT
 
 1. Inspect current `Engine` source, the suite-root README, and suite CMake/scripts.
 2. Inspect `Projects/GoboGameTemplate` source, CMake files, and setup script to verify the intended user workflow.
-3. Refresh both wikis and the suite README for changed public behavior, lifecycle order, templates, configuration, object callbacks, and examples.
+3. Refresh both wikis and the suite README for changed public behavior, scene/lifecycle order, templates, configuration, object callbacks, and examples. Treat current Engine headers and implementations as the source of truth when a template or older article has not yet caught up.
 4. Clearly label prototype, smoke-test, or unavailable features and never present them as stable designer tools.
 5. Keep the site directly usable from `Documentation/index.html`: no server, build, or package installation.
 6. Keep markup, navigation, search, links, and examples synchronized and validate the site data before completing a review.

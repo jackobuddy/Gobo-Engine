@@ -8,17 +8,18 @@
 #include <SDL3/SDL.h>
 
 class AssetManager; 
-class EventManager; 
 class AudioManager; 
 class IGame; 
 class Renderer; 
+class SceneManager; 
 class Window; 
-class World; 
+class EngineSystemPipeline;
+class WorldHost;
 
 class Application
 {
 public:
-	Application() = default; 
+	Application(); 
 	~Application(); 
 
 	Application(const Application&) = delete; 
@@ -31,11 +32,12 @@ private:
 	void ProcessInput(class GameContext& context); 
 	void Shutdown(); 
 
+	std::unique_ptr<WorldHost> worldHost;
+	std::unique_ptr<EngineSystemPipeline> systemPipeline;
+	std::unique_ptr<SceneManager> sceneManager;
 	std::shared_ptr<Window> window; 
 	std::shared_ptr<Renderer> renderer; 
-	std::shared_ptr<World> world; 
 	std::shared_ptr<AssetManager> assetManager; 
-	std::shared_ptr<EventManager> eventManager; 
 	std::shared_ptr<AudioManager> audioManager; 
 	Camera camera; 
 	std::unordered_set<SDL_Keycode> heldKeys; 

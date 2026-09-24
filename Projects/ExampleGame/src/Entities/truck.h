@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Entities/Enemy.h"
+#include "../Entities/enemy.h"
 #include <Components/ProjectileEmitterComponent.h>
 
 class Truck : public Enemy

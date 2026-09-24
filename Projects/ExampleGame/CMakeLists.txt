@@ -32,6 +32,8 @@ add_executable(GoboExampleGame
     src/Entities/enemy.h
 
     src/Systems/ProjectileEmitSystem.h
+    src/Scenes/ExampleScene.cpp
+    src/Scenes/ExampleScene.h
 )
 
 target_link_libraries(GoboExampleGame

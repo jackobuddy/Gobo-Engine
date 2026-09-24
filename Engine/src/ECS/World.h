@@ -19,8 +19,6 @@
 
 class EventManager; 
 
-// template <typename T>
-// concept EntityFacadeType = std::derived_from<T, EntityFacade>;
 
 // The World manages the creation and destruction of entities, systems, 
 // and components. It is like the scene manager. 
@@ -41,7 +39,7 @@ public:
 	// Systems by adding/removing Entities in the middle of the frame logic. 
 	// This allows us to wait until the end of each frame to create and delete Entities. 
 	void Update();
-
+	void Shutdown(); 
 	// Stores a vector of Entity Objects in existance. 
 	std::vector<std::unique_ptr<EntityObject>> entityObjects; 
 	std::unordered_map<std::string, Entity> entitiesByName; 
@@ -174,8 +172,9 @@ private:
 	void CommitObject(Entity entity, const std::string& name, std::unique_ptr<EntityObject> object);
 	void CancelEntityCreation(Entity entity);
 
-	// Keeps track of if a World Instance already exists
-	static bool worldExists; 
+	// Used to track World Lifecycle status
+	bool isShuttingDown = false; 
+	bool isShutdown = false; 
 
 	// Handler used to request quitting the game from the World. 
 	std::function<void()> quitRequestHandler;

@@ -23,7 +23,7 @@ endif()
 add_executable(GoboGameTemplate
     src/main.cpp
     src/Game.cpp
-    src/Game.h
+    src/MainScene.cpp
 )
 
 target_link_libraries(GoboGameTemplate

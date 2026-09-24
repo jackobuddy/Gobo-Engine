@@ -9,6 +9,8 @@ add_executable(GoboEngineTests
     EventLifetimeTests.cpp
     AudioLifecycleTests.cpp
     HeadlessRenderingTests.cpp
+    SceneAPITests.cpp
+    WorldSessionTests.cpp
 )
 target_link_libraries(GoboEngineTests PRIVATE
     Gobo::Engine
