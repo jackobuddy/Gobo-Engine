@@ -77,7 +77,7 @@ public:
 					projectile.AddComponent<TransformComponent>(projectilePosition, 
 						transform->scale, transform->rotation); 
 					projectile.AddComponent<RigidBodyComponent>(projectileVelocity);
-					projectile.AddComponent<SpriteComponent>("bullet-image",4.0f, 4.0f, 4); 
+					projectile.AddComponent<SpriteComponent>("bullet",4.0f, 4.0f, 4); 
 					projectile.AddComponent<BoxCollisionComponent>(4, 4);
 					projectile.AddComponent<ProjectileComponent>(emitter->projectileDuration,
 						emitter->hitPercentDamage, emitter->isFriendly);
@@ -117,7 +117,7 @@ public:
 				projectile.AddComponent<TransformComponent>(projectilePosition, 
 					transform->scale, transform->rotation); 
 				projectile.AddComponent<RigidBodyComponent>(emitter->projectileVelocity); 
-				projectile.AddComponent<SpriteComponent>("bullet-image", 4.0f, 4.0f, 98);
+				projectile.AddComponent<SpriteComponent>("bullet", 4.0f, 4.0f, 98);
 				projectile.AddComponent<BoxCollisionComponent>(4, 4); 
 				projectile.AddComponent<ProjectileComponent>(emitter->projectileDuration, 
 					emitter->hitPercentDamage, emitter->isFriendly); 

@@ -11,7 +11,7 @@ public:
 	Character::Config truckConfig = {
 		.actor {.position = Vector2(700.0, 400.0), .scale = Vector2(2.0, 2.0) },
 		.collision {.width = 32, .height = 32 },
-		.sprite {.assetID = "truck-image", .width = 32.0f, .height = 32.0f } };
+		.sprite {.assetID = "truck-ford-left", .width = 32.0f, .height = 32.0f } };
 
 	virtual void OnCreated() override
 	{

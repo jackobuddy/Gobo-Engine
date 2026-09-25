@@ -27,8 +27,13 @@ public:
 	bool AddTexture(const std::string& assetID, const std::string& filepath);
 	// Returns a SDL_Texture* associated with the given assetID. 
 	SDL_Texture* GetTexture(const std::string& assetID); 
-	// TODO: Implement removing a Texture from the Asset Manager
-	// void RemoveTexture(const std::string& assetsID); 
+
+	// Resolve a UTF-8 path relative to Assets beside the game executable.
+	std::string GetAssetPath(const std::string& relativePath) const;
+	// Startup-only: recursively load PNGs from Assets/Sprites.
+	bool ImportSprites();
+	// Quiet lookup for optional assets and validation.
+	bool HasTexture(const std::string& assetID) const; 
 
 	bool AddFont(const std::string& assetID, const std::string& filepath, float pointSize); 
 	TTF_Font* GetFont(const std::string& assetID); 

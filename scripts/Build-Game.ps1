@@ -39,10 +39,11 @@ try {
     Get-ChildItem -LiteralPath $binary -File |
         Where-Object { $_.Extension -in '.exe','.dll' } |
         ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $package }
-    $assets = Join-Path $project 'assets'
-    if (Test-Path -LiteralPath $assets -PathType Container) {
-        Copy-Item -LiteralPath $assets -Destination (Join-Path $package 'assets') -Recurse
+   $assets = Join-Path $project 'Assets'
+    if (-not (Test-Path -LiteralPath $assets -PathType Container)) {
+        throw 'Project Assets directory is missing.'
     }
+    Copy-Item -LiteralPath $assets -Destination (Join-Path $package 'Assets') -Recurse
     $licenses = Join-Path $project 'licenses'
     if (Test-Path -LiteralPath $licenses -PathType Container) {
         Copy-Item -LiteralPath $licenses -Destination (Join-Path $package 'licenses') -Recurse

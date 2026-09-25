@@ -11,7 +11,7 @@ public:
 	Character::Config tankConfig = {
 		.actor {.scale = Vector2(2.0, 2.0) },
 		.collision {.width = 32, .height = 32 },
-		.sprite {.assetID = "tank-image", .width = 32.0f, .height = 32.0f } };
+		.sprite {.assetID = "tank-panther-right", .width = 32.0f, .height = 32.0f } };
 
 	virtual void OnCreated() override
 	{

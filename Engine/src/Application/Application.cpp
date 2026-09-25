@@ -237,6 +237,7 @@ int Application::Run(IGame& game)
 		const GameConfig config = game.Configure();
 		if (config.targetFPS <= 0 || config.startingScene.empty())
 			throw std::runtime_error("Invalid FPS or starting Scene");
+
 		phase = "Initialize";
 		if (!Initialize(config))
 			throw std::runtime_error("Engine initialization failed");
@@ -244,13 +245,20 @@ int Application::Run(IGame& game)
 			*worldHost, *assetManager, *audioManager, camera,
 			*renderer, *sceneManager, isRunning);
 		game.BindContext(*context);
+
 		phase = "RegisterScenes";
 		game.RegisterScenes(*sceneManager);
 		if (!sceneManager->HasScene(config.startingScene))
 			throw std::runtime_error("Starting Scene is not registered");
+
+		phase = "ImportSprites";
+		if (!assetManager->ImportSprites())
+			throw std::runtime_error("Automatic sprite import failed");
+
 		phase = "LoadContent";
 		contentStarted = true;
 		game.LoadContent(*assetManager, *audioManager);
+
 		phase = "Scene OnStart";
 		if (isRunning && !sceneManager->StartInitial(
 			config.startingScene, *context))
@@ -263,44 +271,56 @@ int Application::Run(IGame& game)
 			phase = "Game BeginFrame";
 			game.BeginFrame(*context);
 			if (!isRunning) break;
+
 			phase = "Scene BeginFrame";
 			sceneManager->BeginFrame(*context);
 			if (!isRunning) break;
+
 			phase = "Input";
 			ProcessInput(*context);
 			if (!isRunning) break;
+
 			phase = "System Update";
 			systemPipeline->Update(context->GetWorld(),
 				context->GetEvents(), camera, deltaSeconds);
 			if (!isRunning) break;
+
 			phase = "Scene/Entity Update";
 			sceneManager->Update(*context, deltaSeconds);
 			if (!isRunning) break;
+
 			phase = "Game Update";
 			game.Update(*context, deltaSeconds);
 			if (!isRunning) break;
+
 			phase = "World commit";
 			context->GetWorld().Update();
 			if (!isRunning) break;
+
 			phase = "Scene transition";
 			sceneManager->ProcessPending(*context);
 			if (!isRunning) break;
+
 			phase = "Render begin";
 			const Color clear{ config.clearColor.r, config.clearColor.g,
 							  config.clearColor.b, config.clearColor.a };
 			if (!renderer->BeginFrame(clear))
 				throw std::runtime_error("BeginFrame failed");
+
 			phase = "System Render";
 			systemPipeline->Render(context->GetWorld(),
 				context->GetAssets(), camera, *renderer,
 				game.GetDebugMode());
 			if (!isRunning) break;
+
 			phase = "Scene Render";
 			sceneManager->Render(*context);
 			if (!isRunning) break;
+
 			phase = "Game Render";
 			game.Render(*context);
 			if (!isRunning) break;
+
 			phase = "Text/Present/Audio";
 			if (!renderer->RenderText())
 				Logger::Error("One or more text labels failed to render");

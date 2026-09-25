@@ -5,6 +5,21 @@
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <stdexcept>
+#include <algorithm>
+#include <cctype>
+#include <filesystem>
+#include <utility>
+#include <vector>
+
+
+namespace
+{
+	std::string PathToUTF8(const std::filesystem::path& path)
+	{
+		const auto utf8 = path.generic_u8string(); 
+		return std::string(utf8.begin(), utf8.end()); 
+	}
+}
 
 bool AssetManager::managerExists = false;
 
@@ -192,4 +207,92 @@ bool AssetManager::LoadBuiltinFont()
 
 	fonts.emplace(BuiltinAssets::DefaultFontID, font); 
 	return true; 
+}
+
+std::string AssetManager::GetAssetPath(const std::string& relativePath) const
+{
+	const char* base = SDL_GetBasePath();
+	if (not base)
+		throw std::runtime_error(std::string("Cannot find game directory: ") + SDL_GetError());
+
+	const auto relative = std::filesystem::u8path(relativePath); 
+	if (relative.is_absolute())
+		throw std::invalid_argument("GetAssetPath expects a relative path"); 
+
+	return PathToUTF8(std::filesystem::u8path(base) / "Assets" / relative); 
+}
+
+bool AssetManager::HasTexture(const std::string& assetID) const
+{
+	return textures.contains(assetID); 
+}
+
+bool AssetManager::ImportSprites()
+{
+	namespace fs = std::filesystem; 
+	try
+	{
+		const fs::path assets = fs::u8path(GetAssetPath(""));
+		if (not fs::is_directory(assets))
+		{
+			Logger::Error("Assets directory is missing: " + PathToUTF8(assets));
+			return false; 
+		}
+
+		const fs::path root = assets / "Sprites"; 
+		if (not fs::exists(root))
+		{
+			Logger::Warning("Imported 0 sprites (Assets/Sprites is absent).");
+			return true; 
+		}
+		if (not fs::is_directory(root))
+		{
+			Logger::Error("Assets/Sprites is not a directory.");
+			return false; 
+		}
+
+		// First collect paths. We will load the Textures later. 
+		std::vector<std::pair<std::string, std::string>> files; 
+		for (const auto& entry : fs::recursive_directory_iterator(root))
+		{
+			if (entry.is_symlink() or not entry.is_regular_file()) continue; 
+
+			std::string extension = PathToUTF8(entry.path().extension()); 
+			std::transform(extension.begin(), extension.end(), extension.begin(), 
+				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			if (extension != ".png") continue; 
+
+			fs::path relative = entry.path().lexically_relative(root); 
+			relative.replace_extension(); 
+			files.emplace_back(PathToUTF8(relative), PathToUTF8(entry.path()));
+		}
+
+		// Stable logs and no arbitrary winner for duplicate IDs
+		std::sort(files.begin(), files.end());
+		for (std::size_t i = 0; i < files.size(); ++i)
+		{
+			const auto& id = files[i].first;
+			if (HasTexture(id) or (i > 0 && files[i - 1].first == id))
+			{
+				Logger::Error("Duplicate imported texture ID: " + id); 
+				return false; 
+			}
+		}
+
+		for (const auto& [id, file] : files)
+		{
+			if (not AddTexture(id, file))
+			{
+				Logger::Error("Sprite import failed: " + file + " (ID: " + id + ")");
+				return false; 
+			}
+		}
+		Logger::Log("Imported " + std::to_string(files.size()) + " sprites. ");
+		return true; 
+	}
+	catch (const std::exception& error)
+	{
+		Logger::Error(std::string("Sprite import failed: ") + error.what());
+		return false; 
+	}
 }

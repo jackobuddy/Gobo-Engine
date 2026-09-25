@@ -4,6 +4,7 @@
 #include "../Entities/truck.h"
 #include "../Entities/radar.h"
 #include "../Systems/ProjectileEmitSystem.h"
+#include <filesystem>
 #include <cstdlib>
 #include <fstream>
 
@@ -46,7 +47,8 @@ void ExampleScene::OnStart(GameContext& context)
     const float tileScale = 2.0f;
     const int mapNumCols = 25;
     const int mapNumRows = 20;
-    std::fstream mapFile("./assets/tilemaps/jungle.map");
+    std::fstream mapFile(std::filesystem::u8path(context.GetAssets().GetAssetPath("tilemaps/jungle.map")),
+        std::ios::in);
     if (!mapFile)
     {
         Logger::Error("Failed to open jungle.map.");
@@ -69,7 +71,7 @@ void ExampleScene::OnStart(GameContext& context)
             tile.AddComponent<TransformComponent>(Vector2(x * tileScale * tileSize, 
                 y * tileScale * tileSize), Vector2(tileScale, tileScale), 0.0f
             );
-            tile.AddComponent<SpriteComponent>("jungle-tm", tileSize, tileSize,
+            tile.AddComponent<SpriteComponent>("tilemaps/jungle", tileSize, tileSize,
                 -1, 255, false, false, srcRectX, srcRectY
             );
         }

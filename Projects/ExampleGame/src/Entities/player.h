@@ -17,7 +17,7 @@ public:
 		.actor = {.position = Vector2(500, 600), .scale = Vector2(2.0), },
 		.animation = {.numFrames = 2, .frameSpeedRate = 15, .loops = true },
 		.collision = {.width = 32, .height = 32 },
-		.sprite = {.assetID = "chopper-image", .width = 32.0, .height = 32.0, .layer = 1} };
+		.sprite = {.assetID = "chopper-spritesheet", .width = 32.0, .height = 32.0, .layer = 1} };
 
 	// Runs once automatically at the creation of my Player. 
 	virtual void OnCreated() override
