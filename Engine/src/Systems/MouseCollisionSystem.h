@@ -1,94 +1,75 @@
 #pragma once
 
-#include "../ECS/System.h"
+#include "../ECS/World.h"
 #include "../Components/BoxCollisionComponent.h"
 #include "../Components/TransformComponent.h"
 #include "../Components/MouseControlledComponent.h"
-#include "../ECS/EntityTemplates.h"
-#include "../Logger/Logger.h"
+#include "../Components/SpriteComponent.h"
 #include "../Events/EventManager.h"
-#include "../Events/CollisionEvent.h"
 
-// TODO: Right now, if multiple objects with collisions and mouse controls are stacks, we can end 
-// up triggered the click event of all of them, when we probably only want the top object to 
-// receive the click event. Maybe use Sprite depth? 
-
-class EventManager; 
-
-class MouseCollisionSystem: public System
+class MouseCollisionSystem : public System
 {
+    template<class T> 
+    void Click(T& event, void (EntityObject::* hook)())
+    {
+        if (!event.valid || !event.insideView || event.cancelled) return;
+
+        const auto snapshot = GetSystemEntities();
+
+        for (auto entity : snapshot)
+        {
+            World* world = entity.GetWorld();
+            if (!world || !world->CanRunCallbacks(entity)) continue;
+
+            auto* t = entity.GetComponent<TransformComponent>();
+            auto* b = entity.GetComponent<BoxCollisionComponent>();
+
+            if (!t || !b) continue;
+
+            bool fixed = false;
+            if (entity.HasComponent<SpriteComponent>())
+                if (auto* sprite = entity.GetComponent<SpriteComponent>())
+                    fixed = sprite->isFixed;
+
+            if (fixed && !event.hasScreenLocation) continue;
+
+            const auto mouse = fixed ? event.screenLocation : event.mouseLocation;
+            const float x = t->position.x + b->offsetX;
+            const float y = t->position.y + b->offsetY;
+            const float w = b->width * t->scale.x;
+            const float h = b->height * t->scale.y;
+
+            if (mouse.x < x || mouse.x > x + w ||
+                mouse.y < y || mouse.y > y + h) continue;
+
+            if (auto* object = world->GetObject(entity))
+            {
+                World::CallbackScope scope(*world);
+                (object->*hook)();
+            }
+        }
+    }
+
 public:
-	MouseCollisionSystem()
-	{
-		RequireComponent<TransformComponent>();
-		RequireComponent<BoxCollisionComponent>();
-		RequireComponent<MouseControlledComponent>(); 
-	}
-	~MouseCollisionSystem() {};
-
-	void SubscribeToEvents(EventManager& eventManager)
-	{
-		eventManager.SubscribeToEvent<LeftMouseButtonPressedEvent>(this, &MouseCollisionSystem::OnLeftMouseButtonPressed);
-		eventManager.SubscribeToEvent<RightMouseButtonPressedEvent>(this, &MouseCollisionSystem::OnRightMouseButtonPressed);
-	}
-
-	void OnLeftMouseButtonPressed(LeftMouseButtonPressedEvent& event)
-	{
-		auto entities = GetSystemEntities();
-		for (auto& entity : GetSystemEntities())
-		{
-			auto transform = entity.GetComponent<TransformComponent>();
-			auto collision = entity.GetComponent<BoxCollisionComponent>();
-
-			if (not transform or not collision)
-				continue;
-
-			float mouse_x = event.mouseLocation.x; 
-			float mouse_y = event.mouseLocation.y; 
-
-			auto width = collision->width * transform->scale.x;
-			auto height = collision->height * transform->scale.y;
-			auto x = transform->position.x + collision->offsetX;
-			auto y = transform->position.y + collision->offsetY;
-
-			// Check if our mouse clicked inside of the collision area. 
-			if (mouse_x >= x and mouse_x <= x + width and mouse_y >= y and mouse_y <= y + height)
-			{ 
-				World* world = entity.GetWorld(); 
-				world->GetObject(entity)->OnLeftClicked(); 
-			}
-		}
-	}
-
-	void OnRightMouseButtonPressed(RightMouseButtonPressedEvent& event)
-	{
-		auto entities = GetSystemEntities();
-		for (auto& entity : GetSystemEntities())
-		{
-			auto transform = entity.GetComponent<TransformComponent>();
-			auto collision = entity.GetComponent<BoxCollisionComponent>();
-
-			if (not transform or not collision)
-				continue;
-
-			float mouse_x = event.mouseLocation.x;
-			float mouse_y = event.mouseLocation.y;
-
-			auto width = collision->width * transform->scale.x;
-			auto height = collision->height * transform->scale.y;
-			auto x = transform->position.x + collision->offsetX;
-			auto y = transform->position.y + collision->offsetY;
-
-			// Check if our mouse clicked inside of the collision area. 
-			if (mouse_x >= x and mouse_x <= x + width and mouse_y >= y and mouse_y <= y + height)
-			{
-				World* world = entity.GetWorld();
-				world->GetObject(entity)->OnRightClicked();
-			}
-		}
-	}
-
-	void Update(World& world, EventManager& eventManager)
-	{
-	}
+    MouseCollisionSystem()
+    {
+        RequireComponent<TransformComponent>();
+        RequireComponent<BoxCollisionComponent>();
+        RequireComponent<MouseControlledComponent>();
+    }
+    void SubscribeToEvents(EventManager& events)
+    {
+        events.SubscribeToEvent<LeftMouseButtonPressedEvent>(
+            this, &MouseCollisionSystem::OnLeftMouseButtonPressed);
+        events.SubscribeToEvent<RightMouseButtonPressedEvent>(
+            this, &MouseCollisionSystem::OnRightMouseButtonPressed);
+    }
+    void OnLeftMouseButtonPressed(LeftMouseButtonPressedEvent& e)
+    {
+        Click(e, &EntityObject::OnLeftClicked);
+    }
+    void OnRightMouseButtonPressed(RightMouseButtonPressedEvent& e)
+    {
+        Click(e, &EntityObject::OnRightClicked);
+    }
 };

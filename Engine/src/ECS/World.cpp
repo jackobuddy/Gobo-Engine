@@ -1,7 +1,6 @@
 #include "World.h"
 #include "../Logger/Logger.h"
 #include "../Systems/MovementSystem.h"
-#include "../Entities/EntityFacade.h"
 #include "../Events/CollisionEvent.h"
 #include "../Events/EventManager.h"
 #include <stdexcept>
@@ -22,7 +21,8 @@ World::~World()
 
 void World::Shutdown()
 {
-	if (isShuttingDown or isShutdown) return ; 
+	if (isShuttingDown || isShutdown) return;
+	if (Busy()) throw std::logic_error("World shutdown inside callback");
 
 	// Prevents multiple Shutdown() calls. 
 	isShuttingDown = true; 
@@ -36,7 +36,8 @@ void World::Shutdown()
 
 		try
 		{
-			object->OnDestroyed(); 
+			CallbackScope callback(*this);
+			object->OnDestroyed();
 		}
 		catch (const std::exception& error)
 		{
@@ -48,7 +49,16 @@ void World::Shutdown()
 		}
 	}
 
-	isShutdown = true; 
+	if (eventManager) {
+		for (const auto& object : entityObjects)
+			if (object) eventManager->UnsubscribeOwner(object.get());
+		for (const auto& [type, system] : systems)
+			eventManager->UnsubscribeOwner(system.get());
+	}
+	lifetime.reset();
+	destructionBatch.clear();
+	pendingSystemRemovals.clear();
+	isShutdown = true;
 
 	entitiesToBeAdded.clear();
 	entitiesNeedingRefresh.clear();
@@ -106,7 +116,7 @@ Entity World::AllocateEntityHandle()
 	entityComponentSignatures[entityID].reset(); 
 
 	// Create the new Entity and queue it for creation. 
-	Entity entity(this, entityID, entityGenerations[entityID]);
+	Entity entity(this, entityID, entityGenerations[entityID], lifetime); 
 	entity.world = this; // Give new Entities a pointer to this World. 
 	entitiesToBeAdded.insert(entity); 
 
@@ -137,6 +147,10 @@ void World::CommitObject(Entity entity, const std::string& name,
 
 void World::CancelEntityCreation(Entity entity)
 {
+	if (eventManager)
+		if (auto* object = GetObject(entity))
+			eventManager->UnsubscribeOwner(object);
+
 	if (!IsEntityAlive(entity))
 		return;
 
@@ -234,6 +248,8 @@ std::string World::GenerateUniqueName(const std::string& baseName)
 
 void World::RemoveName(Entity entity)
 {
+	if (!IsEntityAlive(entity)) return;
+
 	const int id = entity.GetID();
 
 	if (id < 0 or static_cast<std::size_t>(id) >= nameByEntityID.size())
@@ -254,59 +270,64 @@ void World::RemoveName(Entity entity)
 
 bool World::IsEntityAlive(const Entity& entity) const
 {
-	const int entityID = entity.GetID(); 
-
-	return not isShutdown and entity.world == this and entityID >= 0 and 
-		static_cast<size_t>(entityID) < entityGenerations.size() and
-		entity.generation == entityGenerations[entityID]; 
+	const int id = entity.GetID();
+	return !isShutdown && entity.GetWorld() == this &&
+		!entity.lifetime.owner_before(lifetime) &&
+		!lifetime.owner_before(entity.lifetime) && id >= 0 &&
+		static_cast<std::size_t>(id) < entityGenerations.size() &&
+		entity.generation == entityGenerations[id];
 }
 
 void World::DestroyEntity(Entity entity)
 {
-	if (isShuttingDown or isShutdown) return; 
-
-	entitiesToBeDestroyed.insert(entity); 
+	if (!isShuttingDown && !isShutdown && IsEntityAlive(entity) &&
+		!IsPendingDestroy(entity))
+		entitiesToBeDestroyed.insert(entity);
 }
 
 void World::ProcessEntityDestruction(const Entity& entity)
-{	
-	// Make sure the entity is still considered alive. 
-	if (not IsEntityAlive(entity))
-		return; 
+{
+	if (!IsEntityAlive(entity)) return;
 
-	const int id = entity.GetID(); 
-	const Signature signature = entityComponentSignatures[id]; 
-
-	// Unenroll the entity from all Systems. 
-	RemoveEntityFromSystems(entity);
-	RemoveEntityTag(entity); 
-	RemoveEntityGroup(entity); 
+	const int id = entity.GetID();
+	std::exception_ptr failure;
 
 	if (auto* object = GetObject(entity))
-		object->OnDestroyed();
-	RemoveName(entity);
-	entityObjects[id].reset();
-
-	// Clean out our Component Pools
-	for (size_t componentID = 0; componentID < componentPools.size(); ++componentID)
 	{
-		if (componentID < signature.size() and
-			signature.test(componentID) and
-			componentPools[componentID])
-				componentPools[componentID]->Remove(id);
+		if (eventManager) eventManager->UnsubscribeOwner(object);
+		try
+		{
+			CallbackScope callback(*this);
+			object->OnDestroyed();
+		}
+		catch (...) { failure = std::current_exception(); }
+		// Remove any subscription made by OnDestroyed too.
+		if (eventManager) eventManager->UnsubscribeOwner(object);
 	}
 
-	// Clear the Entity Signature. 
-	entityComponentSignatures[entity.id].reset();
-	// Invalidates old handles by incrementing the generation count of the slot. 
-	++entityGenerations[entity.id]; 
-	// Make the Entity ID availible to be used. 
-	freeIDs.push_back(entity.id);
+	RemoveEntityFromSystems(entity);
+	RemoveEntityTag(entity);
+	RemoveEntityGroup(entity);
+	RemoveName(entity);
+
+	const Signature signature = entityComponentSignatures[id];
+	for (std::size_t i = 0; i < componentPools.size(); ++i)
+		if (i < signature.size() && signature.test(i) &&
+			componentPools[i])
+			componentPools[i]->Remove(id);
+
+	entityObjects[id].reset();
+	entityComponentSignatures[id].reset();
+	entitiesToBeAdded.erase(entity);
+	entitiesNeedingRefresh.erase(entity);
+	++entityGenerations[id];
+	freeIDs.push_back(id);
+	if (failure) std::rethrow_exception(failure);
 }
 
 bool World::TagEntity(Entity entity, const std::string& tag)
 {
-	if (not IsEntityAlive(entity) or tag.empty())
+	if (!CanMutate(entity) || tag.empty())
 		return false; 
 
 	const int id = entity.GetID(); 
@@ -357,6 +378,8 @@ Entity World::GetEntityByTag(const std::string& tag) const
 
 bool World::RemoveEntityTag(Entity entity)
 {
+	if (!IsEntityAlive(entity)) return false;
+
 	const auto byEntity = tagPerEntity.find(entity.GetID()); 
 	if (byEntity == tagPerEntity.end())
 		return false; 
@@ -371,7 +394,7 @@ bool World::RemoveEntityTag(Entity entity)
 
 bool World::GroupEntity(Entity entity, const std::string& group)
 {
-	if (not IsEntityAlive(entity) or group.empty())
+	if (!CanMutate(entity) || group.empty())
 		return false; 
 
 	const int id = entity.GetID(); 
@@ -412,6 +435,8 @@ std::vector<Entity> World::GetEntitiesByGroup(const std::string& group) const
 
 bool World::RemoveEntityGroup(Entity entity)
 {
+	if (!IsEntityAlive(entity)) return false;
+
 	const auto byEntity = groupPerEntity.find(entity.GetID());
 	if (byEntity == groupPerEntity.end())
 		return false; 
@@ -488,30 +513,50 @@ void World::RefreshSystemMembership(Entity entity)
 
 void World::Update()
 {
-	if (isShuttingDown or isShutdown) return; 
+	if (Busy()) throw std::logic_error("World flush inside callback");
 
-	// Add the Entities waiting to be added. 
-	if (entitiesToBeAdded.size() > 0)
+	if (isShuttingDown || isShutdown) return;
+
+	flushing = true;
+	struct Reset { bool& value; ~Reset() { value = false; } } reset{ flushing };
+	std::set<Entity> added, refreshed;
+	added.swap(entitiesToBeAdded);
+	refreshed.swap(entitiesNeedingRefresh);
+	destructionBatch.swap(entitiesToBeDestroyed);
+	std::exception_ptr failure;
+
+	for (const auto& entity : destructionBatch)
 	{
-		Logger::Log("Adding " + std::to_string(entitiesToBeAdded.size()) + " Entities to world...");
-		for (const Entity& entity : entitiesToBeAdded)
-			AddEntityToSystems(entity); 
-		entitiesToBeAdded.clear(); 
+		try { ProcessEntityDestruction(entity); }
+		catch (...) { if (!failure) failure = std::current_exception(); }
 	}
 
-	// Refresh any Entities that need System Membership refreshed
-	for (const Entity& entity : entitiesNeedingRefresh)
-	{
-		RefreshSystemMembership(entity); 
-	}
-	entitiesNeedingRefresh.clear(); 
+	destructionBatch.clear();
+	for (const auto& type : pendingSystemRemovals)
+		systems.erase(type);
 
-	// Process Entities that need to be destroyed
-	if (entitiesToBeDestroyed.size() > 0)
+	pendingSystemRemovals.clear();
+	for (const auto& entity : added)
+		if (CanMutate(entity)) AddEntityToSystems(entity);
+
+	for (const auto& entity : refreshed)
+		if (!added.contains(entity) && CanMutate(entity))
+			RefreshSystemMembership(entity);
+
+	if (failure) std::rethrow_exception(failure);
+}
+
+void World::UpdateObjects(float deltaSeconds)
+{
+	std::vector<Entity> snapshot;
+	snapshot.reserve(entityObjects.size());
+	for (const auto& object : entityObjects)
+		if (object) snapshot.push_back(object->GetEntity());
+	CallbackScope callback(*this);
+	for (auto entity : snapshot)
 	{
-		Logger::Log("Destroying " + std::to_string(entitiesToBeDestroyed.size()) + " Entities...");
-		for (const Entity& entity : entitiesToBeDestroyed)
-			ProcessEntityDestruction(entity); 
-		entitiesToBeDestroyed.clear(); 
+		if (!CanRunCallbacks(entity)) continue;
+		auto* object = GetObject(entity);
+		if (object && object->Updates) object->Update(deltaSeconds);
 	}
 }

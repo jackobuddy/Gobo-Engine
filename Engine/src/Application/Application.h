@@ -41,6 +41,9 @@ private:
 	std::shared_ptr<AudioManager> audioManager; 
 	Camera camera; 
 	std::unordered_set<SDL_Keycode> heldKeys; 
+	bool acceptedLeft = false;
+	bool acceptedRight = false;
+	bool inputFocused = true;
 	bool isRunning = false; 
 	bool isShutdown = false; 
 };

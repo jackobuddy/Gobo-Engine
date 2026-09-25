@@ -1,52 +1,50 @@
 #pragma once
 
-#include "../ECS/System.h"
+#include "../ECS/World.h"
 #include "../Components/AnimationComponent.h"
 #include "../Components/SpriteComponent.h"
-#include "../ECS/EntityTemplates.h"
-#include "../Logger/Logger.h"
-#include "../Math/Math.h"
-#include <SDL3/SDL.h>
+#include <cmath>
 
 class AnimationSystem : public System
 {
 public:
-	AnimationSystem()
-	{
-		RequireComponent<SpriteComponent>();
-		RequireComponent<AnimationComponent>();
-	}
+    AnimationSystem()
+    {
+        RequireComponent<SpriteComponent>();
+        RequireComponent<AnimationComponent>();
+    }
 
-	~AnimationSystem() {}; 
+    void Update()
+    {
+        const Uint64 now = SDL_GetTicks();
+        for (auto entity : GetSystemEntities())
+        {
+            auto* animation = entity.GetComponent<AnimationComponent>();
+            auto* sprite = entity.GetComponent<SpriteComponent>();
 
-	void Update()
-	{
-		for (auto entity : GetSystemEntities())
-		{
-			// Get the needed Components
-			AnimationComponent* animation = entity.GetComponent<AnimationComponent>();
-			SpriteComponent* sprite = entity.GetComponent<SpriteComponent>();
+            if (!animation || !sprite) continue;
 
-			if (not animation or not sprite)
-				continue;
+            const Uint64 count = animation->GetNumFrames();
 
-			// A copy of the full frame calc formula. 
-			// ((SDL_GetTicks() - animation.GetStartTime()) * animation.frameSpeedRate / 1000) % animation.numFrames;
+            if (count == 0) continue;
 
-			// Get the current frame we are on
-			Uint64 frame = ((SDL_GetTicks() - animation->GetStartTime()) *
-				animation->frameSpeedRate / 1000);
+            const Uint64 elapsed = now >= animation->GetStartTime()
+                ? now - animation->GetStartTime() : 0;
 
-			// Process if the animation should loop or not. 
-			if (animation->loops)
-				frame = frame % animation->numFrames;
-			else
-				frame = Clamp(frame,
-					static_cast<Uint64>(0), static_cast<Uint64>(animation->numFrames - 1));
+            const long double raw = std::floor(
+                (static_cast<long double>(elapsed) / 1000.0L) *
+                animation->GetFrameSpeedRate());
 
-			// Set the current frame and adjust the Source Rectangle of the Sprite. 
-			animation->SetCurrentFrame(frame);
-			sprite->srcRect.x = static_cast<float>(animation->GetCurrentFrame() * sprite->GetWidth());
-		}
-	}
+            Uint64 frame;
+            if (animation->GetLoops())
+                frame = static_cast<Uint64>(std::fmod(raw,
+                    static_cast<long double>(count)));
+            else if (raw >= static_cast<long double>(count - 1))
+                frame = count - 1;
+            else frame = static_cast<Uint64>(raw);
+
+            animation->SetCurrentFrame(frame);
+            sprite->srcRect.x = static_cast<float>(frame) * sprite->GetWidth();
+        }
+    }
 };

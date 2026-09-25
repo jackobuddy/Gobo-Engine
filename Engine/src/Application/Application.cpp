@@ -23,6 +23,9 @@
 #include "../Rendering/Window.h"
 #include "../Scenes/SceneManager.h"
 #include <SDL3/SDL.h>
+#include <exception>
+#include <stdexcept>
+#include <utility>
 
 Application::Application() = default; 
 
@@ -30,6 +33,11 @@ Application::~Application() { Shutdown(); }
 
 bool Application::Initialize(const GameConfig& config)
 {
+	isShutdown = false;
+	heldKeys.clear();
+	acceptedLeft = acceptedRight = false;
+	inputFocused = true;
+
 	// Start up our SDL Video. 
 	if (not SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
 	{
@@ -82,112 +90,112 @@ bool Application::Initialize(const GameConfig& config)
 
 void Application::ProcessInput(GameContext& context)
 {
-	EventManager& events = context.GetEvents(); 
-
-	// Get the mouse's position in the world
-	const auto getMouseWorldPosition = [&](float windowX, float windowY, Vector2& worldPosition,
-			bool& insideView) -> bool
+	EventManager& events = context.GetEvents();
+	const auto emitMouse = [&]<class T>(float x, float y, bool cancel = false)
 	{
-		Vector2 renderPosition;
-
-		if (not renderer or not renderer->WindowToRender(Vector2(windowX, windowY), renderPosition))
-		{
-			return false;
-		}
-
-		const Vector2 renderSize = renderer->GetViewSize();
-
-		// Letterbox bars are outside the logical drawing area.
-		insideView = renderPosition.x >= 0.0f && renderPosition.y >= 0.0f &&
-			renderPosition.x < renderSize.x && renderPosition.y < renderSize.y;
-
-		const Vector2 cameraPosition = context.GetCamera().position;
-
-		worldPosition = Vector2(renderPosition.x + cameraPosition.x, renderPosition.y + cameraPosition.y);
-		return true;
+		Vector2 screen(0), world(0);
+		const bool valid = renderer &&
+			renderer->WindowToRender(Vector2(x, y), screen);
+		const Vector2 size = renderer->GetViewSize();
+		const bool inside = valid && screen.x >= 0 && screen.y >= 0 &&
+			screen.x < size.x && screen.y < size.y;
+		if (valid) world = screen + context.GetCamera().position;
+		// Releases/cancels must still reach listeners outside the view.
+		if (cancel || inside)
+			events.EmitEvent<T>(world, screen, valid, inside, cancel);
+		return inside;
 	};
-
-	SDL_Event event;
+	const auto emitRelease = [&]<class T>(float x, float y, bool cancel)
+	{
+		Vector2 screen(0), world(0);
+		const bool valid = renderer &&
+			renderer->WindowToRender(Vector2(x, y), screen);
+		const Vector2 size = renderer->GetViewSize();
+		const bool inside = valid && screen.x >= 0 && screen.y >= 0 &&
+			screen.x < size.x && screen.y < size.y;
+		if (valid) world = screen + context.GetCamera().position;
+		events.EmitEvent<T>(world, screen, valid, inside, cancel);
+	};
+	SDL_Event event{};
 	while (SDL_PollEvent(&event))
 	{
-		// Handle Quit Events
-		if (event.type == SDL_EVENT_QUIT)
-			context.RequestQuit(); 
-
-		// KeyDownEvent triggers only the first frame the key is pressed down. 
-		else if (event.type == SDL_EVENT_KEY_DOWN)
-		{
-			const SDL_Keycode key = event.key.key; 
-			
-			if (heldKeys.insert(key).second)
-				events.EmitEvent<KeyPressedEvent>(event.key.key); 
-		}
-
-		// KeyUpEvents trigger only the first frame that the key is released. 
-		else if (event.type == SDL_EVENT_KEY_UP)
-		{
-			const SDL_Keycode key = event.key.key;
-
-			if (heldKeys.erase(key) > 0)
-				events.EmitEvent<KeyReleasedEvent>(event.key.key); 
-		}
-
-		// Release all keys if the window loses focus
+		if (!context.IsRunning()) break;
+		if (event.type == SDL_EVENT_QUIT) context.RequestQuit();
+		else if (event.type == SDL_EVENT_WINDOW_FOCUS_GAINED)
+			inputFocused = true;
 		else if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
 		{
-			for (const SDL_Keycode key : heldKeys)
-				events.EmitEvent<KeyReleasedEvent>(key); 
-
-			heldKeys.clear(); 
+			inputFocused = false;
+			const auto keys = std::move(heldKeys);
+			heldKeys.clear();
+			for (auto key : keys) events.EmitEvent<KeyReleasedEvent>(key);
+			float x = 0, y = 0;
+			SDL_GetMouseState(&x, &y);
+			if (acceptedLeft)
+				emitRelease.template operator() < LeftMouseButtonReleasedEvent > (x, y, true);
+			if (acceptedRight)
+				emitRelease.template operator() < RightMouseButtonReleasedEvent > (x, y, true);
+			acceptedLeft = acceptedRight = false;
 		}
-
-		// TODO: We'll want to be able to track if a mouse button is being held down separately
-		// from if it was just pressed. 
-		else if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN or event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+		else if (inputFocused && event.type == SDL_EVENT_KEY_DOWN)
 		{
-			Vector2 mouseWorld; 
-			bool insideView = false; 
-			getMouseWorldPosition(event.button.x, event.button.y, mouseWorld, insideView); 
-
-			if (event.type == SDL_EVENT_MOUSE_BUTTON_DOWN) 
+			if (heldKeys.insert(event.key.key).second)
+				events.EmitEvent<KeyPressedEvent>(event.key.key);
+		}
+		else if (event.type == SDL_EVENT_KEY_UP)
+		{
+			if (heldKeys.erase(event.key.key))
+				events.EmitEvent<KeyReleasedEvent>(event.key.key);
+		}
+		else if (inputFocused && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
+		{
+			if (event.button.button == SDL_BUTTON_LEFT)
+				acceptedLeft = emitMouse.template operator() <
+				LeftMouseButtonPressedEvent > (event.button.x, event.button.y);
+			if (event.button.button == SDL_BUTTON_RIGHT)
+				acceptedRight = emitMouse.template operator() <
+				RightMouseButtonPressedEvent > (event.button.x, event.button.y);
+		}
+		else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+		{
+			if (event.button.button == SDL_BUTTON_LEFT && acceptedLeft)
 			{
-				if (event.button.button == SDL_BUTTON_LEFT)
-					events.EmitEvent<LeftMouseButtonPressedEvent>(mouseWorld);
-				else if (event.button.button == SDL_BUTTON_RIGHT)
-					events.EmitEvent<RightMouseButtonPressedEvent>(mouseWorld);
+				acceptedLeft = false;
+				emitRelease.template operator() < LeftMouseButtonReleasedEvent > (
+					event.button.x, event.button.y, false);
 			}
-			else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
+			if (event.button.button == SDL_BUTTON_RIGHT && acceptedRight)
 			{
-				if (event.button.button == SDL_BUTTON_LEFT)
-					events.EmitEvent<LeftMouseButtonReleasedEvent>(mouseWorld);
-				else if (event.button.button == SDL_BUTTON_RIGHT)
-					events.EmitEvent<RightMouseButtonReleasedEvent>(mouseWorld);
+				acceptedRight = false;
+				emitRelease.template operator() < RightMouseButtonReleasedEvent > (
+					event.button.x, event.button.y, false);
 			}
 		}
 	}
-
-	// Check if the mouse buttons are held down
-	Vector2 mouseWorld;
-	bool insideView = false;
-	getMouseWorldPosition(event.button.x, event.button.y, mouseWorld, insideView);
-
-	SDL_MouseButtonFlags button = SDL_GetMouseState(NULL, NULL); 
-	if (button & SDL_BUTTON_LMASK)
+	if (!context.IsRunning() || !inputFocused) return;
+	float x = 0, y = 0;
+	const auto buttons = SDL_GetMouseState(&x, &y);
+	if (acceptedLeft && (buttons & SDL_BUTTON_LMASK))
+		emitMouse.template operator() < LeftMouseButtonHeldEvent > (x, y);
+	else if (acceptedLeft)
 	{
-		events.EmitEvent<LeftMouseButtonHeldEvent>(mouseWorld);
+		acceptedLeft = false;
+		emitRelease.template operator() < LeftMouseButtonReleasedEvent > (x, y, true);
 	}
-	if (button & SDL_BUTTON_RMASK)
+	if (acceptedRight && (buttons & SDL_BUTTON_RMASK))
+		emitMouse.template operator() < RightMouseButtonHeldEvent > (x, y);
+	else if (acceptedRight)
 	{
-		events.EmitEvent<RightMouseButtonHeldEvent>(mouseWorld);
+		acceptedRight = false;
+		emitRelease.template operator() < RightMouseButtonReleasedEvent > (x, y, true);
 	}
-
-
-	// Run the held events for every held key every frame. 
-	for (const SDL_Keycode key : heldKeys)
-		events.EmitEvent<KeyHeldEvent>(key); 
-
-	// Every frame, we allways call a Key All Event, giving the set of held keys. 
-	events.EmitEvent<KeyAllEvent>(heldKeys);
+	const auto keys = heldKeys;
+	for (auto key : keys)
+	{
+		if (!context.IsRunning()) return;
+		events.EmitEvent<KeyHeldEvent>(key);
+	}
+	if (context.IsRunning()) events.EmitEvent<KeyAllEvent>(heldKeys);
 }
 
 void Application::Shutdown()
@@ -220,129 +228,120 @@ void Application::Shutdown()
 
 int Application::Run(IGame& game)
 {
-	const GameConfig config = game.Configure(); // Game-side config setup 
-
-	if (config.targetFPS <= 0)
+	int result = 0;
+	bool contentStarted = false;
+	const char* phase = "Configure";
+	std::unique_ptr<GameContext> context;
+	try
 	{
-		Logger::Error("GameConfig targetFPS must be greater than zero. ");
-		return 1; 
-	}
-	if (config.startingScene.empty())
-	{
-		Logger::Error("GameConfig startingScene must not be empty. "); 
-		return 1; 
-	}
-	if (not Initialize(config))
-	{
-		Shutdown(); 
-		return 1; 
-	}
-
-	GameContext context(*worldHost, *assetManager, *audioManager, camera, *renderer, 
-		*sceneManager, isRunning);
-	game.BindContext(context);
-	game.RegisterScenes(*sceneManager); 
-
-	if (not sceneManager->HasScene(config.startingScene))
-	{
-		Logger::Error("Starting Scene is not registered: " + config.startingScene);
-		game.ClearContext();
-		Shutdown(); 
-		return 1; 
-	}
-
-	game.LoadContent(*assetManager, *audioManager);
-
-	if (not isRunning)
-	{
-		game.Stop();
-		game.ClearContext(); 
-		Shutdown(); 
-		return 0; 
-	}
-
-	if (!sceneManager->StartInitial(config.startingScene, context))
-	{
-		game.Stop();
-		game.ClearContext();
-		Shutdown();
-		return 1;
-	}
-
-	if (!isRunning)
-	{
-		sceneManager->Shutdown(context);
-		game.Stop();
-		game.ClearContext();
-		Shutdown();
-		return 0;
-	}
-
-	std::uint64_t previousTick = SDL_GetTicks(); 
-	float deltaSeconds = 0.0f; 
-	const double millisecondsPerFrame = 1000.0 / static_cast<double>(config.targetFPS); 
-
-	while (isRunning)
-	{
-		game.BeginFrame(context); 
-		sceneManager->BeginFrame(context); 
-		ProcessInput(context); 
-		if (not isRunning) break; 
-
-		systemPipeline->Update(context.GetWorld(), context.GetEvents(), context.GetCamera(), deltaSeconds); 
-		sceneManager->Update(context, deltaSeconds); 
-		if (not isRunning) break; 
-		game.Update(context, deltaSeconds);  // Game-side Update
-		if (not isRunning) break; 
-		context.GetWorld().Update();
-		if (not isRunning) break; 
-
-		sceneManager->ProcessPending(context); 
-		if (not isRunning) break; 
-
-		const Color clearColor{
-			config.clearColor.r,
-			config.clearColor.g,
-			config.clearColor.b,
-			config.clearColor.a
-		};
-
-		if (not renderer->BeginFrame(clearColor))
+		const GameConfig config = game.Configure();
+		if (config.targetFPS <= 0 || config.startingScene.empty())
+			throw std::runtime_error("Invalid FPS or starting Scene");
+		phase = "Initialize";
+		if (!Initialize(config))
+			throw std::runtime_error("Engine initialization failed");
+		context = std::make_unique<GameContext>(
+			*worldHost, *assetManager, *audioManager, camera,
+			*renderer, *sceneManager, isRunning);
+		game.BindContext(*context);
+		phase = "RegisterScenes";
+		game.RegisterScenes(*sceneManager);
+		if (!sceneManager->HasScene(config.startingScene))
+			throw std::runtime_error("Starting Scene is not registered");
+		phase = "LoadContent";
+		contentStarted = true;
+		game.LoadContent(*assetManager, *audioManager);
+		phase = "Scene OnStart";
+		if (isRunning && !sceneManager->StartInitial(
+			config.startingScene, *context))
+			throw std::runtime_error("Starting Scene failed");
+		std::uint64_t previousTick = SDL_GetTicks();
+		float deltaSeconds = 0.0f;
+		const double frameMS = 1000.0 / config.targetFPS;
+		while (isRunning)
 		{
-			Logger::Error("Failed to begin render frame.");
-			break;
+			phase = "Game BeginFrame";
+			game.BeginFrame(*context);
+			if (!isRunning) break;
+			phase = "Scene BeginFrame";
+			sceneManager->BeginFrame(*context);
+			if (!isRunning) break;
+			phase = "Input";
+			ProcessInput(*context);
+			if (!isRunning) break;
+			phase = "System Update";
+			systemPipeline->Update(context->GetWorld(),
+				context->GetEvents(), camera, deltaSeconds);
+			if (!isRunning) break;
+			phase = "Scene/Entity Update";
+			sceneManager->Update(*context, deltaSeconds);
+			if (!isRunning) break;
+			phase = "Game Update";
+			game.Update(*context, deltaSeconds);
+			if (!isRunning) break;
+			phase = "World commit";
+			context->GetWorld().Update();
+			if (!isRunning) break;
+			phase = "Scene transition";
+			sceneManager->ProcessPending(*context);
+			if (!isRunning) break;
+			phase = "Render begin";
+			const Color clear{ config.clearColor.r, config.clearColor.g,
+							  config.clearColor.b, config.clearColor.a };
+			if (!renderer->BeginFrame(clear))
+				throw std::runtime_error("BeginFrame failed");
+			phase = "System Render";
+			systemPipeline->Render(context->GetWorld(),
+				context->GetAssets(), camera, *renderer,
+				game.GetDebugMode());
+			if (!isRunning) break;
+			phase = "Scene Render";
+			sceneManager->Render(*context);
+			if (!isRunning) break;
+			phase = "Game Render";
+			game.Render(*context);
+			if (!isRunning) break;
+			phase = "Text/Present/Audio";
+			if (!renderer->RenderText())
+				Logger::Error("One or more text labels failed to render");
+			renderer->Present();
+			audioManager->Update();
+			auto tick = SDL_GetTicks();
+			if (config.frameRateIsCapped && renderer->GetVSyncMode() == 0)
+			{
+				const double elapsed = static_cast<double>(tick - previousTick);
+				if (elapsed < frameMS)
+					SDL_Delay(static_cast<std::uint32_t>(frameMS - elapsed));
+			}
+			tick = SDL_GetTicks();
+			deltaSeconds = Clamp(static_cast<float>(tick - previousTick)
+				/ 1000.0f, 0.0f, 0.2f);
+			previousTick = tick;
 		}
-
-		systemPipeline->Render(context.GetWorld(), context.GetAssets(), context.GetCamera(),
-			*renderer, game.GetDebugMode()); 
-		sceneManager->Render(context); 
-		game.Render(context);
-
-		if (not renderer->RenderText())
-		{
-			Logger::Error(
-				"One or more text labels failed to render."
-			);
-		}
-		renderer->Present();
-		audioManager->Update(); 
-		
-		std::uint64_t currentTick = SDL_GetTicks(); 
-		if (config.frameRateIsCapped and renderer->GetVSyncMode() == 0)
-		{
-			const double elapsed = static_cast<double>(currentTick - previousTick);
-			if (elapsed < millisecondsPerFrame)
-				SDL_Delay(static_cast<std::uint32_t>(millisecondsPerFrame - elapsed)); 
-		}
-		currentTick = SDL_GetTicks(); 
-		deltaSeconds = Clamp(static_cast<float>(currentTick - previousTick) / 1000.0f, 
-			0.0f, 0.2f); 
-		previousTick = currentTick; 
 	}
-
-	sceneManager->Shutdown(context); 
-	game.Stop(); // Game-side
-	game.ClearContext(); 
-	Shutdown(); 
-	return 0; 
+	catch (const std::exception& error)
+	{
+		Logger::Error(std::string(phase) + ": " + error.what());
+		result = 1;
+	}
+	catch (...)
+	{
+		Logger::Error(std::string(phase) + ": unknown exception");
+		result = 1;
+	}
+	isRunning = false;
+	if (context && sceneManager)
+	{
+		try { sceneManager->Shutdown(*context); }
+		catch (...) { Logger::Error("Scene cleanup failed"); result = 1; }
+	}
+	if (contentStarted)
+	{
+		try { game.Stop(); }
+		catch (...) { Logger::Error("Game Stop failed"); result = 1; }
+	}
+	game.ClearContext();
+	context.reset();
+	Shutdown();
+	return result;
 }

@@ -28,8 +28,10 @@ public:
 	TextManager& GetText() const; 
 	Camera& GetCamera() const; 
 	Vector2 GetViewSize() const; 
+	bool SetViewSize(int width, int height);
 	EntityObject* FindObject(const std::string name) const; 
 	void RequestQuit(); 
+	bool IsRunning() const { return isRunning; }
 
 private:
 	WorldHost& worldHost; 

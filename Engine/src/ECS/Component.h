@@ -1,12 +1,20 @@
 #pragma once
+
 #include "ECS.h"
+#include <stdexcept>
 
 // Structure to organize the base of all our Components
 struct BaseComponent
 {
 protected:
 	// nextID is shared between all Component classes. 
-	static int nextID; 
+	static int nextID;
+	static int AllocateTypeID()
+	{
+		if (nextID >= static_cast<int>(MAX_COMPONENTS))
+			throw std::runtime_error("Component type limit exceeded");
+		return nextID++; 
+	}
 };
 
 
@@ -21,7 +29,7 @@ public:
 		// Because this value is static, all Components of the same class
 		// will share the same ID. For example, all TransformComponents will
 		// share the same ID value. 
-		static auto id = nextID++; // We increment the nextID value by 1 per new type
+		static const int id = AllocateTypeID(); 
 		return id; 
 	}
 };

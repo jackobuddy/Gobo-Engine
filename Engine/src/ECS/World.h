@@ -4,6 +4,7 @@
 #include "Component.h"
 #include "System.h"
 #include "Pool.h"
+#include "../Events/EventManager.h"
 #include "../Entities/EntityObject.h"
 #include "../Logger/Logger.h"
 #include "../Entities/Actor.h"
@@ -16,6 +17,11 @@
 #include <utility>
 #include <stdexcept>
 #include <functional>
+#include <algorithm>
+#include <cstdint>
+#include <deque>
+#include <exception>
+#include <vector>
 
 class EventManager; 
 
@@ -40,12 +46,37 @@ public:
 	// This allows us to wait until the end of each frame to create and delete Entities. 
 	void Update();
 	void Shutdown(); 
+
+	// The EventManager must outlive this World (WorldSession does).
+	void SetEventManager(EventManager& value) { eventManager = &value; }
+	bool IsPendingDestroy(Entity e) const
+	{
+		return entitiesToBeDestroyed.contains(e) ||
+			destructionBatch.contains(e);
+	}
+	bool CanRunCallbacks(Entity e) const
+	{
+		return !isShuttingDown && IsEntityAlive(e) &&
+			!IsPendingDestroy(e);
+	}
+	void UpdateObjects(float deltaSeconds);
+	class CallbackScope
+	{
+		World& owner;
+	public:
+		explicit CallbackScope(World& w) : owner(w)
+		{
+			++owner.callbackDepth;
+		}
+		~CallbackScope() { --owner.callbackDepth; }
+		CallbackScope(const CallbackScope&) = delete;
+		CallbackScope& operator=(const CallbackScope&) = delete;
+	};
+
 	// Stores a vector of Entity Objects in existance. 
-	std::vector<std::unique_ptr<EntityObject>> entityObjects; 
 	std::unordered_map<std::string, Entity> entitiesByName; 
 	std::vector<std::string> nameByEntityID; 
 	// Queues a new Entity to be created at the end of the current frame cycle. 
-	Entity AllocateEntityHandle();
 	Entity CreateEntity(const std::string& name);
 	Entity CreateAutoNamedEntity(const std::string& baseName); 
 
@@ -68,7 +99,6 @@ public:
 	EntityObject* GetObject(Entity entity); 
 	std::string GenerateUniqueName(const std::string& baseName);
 	std::unordered_map<std::string, std::uint64_t> nextNameSuffix;
-	void RemoveName(Entity entity);
 	Entity FindEntity(const std::string& name) const;
 	Character* FindCharacter(const std::string& name);
 
@@ -81,8 +111,6 @@ public:
 	bool IsEntityAlive(const Entity& entity) const; 
 	// Queues an Entity to be destroyed. 
 	void DestroyEntity(Entity entity);
-	// Processes the destruction of an Entity
-	void ProcessEntityDestruction(const Entity& entity); 
 
 	// Assigns a unique Tag to a given Entity. Unlike Groups, tags are unique and can
 	// only be assigned to a single Entity. 
@@ -155,6 +183,26 @@ public:
 	TObject& CreateObject(const std::string& name, TArgs&&... args);
 
 private:
+	void RemoveName(Entity entity);
+	Entity AllocateEntityHandle();
+	std::shared_ptr<void> lifetime = std::make_shared<int>(0);
+	EventManager* eventManager = nullptr; // session owns it
+	unsigned callbackDepth = 0;
+	bool flushing = false;
+	std::set<Entity> destructionBatch;
+	std::set<std::type_index> pendingSystemRemovals;
+	bool Busy() const
+	{
+		return callbackDepth != 0 || flushing ||
+			(eventManager && eventManager->IsDispatching());
+	}
+	bool CanMutate(Entity e) const
+	{
+		return !isShuttingDown && !isShutdown &&
+			IsEntityAlive(e) && !IsPendingDestroy(e);
+	}
+	// Processes the destruction of an Entity
+	void ProcessEntityDestruction(const Entity& entity);
 	// Refreshes an Entity's System memberships based on requirements
 	void RefreshSystemMembership(Entity entity);
 	// Validates that a given Entity name isn't taken. 
@@ -185,6 +233,7 @@ private:
 	int numEntities = 0; 
 	// List of Entities awaiting creation in the next World Update
 	std::set<Entity> entitiesToBeAdded;
+	std::vector<std::unique_ptr<EntityObject>> entityObjects;
 	// Tracks Entity Tags. Each tag can only be assigned to one Entity, and each Entity
 	// can only have a single tag. 
 	// TODO: We should make some nice, understandable getters for these. 
@@ -230,9 +279,9 @@ private:
 template<typename TComponent, typename ...TArgs>
 void World::AddComponent(Entity entity, TArgs && ...args)
 {
-	if (not IsEntityAlive(entity))
+	if (!CanMutate(entity))
 	{
-		Logger::Error("Cannot add Component to a previously destroyed Entity. ");
+		Logger::Error("Cannot mutate a dead or destroying Entity.");
 		return; 
 	}
 	// Get the Component and Entity IDs
@@ -284,6 +333,8 @@ void World::AddComponent(Entity entity, TArgs && ...args)
 template<typename TComponent>
 inline void World::RemoveComponent(Entity entity)
 {
+	if (!CanMutate(entity)) return;
+
 	const auto componentID = Component<TComponent>::GetID(); 
 
 	if (not IsValidComponetAccess(entity, componentID))
@@ -362,37 +413,48 @@ inline const TComponent* World::GetComponent(const Entity& entity) const
 }
 
 template<typename TSystem, typename ...TArgs>
-inline void World::AddSystem(TArgs && ...args)
+inline void World::AddSystem(TArgs&&... args)
 {
-	// Create our new System object. 
-	std::shared_ptr<TSystem> newSystem = std::make_shared<TSystem>(std::forward<TArgs>(args)...); 
-	// The key for our map is the index of our System Class. 
-	auto key = std::type_index(typeid(TSystem)); 
-	// Add our new System to the proper key location on our Systems map. 
-	systems.insert(std::make_pair(key, newSystem)); 
+	if (Busy() || isShuttingDown || isShutdown)
+		throw std::logic_error("Install systems outside callbacks");
+	const auto key = std::type_index(typeid(TSystem));
+	if (systems.contains(key))
+		throw std::logic_error("System already installed");
+	auto system = std::make_shared<TSystem>(std::forward<TArgs>(args)...);
+	for (const auto& object : entityObjects)
+	{
+		if (!object) continue;
+		const Entity entity = object->GetEntity();
+		if (!CanMutate(entity) || entitiesToBeAdded.contains(entity)) continue;
+		const auto& have = entityComponentSignatures[entity.GetID()];
+		const auto& need = system->GetComponentSignature();
+		if ((have & need) == need) system->AddEntityToSystem(entity);
+	}
+	systems.emplace(key, std::move(system));
 }
 
 template<typename TSystem>
 inline void World::RemoveSystem()
 {
-	const auto key = std::type_index(typeid(TSystem)); 
-	const auto system = systems.find(key); 
-
-	if (system == systems.end())
-		return; 
-
-	systems.erase(system); 
+	const auto key = std::type_index(typeid(TSystem));
+	const auto found = systems.find(key);
+	if (found == systems.end()) return;
+	if (eventManager) eventManager->UnsubscribeOwner(found->second.get());
+	pendingSystemRemovals.insert(key);
 }
 
 template<typename TSystem>
 inline bool World::HasSystem() const
 {
-	return systems.find(std::type_index(typeid(TSystem))) != systems.end(); 
+	const auto key = std::type_index(typeid(TSystem));
+	return systems.contains(key) && !pendingSystemRemovals.contains(key);
 }
 
 template<typename TSystem>
 inline TSystem* World::GetSystem() const
 {
+	if (pendingSystemRemovals.contains(typeid(TSystem))) return nullptr;
+
 	const auto system = systems.find(std::type_index(typeid(TSystem))); 
 
 	if (system == systems.end())
@@ -418,6 +480,7 @@ TObject& World::CreateObject(const std::string& name, TArgs&&... args)
 
 		CommitObject(handle, name, std::move(object));
 
+		CallbackScope callback(*this);
 		result.OnCreated();
 		return result;
 	}

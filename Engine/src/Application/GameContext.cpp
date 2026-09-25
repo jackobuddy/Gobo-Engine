@@ -24,6 +24,21 @@ TextManager& GameContext::GetText() const { return renderer.GetTextManager(); }
 AudioManager& GameContext::GetAudio() const { return audio; }
 Camera& GameContext::GetCamera() const { return camera; }
 SceneManager& GameContext::GetScenes() const { return scenes; }
+bool GameContext::SetViewSize(int width, int height)
+{
+    if (width <= 400 || height <= 300) return false;
+
+    auto config = renderer.GetRenderViewConfig();
+    config.renderWidth = width;
+    config.renderHeight = height;
+
+    if (!renderer.SetRenderViewConfig(config)) return false;
+
+    camera.SetViewSize(Vector2(static_cast<float>(width),
+        static_cast<float>(height)));
+
+    return true;
+}
 Vector2 GameContext::GetViewSize() const { return renderer.GetViewSize(); }
 
 EntityObject* GameContext::FindObject(const std::string name) const

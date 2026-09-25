@@ -18,6 +18,7 @@ public:
 		float width = 0.0f;
 		float height = 0.0f;
 		int layer = 0; 
+		Uint8 alpha = 255; 
 		bool isFixed = false; 
 		bool isHidden = false;
 		float srcRectX = 0.0f; 
@@ -56,7 +57,7 @@ public:
 		Actor(entity, std::move(name), c.actor)
 	{
 		AddComponent<SpriteComponent>(c.sprite.assetID, c.sprite.width, c.sprite.height,
-			c.sprite.layer, c.sprite.isFixed, c.sprite.isHidden, c.sprite.srcRectX, c.sprite.srcRectY,
+			c.sprite.layer, c.sprite.alpha, c.sprite.isFixed, c.sprite.isHidden, c.sprite.srcRectX, c.sprite.srcRectY,
 			c.sprite.flipMode);
 		AddComponent<BoxCollisionComponent>(c.collision.width, c.collision.height,
 			c.collision.offsetX, c.collision.offsetY);
@@ -84,13 +85,12 @@ public:
 		sprite->SetIsHidden(c.sprite.isHidden); 
 		sprite->SetSrcRectPosition(c.sprite.srcRectX, c.sprite.srcRectY);
 		sprite->flipMode = c.sprite.flipMode;
+		sprite->SetAlpha(c.sprite.alpha);
 		collision->width = c.collision.width; 
 		collision->height = c.collision.height;
 		collision->offsetX = c.collision.offsetX;
 		collision->offsetY = c.collision.offsetY;
-		animation->numFrames = c.animation.numFrames;
-		animation->frameSpeedRate = c.animation.frameSpeedRate; 
-		animation->loops = c.animation.loops;
+		animation->Configure(c.animation.numFrames, c.animation.frameSpeedRate, c.animation.loops); 
 		health->healthPercentage = c.health.healthPercentage;
 	}
 

@@ -22,6 +22,8 @@ EngineSystemPipeline::EngineSystemPipeline(SystemsConfig config) : config(config
 
 void EngineSystemPipeline::Install(World& world, EventManager& events) const
 {
+    world.SetEventManager(events);
+
     if (config.useRenderingSystem)
         world.AddSystem<RenderSystem>();
     if (config.useCollisionSystem)
@@ -64,8 +66,6 @@ void EngineSystemPipeline::Update(World& world, EventManager& events, Camera& ca
         system->Update();
     if (auto* system = world.GetSystem<CollisionSystem>())
         system->Update(world, events);
-    if (auto* system = world.GetSystem<KeyboardControlSystem>())
-        system->Update();
     if (auto* system = world.GetSystem<CameraMovementSystem>())
         system->Update(camera, world.GetWorldSize());
     if (auto* system = world.GetSystem<ProjectileLifecycleSystem>())

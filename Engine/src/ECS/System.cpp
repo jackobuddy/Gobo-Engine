@@ -4,16 +4,8 @@
 
 void System::AddEntityToSystem(Entity entity)
 {
-	// Check if this Entity is already in the System first
-	bool isAlreadyInSystem = false; 
-	for (Entity e : entities)
-	{
-		if (e == entity)
-			isAlreadyInSystem = true; 
-	}
-
-	if (not isAlreadyInSystem) 
-		entities.push_back(entity); 
+	if (std::find(entities.begin(), entities.end(), entity) == entities.end())
+		entities.push_back(entity);
 }
 
 void System::RemoveEntityFromSystem(Entity entity)

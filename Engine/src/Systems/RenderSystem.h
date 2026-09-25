@@ -1,100 +1,94 @@
 #pragma once
 
-#include "../ECS/System.h"
+#include "../ECS/World.h"
 #include "../Components/TransformComponent.h"
 #include "../Components/SpriteComponent.h"
 #include "../Rendering/Camera.h"
-#include "../ECS/EntityTemplates.h"
-#include "../AssetManager/AssetManager.h"
 #include "../Rendering/Renderer.h"
-#include <SDL3/SDL.h>
+#include "../AssetManager/AssetManager.h"
 #include <algorithm>
+#include <cmath>
 #include <vector>
-
-class AssetManager;
-class Entity; 
-class Renderer; 
-
 
 class RenderSystem : public System
 {
+    struct Entry
+    {
+        Entity entity; 
+        int layer; 
+        bool operator==(const Entry&) const = default; 
+    };
+    std::vector<Entry> previousKeys, sorted; 
+
 public:
 	RenderSystem()
 	{
 		RequireComponent<TransformComponent>();
 		RequireComponent<SpriteComponent>();
 	}
-	~RenderSystem() {}
 
-	void Update(Renderer& renderer, AssetManager& assetManager, Camera camera)
-	{
-		SDL_Renderer* naitiveRenderer = renderer.GetNaitiveRenderer();
+    void Update(Renderer& renderer, AssetManager& assets, Camera camera)
+    {
+        std::vector<Entry> keys;
+        for (auto entity : GetSystemEntities())
+        {
+            auto* world = entity.GetWorld();
+            if (!world || !world->CanRunCallbacks(entity)) continue;
 
-		// Break all the Entities into renderableEntity structs. 
-		if (needsToResortEntities)
-		{
-			Logger::Log("Resorting entities...");
-			sortedEntities.clear();
-			sortedEntities = GetSystemEntities();
+            if (!entity.HasComponent<SpriteComponent>() ||
+                !entity.HasComponent<TransformComponent>()) continue;
 
-			// Sort RenderableEntities by draw depth.
-			std::sort(sortedEntities.begin(), sortedEntities.end(),
-				[](Entity& a, Entity& b)
-				{ return a.GetComponent<SpriteComponent>()->GetLayer() < b.GetComponent<SpriteComponent>()->GetLayer(); });
+            if (auto* sprite = entity.GetComponent<SpriteComponent>())
+                keys.push_back({ entity, sprite->GetLayer() });
+        }
+        if (keys != previousKeys)
+        {
+            previousKeys = keys;
+            sorted = std::move(keys);
+            std::sort(sorted.begin(), sorted.end(), [](const Entry& a, const Entry& b) {
+                return a.layer != b.layer ? a.layer < b.layer : a.entity < b.entity;
+                });
+        }
 
-			// Reset our sort tracker. 
-			needsToResortEntities = false;
-		}
+        SDL_Renderer* native = renderer.GetNaitiveRenderer();
+        const Vector2 view = renderer.GetViewSize();
 
-		// Draw each Entity in order
-		for (auto entity : sortedEntities)
-		{
-			const TransformComponent* transform = entity.GetComponent<TransformComponent>();
-			const SpriteComponent* sprite = entity.GetComponent<SpriteComponent>();
+        for (auto entry : sorted)
+        {
+            auto entity = entry.entity;
+            auto* t = entity.GetComponent<TransformComponent>();
+            auto* s = entity.GetComponent<SpriteComponent>();
 
-			if (not transform or not sprite or sprite->GetIsHidden())
-				continue;
+            if (!t || !s || s->GetIsHidden() || s->GetAlpha() == 0) continue;
 
-			// Set the source Rectangle
-			SDL_FRect srcRect = sprite->srcRect;
+            SDL_FRect destination{
+                t->position.x - (s->isFixed ? 0 : camera.position.x),
+                t->position.y - (s->isFixed ? 0 : camera.position.y),
+                s->GetWidth() * t->scale.x, s->GetHeight() * t->scale.y };
 
-			// Set the destination Rectangle with the x and y position
-			SDL_FRect destRect = {
-				transform->position.x - (sprite->isFixed ? 0 : camera.position.x),
-				transform->position.y - (sprite->isFixed ? 0 : camera.position.y),
-				sprite->GetWidth() * transform->scale.x,
-				sprite->GetHeight() * transform->scale.y };
+            if (!(destination.w > 0 && destination.h > 0)) continue;
 
-			SDL_Texture* texture = assetManager.GetTexture(sprite->assetID);
-			if (not texture)
-			{
-				Logger::Error("GetTexture failed to return a valid texture for rendering.");
-				continue;
-			}
+            const double radians = t->rotation * 3.141592653589793 / 180.0;
+            const double c = std::abs(std::cos(radians));
+            const double sn = std::abs(std::sin(radians));
+            const double hx = (c * destination.w + sn * destination.h) * 0.5;
+            const double hy = (sn * destination.w + c * destination.h) * 0.5;
+            const double cx = destination.x + destination.w * 0.5;
+            const double cy = destination.y + destination.h * 0.5;
 
-			SDL_RenderTextureRotated(
-				naitiveRenderer,
-				texture,
-				&srcRect, &destRect,
-				transform->rotation, NULL, sprite->flipMode);
-		}
-	}
+            if (!std::isfinite(cx) || !std::isfinite(cy) ||
+                !std::isfinite(hx) || !std::isfinite(hy)) continue;
 
-	void AddEntityToSystem(Entity entity) override
-	{
-		System::AddEntityToSystem(entity);
-		needsToResortEntities = true;
-	}
+            if (cx + hx <= 0 || cy + hy <= 0 || cx - hx >= view.x || cy - hy >= view.y)
+                continue;
 
-	void RemoveEntityFromSystem(Entity entity) override
-	{
-		System::RemoveEntityFromSystem(entity);
-		needsToResortEntities = true;
-	}
+            SDL_Texture* texture = assets.GetTexture(s->assetID);
 
-private:
-	// This value tracks if our sortedEntities list needs to be resorted
-	bool needsToResortEntities = true; 
-	// Stores the list of Entities to render, sorted by layer order (lowest to highest). 
-	std::vector<Entity> sortedEntities; 
+            if (!texture) continue; // AssetManager reports missing IDs.
+
+            SDL_SetTextureAlphaMod(texture, s->GetAlpha());
+            SDL_RenderTextureRotated(native, texture, &s->srcRect,
+                &destination, t->rotation, nullptr, s->flipMode);
+        }
+    }
 };

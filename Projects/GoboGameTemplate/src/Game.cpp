@@ -14,6 +14,7 @@ void Game::RegisterScenes(SceneManager& scenes)
     scenes.Register<MainScene>("main");
 }
 
-void Game::Start(GameContext& context)
+void Game::LoadContent(AssetManager& assets, AudioManager& audio)
 {
+    // Load game-wide content here. Build scene objects in Scene::OnStart.
 }

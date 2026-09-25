@@ -3,6 +3,7 @@
 #include <string>
 #include <SDL3/SDL.h>
 #include <algorithm>
+#include "../Math/Math.h"
 #include "../Logger/Logger.h"
 
 const int MAX_LAYER_VALUE = 99;
@@ -42,6 +43,8 @@ public:
 	float GetHeight() const { return height; }
 	void SetSize(float width, float height) { SetWidth(width); SetHeight(height); }
 	void SetSrcRectPosition(float x, float y) { srcRect.x = x; srcRect.y = y; }
+	Uint8 GetAlpha() const { return alpha; }
+	void SetAlpha(int value) { alpha = static_cast<Uint8>(Clamp(value, 0, 255)); }
 
 	// A unique identifying string for the Sprite. 
 	std::string assetID = ""; 
@@ -54,8 +57,8 @@ public:
 	SDL_FlipMode flipMode = SDL_FLIP_NONE; 
 
 	SpriteComponent(std::string assetID, float width = 0.0f, float height = 0.0f, 
-		int layer = 0, bool isFixed = false, bool isHidden = false, float srcRectX = 0.0f, 
-		float srcRectY = 0.0f, SDL_FlipMode flipMode = SDL_FLIP_NONE)
+		int layer = 0, Uint8 alpha = 255, bool isFixed = false, bool isHidden = false, 
+		float srcRectX = 0.0f, float srcRectY = 0.0f, SDL_FlipMode flipMode = SDL_FLIP_NONE)
 	{
 		this->assetID = assetID; 
 		this->SetSize(width, height);
@@ -65,6 +68,7 @@ public:
 		this->srcRect.y = srcRectY; 
 		this->flipMode = flipMode; 
 		SetLayer(layer); 
+		SetAlpha(alpha); 
 	}; 
 
 private:
@@ -76,4 +80,6 @@ private:
 	int layer = 0;
 	// Should the Sprite be hidden (not rendered into the scene)? 
 	bool isHidden = false;
+	// Sets the transparency of the Sprite between 0 (invisible) and 255 (fully visible). 
+	int alpha = 255; 
 };

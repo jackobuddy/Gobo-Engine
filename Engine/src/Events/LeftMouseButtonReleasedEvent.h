@@ -1,12 +1,9 @@
 #pragma once
 
-#include "Event.h"
-#include "../Math/Math.h"
-#include <SDL3/SDL.h>
+#include "MousePositionEvent.h"
 
-class LeftMouseButtonReleasedEvent : public Event
+class LeftMouseButtonReleasedEvent : public MousePositionEvent
 {
 public:
-	Vector2 mouseLocation;
-	LeftMouseButtonReleasedEvent(Vector2 mouseLocation): mouseLocation(mouseLocation) {};
+    using MousePositionEvent::MousePositionEvent;
 };

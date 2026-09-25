@@ -161,7 +161,12 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     // Swapping the session destroys the old World and EventManager.
     worldHost.SetActiveSession(std::move(nextSession));
     context.GetCamera().position = defaultCameraPosition;
-    context.GetCamera().SetViewSize(defaultCameraViewSize);
+    if (!context.SetViewSize(static_cast<int>(defaultCameraViewSize.x),
+        static_cast<int>(defaultCameraViewSize.y)))
+    {
+        Logger::Error("Could not restore the default logical view size");
+        context.RequestQuit();
+    }
     activeSceneID = id;
     activeScene = std::move(nextScene);
     try
@@ -215,60 +220,19 @@ void SceneManager::ProcessPending(GameContext& context)
 
 void SceneManager::BeginFrame(GameContext& context)
 {
-    if (!activeScene)
-        return;
-    try { activeScene->BeginFrame(context); }
-    catch (const std::exception& error)
-    {
-        Logger::Error("Scene BeginFrame failed: " + std::string(error.what()));
-        quitRequestHandler();
-    }
-    catch (...)
-    {
-        Logger::Error("Scene BeginFrame failed.");
-        quitRequestHandler();
-    }
+    if (activeScene) activeScene->BeginFrame(context);
 }
 
-void SceneManager::Update(
-    GameContext& context, float deltaSeconds)
+void SceneManager::Update(GameContext& context, float deltaSeconds)
 {
-    if (not activeScene)
-        return;
-    try { activeScene->Update(context, deltaSeconds); }
-    catch (const std::exception& error)
-    {
-        Logger::Error("Scene Update failed: " + std::string(error.what()));
-        quitRequestHandler();
-    }
-    catch (...)
-    {
-        Logger::Error("Scene Update failed.");
-        quitRequestHandler();
-    }
-
-    // Run each Entity's Update. 
-    for (auto& entity : context.GetWorld().entityObjects)
-    {
-        if (entity and entity->Updates) entity->Update(deltaSeconds); 
-    }
+    if (!activeScene) return;
+    activeScene->Update(context, deltaSeconds);
+    if (context.IsRunning()) context.GetWorld().UpdateObjects(deltaSeconds);
 }
 
 void SceneManager::Render(GameContext& context)
 {
-    if (!activeScene)
-        return;
-    try { activeScene->Render(context); }
-    catch (const std::exception& error)
-    {
-        Logger::Error("Scene Render failed: " + std::string(error.what()));
-        quitRequestHandler();
-    }
-    catch (...)
-    {
-        Logger::Error("Scene Render failed.");
-        quitRequestHandler();
-    }
+    if (activeScene) activeScene->Render(context);
 }
 
 void SceneManager::Shutdown(GameContext& context)
@@ -291,5 +255,10 @@ void SceneManager::Shutdown(GameContext& context)
     activeSceneID.clear();
     context.GetText().Clear();
     context.GetCamera().position = defaultCameraPosition;
-    context.GetCamera().SetViewSize(defaultCameraViewSize);
+    if (!context.SetViewSize(static_cast<int>(defaultCameraViewSize.x),
+        static_cast<int>(defaultCameraViewSize.y)))
+    {
+        Logger::Error("Could not restore the default logical view size");
+        context.RequestQuit();
+    }
 }

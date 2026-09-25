@@ -1,6 +1,6 @@
 # Gobo Engine Documentation - Standing Instructions
 
-Last updated: 2026-09-23 CDT
+Last updated: 2026-09-24 CDT
 
 ## Authority and boundaries
 
@@ -23,6 +23,7 @@ Last updated: 2026-09-23 CDT
 4. Clearly label prototype, smoke-test, or unavailable features and never present them as stable designer tools.
 5. Keep the site directly usable from `Documentation/index.html`: no server, build, or package installation.
 6. Keep markup, navigation, search, links, and examples synchronized and validate the site data before completing a review.
+7. Treat department feedback as a useful lead, not a substitute for source verification; reports can describe an earlier build while the Engine changes rapidly.
 
 ## Site organization
 

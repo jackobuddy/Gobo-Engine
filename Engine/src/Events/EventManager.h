@@ -2,11 +2,14 @@
 
 #include "../Logger/Logger.h"
 #include "Event.h"
-#include <map>
-#include <typeindex>
-#include <list>
-#include <memory>
+#include <algorithm>
+#include <cstdint>
 #include <functional>
+#include <memory>
+#include <stdexcept>
+#include <typeindex>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 
@@ -18,135 +21,93 @@ public:
 	virtual ~IEventCallback() = default; 
 
 	// Executes the Callback Function from its Owning Instance. 
-	void Execute(Event& e) { Call(e); };
+	virtual void Execute(Event&) = 0;
 	virtual const void* GetOwner() const = 0; 
-
-private:
-	// Invokes the owning instance's callback function. 
-	virtual void Call(Event& e) = 0; 
+	bool active = true;
+	std::uint64_t firstEpoch = 0; 
 };
 
 // A wrapper around a function pointer stored into our Handler List. These functions
 // are invoked when an appropriate Event is triggered. 
 template <typename TOwner, typename TEvent> 
-class EventCallback: public IEventCallback
+class EventCallback final : public IEventCallback
 {
-private: 
-	typedef void (TOwner::* CallbackFunction)(TEvent&);
+	using Callback = void (TOwner::*)(TEvent&);
+	TOwner* owner; 
+	Callback callback; 
 
 public:
-	EventCallback(TOwner* ownerInstance, CallbackFunction callbackFunction)
-	{
-		this->ownerInstance = ownerInstance; 
-		this->callbackFunction = callbackFunction; 
-	}
-	virtual ~EventCallback() override = default; 
-
+	EventCallback(TOwner* owner, Callback callback):
+		owner(owner), callback(callback) {}
 	// Returns the owner of the Event Callback. 
-	const void* GetOwner() const override { return ownerInstance; }
-
-private:
-	// The owning instance of the Event Callback. 
-	TOwner* ownerInstance; 
-	// The function for the owning instance of the Event Callback to invoke. 
-	CallbackFunction callbackFunction; 
-
-	virtual void Call(Event& e) override
+	const void* GetOwner() const override { return owner; }
+	void Execute(Event& e) override
 	{
-		std::invoke(callbackFunction, ownerInstance, static_cast<TEvent&>(e)); 
+		std::invoke(callback, owner, static_cast<TEvent&>(e));
 	}
 };
-
-// Sets up our list of event callbacks to be saved into our Subscribers map. 
-typedef std::list<std::unique_ptr<IEventCallback>> HandlerList; 
 
 // The Event Manger is responsible for handling the core mechanisms of the 
 // engine's Event System. Every game instance will have exactly 1 Event Manager. 
 class EventManager
 {
-public:
-	EventManager() { Logger::Log("EventManager created. "); };
-	~EventManager() { Logger::Log("EventManager destroyed. "); };
+	using List = std::vector<std::shared_ptr<IEventCallback>>;
+	std::unordered_map<std::type_index, List> subscribers; 
+	unsigned dispatchDepth = 0; 
+	std::uint64_t epoch = 0; 
+	
+	struct DispatchScope
+	{
+		unsigned& depth;
+		explicit DispatchScope(unsigned& value) : depth(value)	{ depth++; }
+		~DispatchScope() { --depth; }
+	};
 
-	// Subscribe to an Event Type <T>.
-	// In our implementation, a listener subscribes to an Event, triggering
-	// a callback function when that Event occurs. 
-	template <typename TEvent, typename TOwner>
+public:
+	bool IsDispatching() const noexcept { return dispatchDepth != 0;}
+
+	template<class TEvent, class TOwner>
 	void SubscribeToEvent(TOwner* owner, void (TOwner::* callback)(TEvent&))
 	{
-		if (!subscribers[typeid(TEvent)])
-			subscribers[typeid(TEvent)] = std::make_unique<HandlerList>();
-
-		auto subscriber = std::make_unique<EventCallback<TOwner, TEvent>>(owner, callback);
-
-		subscribers[typeid(TEvent)]->push_back(std::move(subscriber));
+		if (not owner or not callback)
+			throw std::invalid_argument("Invalid event listener."); 
+		auto record = std::make_shared<EventCallback<TOwner,TEvent>>(owner, callback); 
+		record->firstEpoch = epoch + (IsDispatching() ? 1 : 0); 
+		subscribers[typeid(TEvent)].push_back(std::move(record)); 
 	}
 
-	// Unsubscribes an owner from events, used in the case of destruction. 
 	void UnsubscribeOwner(const void* owner)
 	{
-		if (dispatchDepth > 0)
+		for (auto& [type, list] : subscribers)
 		{
-			pendingUnsubscribers.push_back(owner); 
-			return; 
-		}
+			// First mark matching callbacks as inactive.
+			for (const auto& record : list)
+			{
+				if (record->GetOwner() == owner)
+					record->active = false;
+			}
 
-		for (auto& [eventType, handlers] : subscribers)
-		{
-			handlers->remove_if(
-				[owner](const std::unique_ptr<IEventCallback>& callback)
+			// Then remove them AFTER finishing the inner loop.
+			std::erase_if(list, [](const auto& record)
 				{
-					return callback->GetOwner() == owner; 
-				}
-			);
+					return !record->active;
+				});
 		}
 	}
 
-	// Emits an Event of Type <T>.
-	// In our implementation, when an Event is emitted, we go ahead and execute
-	// all listener callbacks immediately. 
-	template <typename TEvent, typename ...TArgs> 
-	void EmitEvent(TArgs&& ...args) 
+	template<class TEvent, class... Args>
+	void EmitEvent(Args&&... args)
 	{
-		const auto found = subscribers.find(typeid(TEvent)); 
-		if (found == subscribers.end() or not found->second)
-			return; 
-
-		TEvent event(std::forward<TArgs>(args)...);
-		++dispatchDepth; 
-
-		for (const auto& handler : *found->second)
-			handler->Execute(event); 
-		
-		--dispatchDepth; 
-
-		if (dispatchDepth == 0)
-			ApplyPendingUnsubscribers(); 
-	}; 
-
-private:
-	// A map that tracks all subscribers, sorted by the type of event. 
-	std::map<std::type_index, std::unique_ptr<HandlerList>> subscribers;
-
-	int dispatchDepth = 0; 
-	std::vector<const void*> pendingUnsubscribers; 
-
-	// Processes all pending unsubscribe requests. 
-	void ApplyPendingUnsubscribers()
-	{
-		for (const void* owner : pendingUnsubscribers)
+		if (not IsDispatching()) ++epoch; 
+		const auto found = subscribers.find(typeid(TEvent));
+		if (found == subscribers.end()) return; 
+		const List snapshot = found->second; 
+		TEvent event(std::forward<Args>(args)...); 
+		DispatchScope scope(dispatchDepth); 
+		for (const auto& record : snapshot)
 		{
-			for (auto& [eventType, handlers] : subscribers)
-			{
-				handlers->remove_if(
-					[owner](const std::unique_ptr<IEventCallback>& callback)
-					{
-						return callback->GetOwner() == owner; 
-					}
-				);
-			}
+			if (record->active and record->firstEpoch <= epoch)
+				record->Execute(event); 
 		}
-	
-		pendingUnsubscribers.clear(); 
 	}
 };

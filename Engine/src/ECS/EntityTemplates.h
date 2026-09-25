@@ -1,62 +1,34 @@
 #pragma once
+
 #include "Entity.h"
 #include "World.h"
-#include "../Logger/Logger.h"
+#include <utility>
 
-// The Entity Templates are defined here so that they can be loaded
-// after World.h has been loaded, prevented a circular dependancy. 
 
-template<typename TComponent, typename ...TArgs>
-inline void Entity::AddComponent(TArgs && ...args)
+template<class T, class... Args>
+void Entity::AddComponent(Args&&... args)
 {
-	if (not world)
-	{
-		Logger::Error("Could not complete AddComponent, World is invalid!");
-		return; 
-	}
-	world->AddComponent<TComponent>(*this, std::forward<TArgs>(args)...);
+    if (auto* w = GetWorld())
+        w->AddComponent<T>(*this, std::forward<Args>(args)...);
 }
 
-template<typename TComponent>
-inline void Entity::RemoveComponent()
+template<class T> void Entity::RemoveComponent()
 {
-	if (not world)
-	{
-		Logger::Error("Could not complete AddComponent, World is invalid!");
-		return; 
-	}
-	world->RemoveComponent<TComponent>(*this);
+    if (auto* w = GetWorld()) w->RemoveComponent<T>(*this);
 }
 
-template<typename TComponent>
-inline bool Entity::HasComponent() const
+template<class T> bool Entity::HasComponent() const
 {
-	if (not world)
-	{
-		Logger::Error("Could not complete AddComponent, World is invalid!");
-		return false; 
-	}
-	return world->HasComponent<TComponent>(*this);
+    auto* w = GetWorld(); return w && w->HasComponent<T>(*this);
 }
 
-template<typename TComponent>
-inline TComponent* Entity::GetComponent()
+template<class T> T* Entity::GetComponent()
 {
-	if (not world)
-	{
-		Logger::Error("Could not complete AddComponent, World is invalid!");
-		return nullptr; 
-	}
-	return world->GetComponent<TComponent>(*this);
+    auto* w = GetWorld(); return w ? w->GetComponent<T>(*this) : nullptr;
 }
 
-template<typename TComponent>
-inline const TComponent* Entity::GetComponent() const
+template<class T> const T* Entity::GetComponent() const
 {
-	if (not world)
-	{
-		Logger::Error("Could not complete AddComponent, World is invalid!");
-		return nullptr;
-	}
-	return world->GetComponent<TComponent>(*this);
+    const World* w = GetWorld();
+    return w ? w->GetComponent<T>(*this) : nullptr;
 }

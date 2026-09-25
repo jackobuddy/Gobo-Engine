@@ -9,22 +9,24 @@ public:
 	using Character::Character;
 
 	// Called on a Collision Event
-	virtual void OnCollision(Entity& other)
-	{
-		ProjectileComponent* projectileComponent = other.GetComponent<ProjectileComponent>();
-		if (not projectileComponent) return;
+    void OnCollision(Entity& other) override
+    {
+        // Non-projectile collisions are normal; ignore them.
+        if (!other.IsAlive() or !other.HasComponent<ProjectileComponent>())
+            return;
 
-		// If the projectile is considered Friendly, it hits Enemies. 
-		if (projectileComponent->isFriendly)
-		{
-			HealthComponent* health = GetComponent<HealthComponent>();
-			if (not health) return;
+        const auto* projectile = other.GetComponent<ProjectileComponent>();
 
-			health->healthPercentage -= projectileComponent->hitPercentDamage;
-			if (health->healthPercentage <= 0)
-				Destroy();
+        if (!projectile or !projectile->isFriendly) return;
 
-			other.Destroy();
-		}
-	}
+        auto* health = GetComponent<HealthComponent>();
+        if (!health) return;
+
+        health->healthPercentage -= projectile->hitPercentDamage;
+
+        if (health->healthPercentage <= 0)
+            Destroy();
+
+        other.Destroy();
+    }
 };

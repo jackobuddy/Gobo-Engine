@@ -72,6 +72,16 @@ cmake --build --preset windows-x64-debug
 
 The template’s CMake project adds `../../Engine` and links its executable to the `Gobo::Engine` target. Your game owns its own `assets/` folder; add images, maps, sounds, and other game content there rather than to Engine.
 
+## Build a shareable game package
+
+After your project builds, create a self-contained folder with its executable, runtime DLLs, assets, licenses, and available notices:
+
+```powershell
+.\scripts\Build-Game.ps1 -ProjectDirectory .\Projects\MyGame -Configuration Release
+```
+
+The script writes a timestamped package beneath `Projects\MyGame\out\package\windows-x64`. Add `-Clean` when the selected configuration should be rebuilt from scratch. Recipients still need the matching Microsoft Visual C++ runtime.
+
 ## Use the Engine from a game project
 
 Gobo Engine is a static CMake library, not a standalone game executable. A game project links to `Gobo::Engine`, includes `<GoboEngine.h>`, implements an `IGame`, and gives that object to `Application::Run`. The supplied template already wires this up, so copying it is the supported starting point.

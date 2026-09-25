@@ -9,7 +9,7 @@ public:
 
 	virtual void OnCreated() override
 	{
-		AddComponent<SpriteComponent>("radar-image", 64.0f, 64.0f, 2, true);
+		AddComponent<SpriteComponent>("radar-image", 64, 64, 2, 255, true);
 		AddComponent<AnimationComponent>(8, 5, true);
 	}
 };
