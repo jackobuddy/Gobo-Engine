@@ -10,22 +10,24 @@
 #include <cmath>
 #include <vector>
 
+
 class RenderSystem : public System
 {
     struct Entry
     {
-        Entity entity; 
-        int layer; 
-        bool operator==(const Entry&) const = default; 
+        Entity entity;
+        int layer;
+        bool operator==(const Entry&) const = default;
     };
-    std::vector<Entry> previousKeys, sorted; 
+
+    std::vector<Entry> previousKeys, sorted;
 
 public:
-	RenderSystem()
-	{
-		RequireComponent<TransformComponent>();
-		RequireComponent<SpriteComponent>();
-	}
+    RenderSystem()
+    {
+        RequireComponent<TransformComponent>();
+        RequireComponent<SpriteComponent>();
+    }
 
     void Update(Renderer& renderer, AssetManager& assets, Camera camera)
     {
@@ -33,14 +35,13 @@ public:
         for (auto entity : GetSystemEntities())
         {
             auto* world = entity.GetWorld();
-            if (!world || !world->CanRunCallbacks(entity)) continue;
-
-            if (!entity.HasComponent<SpriteComponent>() ||
+            if (!world or !world->CanRunCallbacks(entity)) continue;
+            if (!entity.HasComponent<SpriteComponent>() or 
                 !entity.HasComponent<TransformComponent>()) continue;
-
             if (auto* sprite = entity.GetComponent<SpriteComponent>())
                 keys.push_back({ entity, sprite->GetLayer() });
         }
+
         if (keys != previousKeys)
         {
             previousKeys = keys;
@@ -59,11 +60,11 @@ public:
             auto* t = entity.GetComponent<TransformComponent>();
             auto* s = entity.GetComponent<SpriteComponent>();
 
-            if (!t || !s || s->GetIsHidden() || s->GetAlpha() == 0) continue;
+            if (!t or !s or !s->definition or s->GetIsHidden() or s->GetAlpha() == 0) continue;
 
             SDL_FRect destination{
-                t->position.x - (s->isFixed ? 0 : camera.position.x),
-                t->position.y - (s->isFixed ? 0 : camera.position.y),
+                t->position.x - (s->IsFixed() ? 0 : camera.position.x),
+                t->position.y - (s->IsFixed() ? 0 : camera.position.y),
                 s->GetWidth() * t->scale.x, s->GetHeight() * t->scale.y };
 
             if (!(destination.w > 0 && destination.h > 0)) continue;
@@ -79,16 +80,25 @@ public:
             if (!std::isfinite(cx) || !std::isfinite(cy) ||
                 !std::isfinite(hx) || !std::isfinite(hy)) continue;
 
-            if (cx + hx <= 0 || cy + hy <= 0 || cx - hx >= view.x || cy - hy >= view.y)
-                continue;
+            if (cx + hx <= 0 || cy + hy <= 0 || cx - hx >= view.x || cy - hy >= view.y) continue;
 
-            SDL_Texture* texture = assets.GetTexture(s->assetID);
+            const Sprite& definition = *s->definition;
 
-            if (!texture) continue; // AssetManager reports missing IDs.
+            SDL_Texture* texture = assets.GetTexture(definition.GetTextureID());
+            if (!texture) continue;
 
-            SDL_SetTextureAlphaMod(texture, s->GetAlpha());
-            SDL_RenderTextureRotated(native, texture, &s->srcRect,
-                &destination, t->rotation, nullptr, s->flipMode);
+            SDL_FRect source{
+                static_cast<float>(definition.GetOriginX()) +
+                    s->GetCurrentFrame() * s->GetWidth(),
+                static_cast<float>(definition.GetOriginY()) + s->row * s->GetHeight(),
+                s->GetWidth(), s->GetHeight() };
+
+            const auto flip = static_cast<SDL_FlipMode>(
+                (s->IsFlippedX() ? SDL_FLIP_HORIZONTAL : 0) |
+                (s->IsFlippedY() ? SDL_FLIP_VERTICAL : 0));
+
+            SDL_SetTextureAlphaMod(texture, static_cast<Uint8>(s->GetAlpha()));
+            SDL_RenderTextureRotated(native, texture, &source, &destination, t->rotation, nullptr, flip);
         }
     }
 };

@@ -2,7 +2,6 @@
 
 #include "Actor.h"
 #include "../Components/SpriteComponent.h"
-#include "../Components/AnimationComponent.h"
 #include "../Components/BoxCollisionComponent.h"
 #include "../Components/HealthComponent.h"
 
@@ -14,16 +13,13 @@ class Character : public Actor
 public:
 	struct SpriteConfig
 	{
-		std::string assetID; 
-		float width = 0.0f;
-		float height = 0.0f;
+		SpriteRef asset; 
 		int layer = 0; 
-		Uint8 alpha = 255; 
+		int alpha = 255; 
 		bool isFixed = false; 
 		bool isHidden = false;
-		float srcRectX = 0.0f; 
-		float srcRectY = 0.0f; 
-		SDL_FlipMode flipMode = SDL_FLIP_NONE; 
+		bool flipX = false;
+		bool flipY = false; 
 	};
 	struct CollisionConfig
 	{
@@ -31,12 +27,6 @@ public:
 		int height = 0;
 		int offsetX = 0;
 		int offsetY = 0;
-	};
-	struct AnimationConfig
-	{
-		Uint64 numFrames = 1;
-		int frameSpeedRate = 1;
-		bool loops = true;
 	};
 	struct HealthConfig
 	{
@@ -47,7 +37,6 @@ public:
 	struct Config
 	{
 		Actor::Config actor;
-		AnimationConfig animation;
 		CollisionConfig collision;
 		HealthConfig health;
 		SpriteConfig sprite;
@@ -56,13 +45,10 @@ public:
 	Character(Entity entity, std::string name, const Config& c) : 
 		Actor(entity, std::move(name), c.actor)
 	{
-		AddComponent<SpriteComponent>(c.sprite.assetID, c.sprite.width, c.sprite.height,
-			c.sprite.layer, c.sprite.alpha, c.sprite.isFixed, c.sprite.isHidden, c.sprite.srcRectX, c.sprite.srcRectY,
-			c.sprite.flipMode);
+		AddComponent<SpriteComponent>(c.sprite.asset, c.sprite.layer, c.sprite.alpha, 
+			c.sprite.isFixed, c.sprite.isHidden); 
 		AddComponent<BoxCollisionComponent>(c.collision.width, c.collision.height,
 			c.collision.offsetX, c.collision.offsetY);
-		AddComponent<AnimationComponent>(c.animation.numFrames, c.animation.frameSpeedRate,
-			c.animation.loops);
 		AddComponent<HealthComponent>(c.health.healthPercentage);
 	}
 
@@ -70,32 +56,26 @@ public:
 	{
 		ApplyActorConfig(c.actor); 
 
-		SpriteComponent* sprite = GetComponent<SpriteComponent>(); 
-		BoxCollisionComponent* collision = GetComponent<BoxCollisionComponent>(); 
-		AnimationComponent* animation = GetComponent<AnimationComponent>(); 
-		HealthComponent* health = GetComponent<HealthComponent>(); 
+		SpriteComponent* sprite = GetSprite(); 
+		BoxCollisionComponent* collision = GetBoxCollision(); 
+		HealthComponent* health = GetHealth(); 
 
-		if (not sprite or not collision or not animation or not health)
-			return; 
+		if (not sprite or not collision or not health) return; 
 
-		sprite->assetID = c.sprite.assetID;  
-		sprite->SetSize(c.sprite.width, c.sprite.height);
+		if (c.sprite.asset) sprite->SetSprite(c.sprite.asset); 
+		else sprite->ClearSprite(); 
 		sprite->SetLayer(c.sprite.layer); 
-		sprite->isFixed = c.sprite.isFixed;
+		sprite->SetAlpha(c.sprite.alpha); 
+		sprite->SetFixed(c.sprite.isFixed); 
 		sprite->SetIsHidden(c.sprite.isHidden); 
-		sprite->SetSrcRectPosition(c.sprite.srcRectX, c.sprite.srcRectY);
-		sprite->flipMode = c.sprite.flipMode;
-		sprite->SetAlpha(c.sprite.alpha);
+		sprite->SetFlip(c.sprite.flipX, c.sprite.flipY); 
 		collision->width = c.collision.width; 
 		collision->height = c.collision.height;
 		collision->offsetX = c.collision.offsetX;
 		collision->offsetY = c.collision.offsetY;
-		animation->Configure(c.animation.numFrames, c.animation.frameSpeedRate, c.animation.loops); 
 		health->healthPercentage = c.health.healthPercentage;
 	}
 
-	// Returns a pointer to the Character's Animation Component. 
-	AnimationComponent* GetAnimation() { return GetComponent<AnimationComponent>(); }
 	// Returns a pointer to the Character's Box Collision Component. 
 	BoxCollisionComponent* GetBoxCollision() { return GetComponent<BoxCollisionComponent>(); }
 	// Returns a pointer to the Character's Health Component

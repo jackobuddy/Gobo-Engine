@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <utility>
 #include <vector>
+#include <memory>
+#include <cstdint>
 
 
 namespace
@@ -63,6 +65,8 @@ AssetManager::~AssetManager()
 
 void AssetManager::ClearAssets()
 {
+	sprites.clear(); 
+
 	for (auto texture : textures)
 		SDL_DestroyTexture(texture.second); 
 	textures.clear(); 
@@ -76,43 +80,45 @@ void AssetManager::ClearAssets()
 
 bool AssetManager::AddTexture(const std::string& assetID, const std::string& filepath)
 {	
-	// Ensure we aren't creating a duplicate assetID. 
-	if (textures.contains(assetID))
+	if (assetID.empty() || textures.contains(assetID) || sprites.contains(assetID))
 	{
-		Logger::Error("Duplicate texture ID resulted in AddTexture failure: " + assetID); 
-		return false; 
-	}
-	// Load the surface with SDL and create a texture from it. 
-	SDL_Surface* surface = IMG_Load(filepath.c_str()); 
-	if (surface == NULL)
-	{
-		Logger::Error("Failed to load Texture from file = " + filepath); 
-		SDL_DestroySurface(surface); 
-		return false; 
-	}
-	SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer.GetNaitiveRenderer(), surface);
-	if (texture == NULL)
-	{
-		Logger::Error("Failed to create Texture from file = " + filepath); 
-		SDL_DestroyTexture(texture); 
-		SDL_DestroySurface(surface); 
-		return false; 
-	}
-	// Destroy the unneeded Surface. 
-	SDL_DestroySurface(surface); 
-	// Try to set the Texture's scale mode to Nearest. 
-	if (not SDL_SetTextureScaleMode(texture, SDL_SCALEMODE_NEAREST))
-	{
-		Logger::SDLError("Failed to set Texture Scale Mode to Nearest. Error code = ", SDL_GetError()); 
-		SDL_DestroyTexture(texture); 
-		return false; 
+		Logger::Error("Empty or duplicate texture/Sprite ID: " + assetID);
+		return false;
 	}
 
-	// Add the texture to the map
-	textures.emplace(assetID, texture); 
+	using SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)>;
+	using TexturePtr = std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)>;
 
-	Logger::Log("Added texture with ID = " + assetID + " to Assset Manager."); 
-	return true; 
+	SurfacePtr surface(IMG_Load(filepath.c_str()), SDL_DestroySurface);
+	if (!surface)
+	{
+		Logger::SDLError("Failed to load texture: " + filepath, SDL_GetError());
+		return false;
+	}
+
+	TexturePtr texture(SDL_CreateTextureFromSurface(renderer.GetNaitiveRenderer(), 
+		surface.get()), SDL_DestroyTexture);
+	if (!texture || !SDL_SetTextureScaleMode(texture.get(), SDL_SCALEMODE_NEAREST))
+	{
+		Logger::SDLError("Failed to create texture: " + filepath, SDL_GetError());
+		return false;
+	}
+
+	// Import as one static Sprite covering the complete image.
+	auto definition = std::make_shared<const Sprite>(assetID, surface->w, surface->h);
+	textures.emplace(assetID, texture.get());
+	try
+	{
+		sprites.emplace(assetID, std::move(definition));
+	}
+	catch (...)
+	{
+		textures.erase(assetID);
+		throw;
+	}
+	texture.release(); // AssetManager now owns this SDL texture.
+	Logger::Log("Imported static Sprite: " + assetID);
+	return true;
 }
 
 SDL_Texture* AssetManager::GetTexture(const std::string& assetID)
@@ -295,4 +301,41 @@ bool AssetManager::ImportSprites()
 		Logger::Error(std::string("Sprite import failed: ") + error.what());
 		return false; 
 	}
+}
+
+SpriteRef AssetManager::GetSprite(const std::string& id) const
+{
+	const auto found = sprites.find(id); 
+	if (found != sprites.end()) return found->second; 
+	Logger::Error("Unknown Sprite ID: " + id); 
+	return {}; 
+}
+
+bool AssetManager::DefineSprite(const std::string& id, const Sprite& definition)
+{
+	SDL_Texture* texture = GetTexture(definition.GetTextureID()); 
+	float textureWidth = 0, textureHeight = 0; 
+	if (id.empty() or not texture or not SDL_GetTextureSize(texture, &textureWidth, &textureHeight))
+	{
+		Logger::Error("Cannot register Sprite: " + id + " (missing texture or ID)");
+		return false; 
+	}
+	std::int64_t requiredWidth = static_cast<std::int64_t>(definition.GetOriginX()) + definition.GetWidth();
+	std::int64_t requiredHeight = static_cast<std::int64_t>(definition.GetOriginY()) + definition.GetHeight(); 
+
+	if (const auto* animation = dynamic_cast<const Animation*>(&definition))
+	{
+		int maxFrames = 1;
+		for (int i = 0; i < animation->GetRowCount(); ++i)
+			maxFrames = std::max(maxFrames, animation->GetRow(i).frameCount); 
+		requiredWidth = static_cast<std::int64_t>(maxFrames) * definition.GetWidth(); 
+		requiredHeight = static_cast<std::int64_t>(animation->GetRowCount()) * definition.GetHeight(); 
+	}
+	if (requiredWidth > textureWidth or requiredHeight > textureHeight)
+	{
+		Logger::Error("Sprite regions exceed texture bounds: " + id); 
+		return false; 
+	}
+	sprites.insert_or_assign(id, definition.Clone());
+	return true; 
 }

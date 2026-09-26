@@ -4,8 +4,9 @@
 #include <Systems/CollisionSystem.h>
 #include <Components/TransformComponent.h>
 #include <Components/BoxCollisionComponent.h>
-#include <Components/AnimationComponent.h>
 #include <Components/SpriteComponent.h>
+#include <Sprites/Animation.h>
+#include <Sprites/Sprite.h>
 #include <memory>
 #include <stdexcept>
 
@@ -205,15 +206,9 @@ TEST_CASE("Nested events do not see a just-added listener")
     events.EmitEvent<Ping>();
     CHECK(added.calls == 1);
 }
-TEST_CASE("Alpha and animation inputs are validated")
+TEST_CASE("Sprite alpha inputs are validated")
 {
-    SpriteComponent sprite("unused", 32, 32);
+    SpriteComponent sprite;
     sprite.SetAlpha(-5); CHECK(sprite.GetAlpha() == 0);
     sprite.SetAlpha(300); CHECK(sprite.GetAlpha() == 255);
-    AnimationComponent animation;
-    animation.Configure(0, -10, true);
-    CHECK(animation.GetNumFrames() == 1);
-    CHECK(animation.GetFrameSpeedRate() == 0);
-    animation.SetCurrentFrame(50);
-    CHECK(animation.GetCurrentFrame() == 0);
 }

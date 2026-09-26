@@ -1,5 +1,6 @@
 #include "ExampleGame.h"
 #include "Scenes/ExampleScene.h"
+#include <stdexcept>
 
 GameConfig Game::Configure() const
 {
@@ -25,6 +26,34 @@ void Game::RegisterScenes(SceneManager& scenes)
 }
 void Game::LoadContent(AssetManager& assets, AudioManager& audio)
 {
-    audio.LoadAudio("helicopter-loop", "assets/sounds/helicopter.wav", true);
-    audio.SetBusVolume("SFX", 0.30f);
+    // Create our Chopper's animation
+    Animation chopper("chopper-spritesheet", 32, 32, 15, 2, 4);
+    chopper.SetRow(0, "up");
+    chopper.SetRow(1, "right");
+    chopper.SetRow(2, "down");
+    chopper.SetRow(3, "left");
+    assets.DefineSprite("chopper-spritesheet", chopper); 
+
+    // Create our Radar's animation
+    Animation radar("radar", 64, 64, 5, 8, 1);
+    radar.SetRow(0, "spin");
+    assets.DefineSprite("radar", radar); 
+
+    // Existing tile atlas: lightweight definitions, not copied textures.
+    for (int row = 0; row < 3; ++row)
+    {
+        for (int column = 0; column < 10; ++column)
+        {
+            const auto id = "tiles/jungle/" + std::to_string(row) + "/" +
+                std::to_string(column);
+            if (!assets.DefineSprite(id, Sprite("tilemaps/jungle", 32, 32,
+                column * 32, row * 32)))
+                throw std::runtime_error("Cannot configure jungle tile: " + id);
+        }
+    }
+
+    // Load our Helicopter sound loop
+    audio.LoadAudio("helicopter-loop",
+        assets.GetAssetPath("sounds/helicopter.wav"), true);
+    audio.SetBusVolume("SFX", 0.30f);;
 }

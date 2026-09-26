@@ -70,7 +70,13 @@ cd Projects\MyGame
 cmake --build --preset windows-x64-debug
 ```
 
-The template’s CMake project adds `../../Engine` and links its executable to the `Gobo::Engine` target. Your game owns its own `assets/` folder; add images, maps, sounds, and other game content there rather than to Engine.
+The template’s CMake project adds `../../Engine` and links its executable to the `Gobo::Engine` target. Your game owns its own `Assets/` folder; add images, maps, sounds, and other game content there rather than to Engine.
+
+### Add artwork and other assets
+
+The template stages your game’s `Assets/` folder next to the executable whenever it builds. Put PNG artwork in `Assets/Sprites/`; nested folders are supported. Engine imports those PNGs before your `Game::LoadContent` callback, using the path relative to `Assets/Sprites` without `.png` as the sprite ID. For example, `Assets/Sprites/ui/heart.png` is available as `"ui/heart"` through `assets.GetSprite("ui/heart")`.
+
+Keep sounds, maps, and other files elsewhere under `Assets/`, such as `Assets/sounds/confirm.wav`. When code needs a file path, use `assets.GetAssetPath("sounds/confirm.wav")` so it resolves from the staged Assets folder. Do not put game content in `Engine/Assets`.
 
 ## Build a shareable game package
 
@@ -80,7 +86,7 @@ After your project builds, create a self-contained folder with its executable, r
 .\scripts\Build-Game.ps1 -ProjectDirectory .\Projects\MyGame -Configuration Release
 ```
 
-The script writes a timestamped package beneath `Projects\MyGame\out\package\windows-x64`. Add `-Clean` when the selected configuration should be rebuilt from scratch. Recipients still need the matching Microsoft Visual C++ runtime.
+The script writes a timestamped package beneath `Projects\MyGame\out\package\windows-x64`, including the project’s staged `Assets` folder. Add `-Clean` when the selected configuration should be rebuilt from scratch. Recipients still need the matching Microsoft Visual C++ runtime.
 
 ## Use the Engine from a game project
 

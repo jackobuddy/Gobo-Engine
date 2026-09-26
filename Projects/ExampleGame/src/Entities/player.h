@@ -12,17 +12,9 @@ class Player : public Character
 public: 
 	using Character::Character; 
 
-	// Define my configuration for the player at game state here. 
-	Character::Config playerConfig{
-		.actor = {.position = Vector2(500, 600), .scale = Vector2(2.0), },
-		.animation = {.numFrames = 2, .frameSpeedRate = 15, .loops = true },
-		.collision = {.width = 32, .height = 32 },
-		.sprite = {.assetID = "chopper-spritesheet", .width = 32.0, .height = 32.0, .layer = 1} };
-
 	// Runs once automatically at the creation of my Player. 
 	virtual void OnCreated() override
 	{
-		ApplyCharacterConfig(playerConfig); 
 		Tag("player");
 		AddComponent<ProjectileEmitterComponent>(Vector2(500, 500), 0, 10000, 20, true);
 		AddComponent<KeyboardControlledComponent>(Vector2(0, -200), Vector2(200, 0), Vector2(0, 200), Vector2(-200, 0));
@@ -105,14 +97,10 @@ public:
 		// If we have velocity, change our sprite to match it
 		if (std::abs(finalVelocity.x) > 0 or std::abs(finalVelocity.y) > 0)
 		{
-			if (finalVelocity.x > 0)
-				sprite->srcRect.y = sprite->GetHeight() * 1;
-			if (finalVelocity.x < 0)
-				sprite->srcRect.y = sprite->GetHeight() * 3; 
-			if (finalVelocity.y > 0)
-				sprite->srcRect.y = sprite->GetHeight() * 2; 
-			if (finalVelocity.y < 0)
-				sprite->srcRect.y = sprite->GetHeight() * 0; 
+			if (finalVelocity.x > 0) sprite->Play("right");
+			else if (finalVelocity.x < 0) sprite->Play("left");
+			else if (finalVelocity.y > 0) sprite->Play("down");
+			else if (finalVelocity.y < 0) sprite->Play("up");
 		}
 
 		rigidBody->velocity = finalVelocity; 

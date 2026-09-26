@@ -14,14 +14,17 @@
 #include <Events/EventManager.h>
 #include <Events/KeyPressedEvent.h>
 #include <SDL3/SDL.h>
+#include <utility>
 
 // Likewise with the Projectile Component, this is very game-specific and will need
 // to be broadened and reworked later to fit other projects. 
 
 class ProjectileEmitSystem : public System
 {
+SpriteRef projectileSprite; 
+
 public:
-	ProjectileEmitSystem() 
+	explicit ProjectileEmitSystem(SpriteRef sprite): projectileSprite(std::move(sprite))
 	{
 		RequireComponent<ProjectileEmitterComponent>(); 
 		RequireComponent<TransformComponent>(); 
@@ -77,7 +80,7 @@ public:
 					projectile.AddComponent<TransformComponent>(projectilePosition, 
 						transform->scale, transform->rotation); 
 					projectile.AddComponent<RigidBodyComponent>(projectileVelocity);
-					projectile.AddComponent<SpriteComponent>("bullet",4.0f, 4.0f, 4); 
+					projectile.AddComponent<SpriteComponent>(projectileSprite, 4); 
 					projectile.AddComponent<BoxCollisionComponent>(4, 4);
 					projectile.AddComponent<ProjectileComponent>(emitter->projectileDuration,
 						emitter->hitPercentDamage, emitter->isFriendly);
@@ -117,7 +120,7 @@ public:
 				projectile.AddComponent<TransformComponent>(projectilePosition, 
 					transform->scale, transform->rotation); 
 				projectile.AddComponent<RigidBodyComponent>(emitter->projectileVelocity); 
-				projectile.AddComponent<SpriteComponent>("bullet", 4.0f, 4.0f, 98);
+				projectile.AddComponent<SpriteComponent>(projectileSprite, 98);
 				projectile.AddComponent<BoxCollisionComponent>(4, 4); 
 				projectile.AddComponent<ProjectileComponent>(emitter->projectileDuration, 
 					emitter->hitPercentDamage, emitter->isFriendly); 

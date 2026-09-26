@@ -29,7 +29,7 @@ class MouseCollisionSystem : public System
             bool fixed = false;
             if (entity.HasComponent<SpriteComponent>())
                 if (auto* sprite = entity.GetComponent<SpriteComponent>())
-                    fixed = sprite->isFixed;
+                    fixed = sprite->IsFixed();
 
             if (fixed && !event.hasScreenLocation) continue;
 

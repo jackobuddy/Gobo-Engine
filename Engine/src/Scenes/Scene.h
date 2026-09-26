@@ -1,6 +1,6 @@
 #pragma once
 
-class GameContext;
+#include "../Application/GameContext.h"
 
 class Scene
 {
@@ -12,4 +12,10 @@ public:
 	virtual void Update(GameContext& context, float deltaSeconds) {}
 	virtual void Render(GameContext& context) {}
 	virtual void OnEnd(GameContext& context) {}
+
+	bool SetViewSize(GameContext& context, int width, int height)
+	{
+		if (!context.SetViewSize(width, height)) { context.RequestQuit(); return false; }
+		return true; 
+	}
 };

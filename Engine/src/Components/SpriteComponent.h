@@ -1,85 +1,151 @@
 #pragma once
 
-#include <string>
-#include <SDL3/SDL.h>
-#include <algorithm>
-#include "../Math/Math.h"
+#include "../Sprites/Animation.h"
 #include "../Logger/Logger.h"
+#include <algorithm>
+#include <cmath>
 
-const int MAX_LAYER_VALUE = 99;
-const int MIN_LAYER_VALUE = -99;
+class AnimationSystem; 
+class RenderSystem; 
 
 struct SpriteComponent
 {
-public: 
-	int GetLayer() const { return layer; }
-	void SetLayer(int layer = 0)
+public:
+	SpriteComponent() = default; 
+	explicit SpriteComponent(SpriteRef sprite, int layer = 0, int alpha = 255, bool fixed = false, bool hidden = false) :
+		fixed(fixed), hidden(hidden)
 	{
-		// TODO: Updating the Layer of a Sprite needs to retrigger the sorting of 
-		// Entities by Layer in RenderSystem.cpp. 
-
-		// Check the Layer value before setting it. 
-		if (layer > MAX_LAYER_VALUE)
-		{
-			Logger::Warning("Sprite Layer value of " + std::to_string(layer) +
-				" is greater than the max value of " + std::to_string(MAX_LAYER_VALUE) +
-				". Setting to maximum value. ");
-			layer = MAX_LAYER_VALUE;
-		}
-		if (layer < MIN_LAYER_VALUE)
-		{
-			Logger::Warning("Sprite Layer value of " + std::to_string(layer) +
-				" is less than the minimum value of " + std::to_string(MAX_LAYER_VALUE) +
-				". Setting to minimum value. ");
-			layer = MIN_LAYER_VALUE;
-		}
-		this->layer = layer;
-	}
-	void SetIsHidden(bool hidden) { isHidden = hidden; }
-	bool GetIsHidden() const { return isHidden; }
-	void SetWidth(float width) { this->width = std::max(0.0f, width); srcRect.w = this->width; }
-	float GetWidth() const { return width; }
-	void SetHeight(float height) { this->height = std::max(0.0f, height); srcRect.h = this->height; }
-	float GetHeight() const { return height; }
-	void SetSize(float width, float height) { SetWidth(width); SetHeight(height); }
-	void SetSrcRectPosition(float x, float y) { srcRect.x = x; srcRect.y = y; }
-	Uint8 GetAlpha() const { return alpha; }
-	void SetAlpha(int value) { alpha = static_cast<Uint8>(Clamp(value, 0, 255)); }
-
-	// A unique identifying string for the Sprite. 
-	std::string assetID = ""; 
-	// Should the Sprite draw at a fixed screen position, instead of in the map? 
-	bool isFixed = false; 
-	// TODO: Move this to private. 
-	// The Source Rectangle of the Sprite.  
-	SDL_FRect srcRect; 
-	// The flip mode of the sprite
-	SDL_FlipMode flipMode = SDL_FLIP_NONE; 
-
-	SpriteComponent(std::string assetID, float width = 0.0f, float height = 0.0f, 
-		int layer = 0, Uint8 alpha = 255, bool isFixed = false, bool isHidden = false, 
-		float srcRectX = 0.0f, float srcRectY = 0.0f, SDL_FlipMode flipMode = SDL_FLIP_NONE)
-	{
-		this->assetID = assetID; 
-		this->SetSize(width, height);
-		this->isFixed = isFixed; 
-		this->isHidden = isHidden; 
-		this->srcRect.x = srcRectX;
-		this->srcRect.y = srcRectY; 
-		this->flipMode = flipMode; 
 		SetLayer(layer); 
 		SetAlpha(alpha); 
-	}; 
+		if (sprite) SetSprite(std::move(sprite)); 
+	}
+
+	bool SetSprite(SpriteRef sprite)
+	{
+		if (not sprite) return Error("SetSprite received a missing Sprite."); 
+		definition = std::move(sprite); 
+		row = 0; cursor = 0; loops = true; finished = false; 
+		const auto* animation = AsAnimation();
+		playing = animation != nullptr; 
+		fps = animation ? animation->GetDefaultFPS() : 0; 
+		return true; 
+	}
+
+	void ClearSprite()
+	{
+		definition.reset(); row = 0; cursor = 0; fps = 0; 
+		playing = false; finished = false; loops = true; 
+	}
+
+	SpriteRef GetDefinition() const { return definition; }
+	float GetWidth() const { return definition ? static_cast<float>(definition->GetWidth()) : 0; }
+	float GetHeight() const { return definition ? static_cast<float>(definition->GetHeight()) : 0; }
+
+	bool Play(const std::string& id, bool loop = true, bool restart = false)
+	{
+		const auto* animation = RequireAnimation("Play"); 
+		if (not animation) return false; 
+		const int next = animation->FindRow(id); 
+		if (next < 0) return Error("Unknown animation row: " + id); 
+		if (row == next && loops == loop && not restart)
+		{
+			if (not finished) playing = true; 
+			return true; 
+		}
+		row = next; loops = loop; cursor = 0; 
+		playing = true; finished = false; 
+		return true; 
+	}
+
+	bool Pause()
+	{
+		if (not RequireAnimation("Pause")) return false; 
+		playing = false; return true; 
+	}
+
+	bool Resume()
+	{
+		if (not RequireAnimation("Restume")) return false; 
+		playing = not finished; return playing; 
+	}
+
+	bool Stop()
+	{
+		if (not RequireAnimation("Stop")) return false; 
+		cursor = 0; playing = false; finished = false; return true; 
+	}
+
+	bool Restart()
+	{
+		if (not RequireAnimation("Restart")) return false; 
+		cursor = 0; playing = true; finished = false; return true; 
+	}
+
+	bool SetFPS(float value)
+	{
+		if (not RequireAnimation("SetFPS")) return false; 
+		if (not std::isfinite(value) or value <= 0)
+			return Error("Animation FPS must be positive and finite."); 
+		fps = value; return true; 
+	}
+
+	bool IsAnimated() const { return AsAnimation() != nullptr; }
+	bool IsPlaying() const { return playing; }
+	bool IsFinished() const { return finished; }
+	int GetCurrentFrame() const { return static_cast<int>(cursor); }
+
+	std::string GetAnimationID() const
+	{
+		const auto* animation = AsAnimation(); 
+		return animation ? animation->GetRow(row).id : std::string{};
+	}
+	int GetLayer() const { return layer; }
+	void SetLayer(int value) { layer = std::clamp(value, -99, 99); }
+	int GetAlpha() const { return alpha; }
+	void SetAlpha(int value) { alpha = std::clamp(value, 0, 255); }
+	bool GetIsHidden() const { return hidden; }
+	void SetIsHidden(bool value) { hidden = value; }
+	bool IsFixed() const { return fixed; }
+	void SetFixed(bool value) { fixed = value; }
+	void SetFlip(bool horizontal, bool vertical = false) { flipX = horizontal; flipY = vertical; }
+	bool IsFlippedX() const { return flipX; }
+	bool IsFlippedY() const { return flipY; }
 
 private:
-	// The width of the Sprite in pixel units. 
-	float width = 0;
-	// The height of the Sprite in pixel units. 
-	float height = 0;
-	// The draw depth of the Sprite. Higher layer numbers are above lower layer numbers.  
-	int layer = 0;
-	// Should the Sprite be hidden (not rendered into the scene)? 
-	bool isHidden = false;
-	// Sets the transparency of the Sprite between 0 (invisible) and 255 (fully visible). 
-	int alpha = 255; 
+	friend class AnimationSystem; 
+	friend class RenderSystem; 
+
+	const Animation* AsAnimation() const { return dynamic_cast<const Animation*>(definition.get()); }
+	const Animation* RequireAnimation(const char* operation) const
+	{
+		const auto* animation = AsAnimation(); 
+		if (not animation) Error(std::string(operation) + " requires an Animation Sprite.");
+		return animation;
+	}
+
+	static bool Error(const std::string& message) { Logger::Error(message); return false; }
+
+	void Advance(float deltaSeconds)
+	{
+		const auto* animation = AsAnimation();
+		if (not animation or not playing or not std::isfinite(deltaSeconds) or deltaSeconds <= 0) return;
+
+		const int count = animation->GetRow(row).frameCount;
+		cursor += static_cast<double>(deltaSeconds) * fps; 
+		if (loops) cursor = std::fmod(cursor, static_cast<double>(count));
+		else if (cursor >= count)
+		{
+			cursor = count - 1; 
+			playing = false; 
+			finished = true; 
+		}
+	}
+
+	SpriteRef definition; 
+	int row = 0; 
+	double cursor = 0; 
+	float fps = 0; 
+	bool playing = false, loops = true, finished = false; 
+	int layer = 0, alpha = 255; 
+	bool fixed = false, hidden = false, flipX = false, flipY = false; 
 };

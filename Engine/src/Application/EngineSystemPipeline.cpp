@@ -63,7 +63,7 @@ void EngineSystemPipeline::Update(World& world, EventManager& events, Camera& ca
     if (auto* system = world.GetSystem<MovementSystem>())
         system->Update(deltaSeconds);
     if (auto* system = world.GetSystem<AnimationSystem>())
-        system->Update();
+        system->Update(deltaSeconds);
     if (auto* system = world.GetSystem<CollisionSystem>())
         system->Update(world, events);
     if (auto* system = world.GetSystem<CameraMovementSystem>())

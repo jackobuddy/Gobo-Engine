@@ -1,6 +1,7 @@
 #pragma once
 
 #include "BuiltinAssets.h"
+#include "../Sprites/Animation.h"
 #include <map>
 #include <string>
 #include <SDL3/SDL.h>
@@ -20,6 +21,9 @@ public:
 
 	AssetManager(AssetManager&&) = delete;
 	AssetManager& operator=(AssetManager&&) = delete;
+
+	SpriteRef GetSprite(const std::string& id) const; 
+	bool DefineSprite(const std::string& id, const Sprite& definition);
 
 	void ClearAssets(); 
 	// Adds a Texture to the Asset Manager with a given assetID. Returns true on success, 
@@ -45,7 +49,8 @@ private:
 
 	// Keeps track of if an Asset Manager Instance already exists
 	static bool managerExists;
-	std::map<std::string, SDL_Texture*> textures; 
+	std::map<std::string, SpriteRef> sprites;
+	std::map<std::string, SDL_Texture*> textures;
 	std::map<std::string, TTF_Font*> fonts;
 	bool fontLibraryInitialized = false; 
 	Renderer& renderer; 

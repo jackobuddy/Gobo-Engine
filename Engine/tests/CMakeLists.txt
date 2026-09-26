@@ -12,6 +12,7 @@ add_executable(GoboEngineTests
     SceneAPITests.cpp
     WorldSessionTests.cpp
     CleanupRegressionTests.cpp
+    SpriteAnimationTests.cpp
 )
 target_link_libraries(GoboEngineTests PRIVATE
     Gobo::Engine
