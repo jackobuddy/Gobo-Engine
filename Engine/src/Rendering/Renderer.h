@@ -10,6 +10,7 @@ class AssetManager;
 class TextManager; 
 class RenderSystem; 
 class RenderCollisionSystem; 
+class TilemapRenderSystem;
 
 class Renderer
 {
@@ -54,6 +55,7 @@ private:
 	friend class AssetManager;
 	friend class RenderSystem; 
 	friend class RenderCollisionSystem; 
+	friend class TilemapRenderSystem; 
 
 	SDL_Renderer* GetNaitiveRenderer() const { return renderer; }
 

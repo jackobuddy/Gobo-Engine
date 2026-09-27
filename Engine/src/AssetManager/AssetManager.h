@@ -2,6 +2,7 @@
 
 #include "BuiltinAssets.h"
 #include "../Sprites/Animation.h"
+#include "../Sprites/Tilemap.h"
 #include <map>
 #include <string>
 #include <SDL3/SDL.h>
@@ -38,6 +39,8 @@ public:
 	bool ImportSprites();
 	// Quiet lookup for optional assets and validation.
 	bool HasTexture(const std::string& assetID) const; 
+	TilemapRef GetTilemap(const std::string& id) const;
+	bool DefineTilemap(const std::string& id, const Tilemap& definition);
 
 	bool AddFont(const std::string& assetID, const std::string& filepath, float pointSize); 
 	TTF_Font* GetFont(const std::string& assetID); 

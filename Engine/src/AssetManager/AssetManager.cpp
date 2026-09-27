@@ -323,13 +323,21 @@ bool AssetManager::DefineSprite(const std::string& id, const Sprite& definition)
 	std::int64_t requiredWidth = static_cast<std::int64_t>(definition.GetOriginX()) + definition.GetWidth();
 	std::int64_t requiredHeight = static_cast<std::int64_t>(definition.GetOriginY()) + definition.GetHeight(); 
 
-	if (const auto* animation = dynamic_cast<const Animation*>(&definition))
+	if (const auto* tilemap = dynamic_cast<const Tilemap*>(&definition))
+	{
+		requiredWidth = static_cast<std::int64_t>(tilemap->GetAtlasColumns()) *
+			definition.GetWidth();
+		requiredHeight = static_cast<std::int64_t>(tilemap->GetAtlasRows()) *
+			definition.GetHeight();
+	}
+	else if (const auto* animation = dynamic_cast<const Animation*>(&definition))
 	{
 		int maxFrames = 1;
 		for (int i = 0; i < animation->GetRowCount(); ++i)
-			maxFrames = std::max(maxFrames, animation->GetRow(i).frameCount); 
-		requiredWidth = static_cast<std::int64_t>(maxFrames) * definition.GetWidth(); 
-		requiredHeight = static_cast<std::int64_t>(animation->GetRowCount()) * definition.GetHeight(); 
+			maxFrames = std::max(maxFrames, animation->GetRow(i).frameCount);
+		requiredWidth = static_cast<std::int64_t>(maxFrames) * definition.GetWidth();
+		requiredHeight = static_cast<std::int64_t>(animation->GetRowCount()) *
+			definition.GetHeight();
 	}
 	if (requiredWidth > textureWidth or requiredHeight > textureHeight)
 	{
@@ -338,4 +346,20 @@ bool AssetManager::DefineSprite(const std::string& id, const Sprite& definition)
 	}
 	sprites.insert_or_assign(id, definition.Clone());
 	return true; 
+}
+
+TilemapRef AssetManager::GetTilemap(const std::string& id) const
+{
+	auto sprite = GetSprite(id);
+	if (!sprite) return {};
+	auto tilemap = std::dynamic_pointer_cast<const Tilemap>(sprite);
+	if (!tilemap)
+		Logger::Error("Sprite is not a Tilemap: " + id);
+	return tilemap;
+}
+
+bool AssetManager::DefineTilemap(const std::string& id,
+	const Tilemap& definition)
+{
+	return DefineSprite(id, definition);
 }

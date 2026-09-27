@@ -15,6 +15,7 @@
 #include "../Systems/ProjectileLifecycleSystem.h"
 #include "../Systems/RenderCollisionSystem.h"
 #include "../Systems/RenderSystem.h"
+#include "../Systems/TilemapRenderSystem.h"
 
 EngineSystemPipeline::EngineSystemPipeline(SystemsConfig config) : config(config) 
 {
@@ -38,6 +39,8 @@ void EngineSystemPipeline::Install(World& world, EventManager& events) const
         world.AddSystem<CameraMovementSystem>();
     if (config.useProjectileLifecycleSystem)
         world.AddSystem<ProjectileLifecycleSystem>();
+    if (config.useTilemapRenderSystem)
+        world.AddSystem<TilemapRenderSystem>(); 
     if (config.useKeyboardControlSystem)
     {
         world.AddSystem<KeyboardControlSystem>(); 
@@ -78,6 +81,8 @@ void EngineSystemPipeline::Render(World& world, AssetManager& assets, Camera& ca
     camera.position.x = Floor(camera.position.x);
     camera.position.y = Floor(camera.position.y);
 
+    if (auto* system = world.GetSystem<TilemapRenderSystem>())
+        system->Update(renderer, assets, camera); 
     if (auto* system = world.GetSystem<RenderSystem>())
         system->Update(renderer, assets, camera);
     if (debugMode)

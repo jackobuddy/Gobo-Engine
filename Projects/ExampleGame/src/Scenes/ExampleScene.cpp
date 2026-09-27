@@ -33,41 +33,25 @@ void ExampleScene::OnStart(GameContext& context)
     audio.Play("helicopter-loop", { .bus = "SFX", .volume = 1.0f, .loops = -1 });
 
     // Make our Tiled background. 
-    const float tileSize = 32, tileScale = 2;
-    const int mapNumCols = 25, mapNumRows = 20;
-    std::ifstream mapFile(std::filesystem::u8path(
-        assets.GetAssetPath("tilemaps/jungle.map")));
-    if (!mapFile)
-    {
-        Logger::Error("Failed to open jungle.map.");
-        context.RequestQuit();
-        return;
-    }
-    for (int y = 0; y < mapNumRows; ++y)
-    {
-        for (int x = 0; x < mapNumCols; ++x)
-        {
-            char row = '0', column = '0';
-            mapFile.get(row); mapFile.get(column); mapFile.ignore();
-            const auto id = "tiles/jungle/" + std::string(1, row) + "/" + column;
-            auto sprite = assets.GetSprite(id);
-            if (!mapFile || !sprite)
-            {
-                Logger::Error("Invalid jungle.map tile: " + id);
-                context.RequestQuit();
-                return;
-            }
-            Entity tile = world.CreateAutoNamedEntity("tile");
-            tile.Group("tiles");
-            tile.AddComponent<TransformComponent>(
-                Vector2(x* tileScale* tileSize, y* tileScale* tileSize),
-                Vector2(tileScale), 0.0f);
-            tile.AddComponent<SpriteComponent>(sprite, -1);
-        }
-    }
+    const float tileScale = 2.0f; 
+    const int mapNumCols = 25; 
+    const int mapNumRows = 20; 
 
-    // Set the size of our World's map. 
-    world.SetWorldSize(Vector2(mapNumCols* tileSize* tileScale, mapNumRows* tileSize* tileScale));
+    auto jungle = assets.GetTilemap("jungle"); 
+
+    std::ifstream mapFile(std::filesystem::u8path(assets.GetAssetPath("tilemaps/jungle.map"))); 
+ 
+    Entity jungleMap = world.CreateEntity("jungle-map"); 
+    jungleMap.Group("tilemaps");
+    jungleMap.AddComponent<TransformComponent>(Vector2(0.0f), Vector2(tileScale), 0.0);
+    jungleMap.AddComponent<TilemapComponent>(jungle, mapNumCols, mapNumRows, -1); 
+
+    TilemapComponent* placedMap = jungleMap.GetComponent<TilemapComponent>(); 
+    placedMap->LoadCSV(mapFile); 
+   
+    // Set the World Map Size. 
+    world.SetWorldSize(Vector2(mapNumCols * jungle->GetWidth() * tileScale, 
+        mapNumRows * jungle->GetHeight() * tileScale)); 
 
     // Create our Player Character
     world.CreateCharacter<Player>("player", { 

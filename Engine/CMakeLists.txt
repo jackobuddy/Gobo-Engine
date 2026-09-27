@@ -94,7 +94,7 @@ add_library(
     STATIC
     ${GOBO_ENGINE_SOURCES}
     ${GOBO_ENGINE_HEADERS}
- "src/Systems/MouseControlSystem.h" "src/Components/MouseControlledComponent.h" "src/Events/RightMouseButtonPressedEvent.h" "src/Events/LeftMouseButtonHeldEvent.h" "src/Events/RightMouseButtonHeldEvent.h" "src/Events/RightMouseButtonReleasedEvent.h" "src/Systems/MouseCollisionSystem.h" "src/Events/MousePositionEvent.h" "src/Systems/ObjectInputDispatch.h" "src/Sprites/Sprite.h" "src/Sprites/Animation.h")
+ "src/Systems/MouseControlSystem.h" "src/Components/MouseControlledComponent.h" "src/Events/RightMouseButtonPressedEvent.h" "src/Events/LeftMouseButtonHeldEvent.h" "src/Events/RightMouseButtonHeldEvent.h" "src/Events/RightMouseButtonReleasedEvent.h" "src/Systems/MouseCollisionSystem.h" "src/Events/MousePositionEvent.h" "src/Systems/ObjectInputDispatch.h" "src/Sprites/Sprite.h" "src/Sprites/Animation.h" "src/Sprites/Tilemap.h" "src/Components/TilemapComponent.h" "src/Systems/TilemapRenderSystem.h")
 
 add_library(Gobo::Engine ALIAS GoboEngine)
 
