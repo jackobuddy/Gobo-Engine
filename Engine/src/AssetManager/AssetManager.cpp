@@ -2,6 +2,7 @@
 #include "BuiltinFontData.h"
 #include "../Logger/Logger.h"
 #include "../Rendering/Renderer.h"
+#include "AssetConfig.h"
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <stdexcept>
@@ -235,73 +236,82 @@ bool AssetManager::HasTexture(const std::string& assetID) const
 
 bool AssetManager::ImportSprites()
 {
-	namespace fs = std::filesystem; 
+	namespace fs = std::filesystem;
 	try
 	{
-		const fs::path assets = fs::u8path(GetAssetPath(""));
-		if (not fs::is_directory(assets))
+		// Strip a real filename component, not a trailing separator.
+		const fs::path assets = fs::u8path(GetAssetPath("Sprites")).parent_path();
+		if (!fs::is_directory(assets))
 		{
 			Logger::Error("Assets directory is missing: " + PathToUTF8(assets));
-			return false; 
+			return false;
 		}
-
-		const fs::path root = assets / "Sprites"; 
-		if (not fs::exists(root))
+		AssetConfig::Errors errors;
+		const auto defaults = AssetConfig::LoadProject(
+			assets.parent_path() / "project.config", errors);
+		for (const auto& error : errors) Logger::Error(error);
+		errors.clear();
+		const fs::path root = assets / "Sprites";
+		if (!fs::exists(root))
 		{
 			Logger::Warning("Imported 0 sprites (Assets/Sprites is absent).");
-			return true; 
+			return true;
 		}
-		if (not fs::is_directory(root))
+		if (!fs::is_directory(root))
 		{
 			Logger::Error("Assets/Sprites is not a directory.");
-			return false; 
+			return false;
 		}
-
-		// First collect paths. We will load the Textures later. 
-		std::vector<std::pair<std::string, std::string>> files; 
+		std::vector<std::pair<std::string, std::string>> files;
 		for (const auto& entry : fs::recursive_directory_iterator(root))
 		{
-			if (entry.is_symlink() or not entry.is_regular_file()) continue; 
-
-			std::string extension = PathToUTF8(entry.path().extension()); 
-			std::transform(extension.begin(), extension.end(), extension.begin(), 
+			if (entry.is_symlink() || !entry.is_regular_file()) continue;
+			std::string extension = PathToUTF8(entry.path().extension());
+			std::transform(extension.begin(), extension.end(), extension.begin(),
 				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-			if (extension != ".png") continue; 
-
-			fs::path relative = entry.path().lexically_relative(root); 
-			relative.replace_extension(); 
+			if (extension != ".png") continue;
+			fs::path relative = entry.path().lexically_relative(root);
+			relative.replace_extension();
 			files.emplace_back(PathToUTF8(relative), PathToUTF8(entry.path()));
 		}
-
-		// Stable logs and no arbitrary winner for duplicate IDs
 		std::sort(files.begin(), files.end());
 		for (std::size_t i = 0; i < files.size(); ++i)
 		{
 			const auto& id = files[i].first;
-			if (HasTexture(id) or (i > 0 && files[i - 1].first == id))
+			if (HasTexture(id) || (i > 0 && files[i - 1].first == id))
 			{
-				Logger::Error("Duplicate imported texture ID: " + id); 
-				return false; 
+				Logger::Error("Duplicate imported texture ID: " + id);
+				return false;
 			}
 		}
-
 		for (const auto& [id, file] : files)
 		{
-			if (not AddTexture(id, file))
+			if (!AddTexture(id, file))
 			{
 				Logger::Error("Sprite import failed: " + file + " (ID: " + id + ")");
-				return false; 
+				return false;
 			}
+			// AddTexture retains its original full-image behavior.
+			// Its initial definition provides exact decoded image dimensions.
+			const auto original = GetSprite(id);
+			const auto definition = AssetConfig::LoadSprite(fs::u8path(file), id,
+				original->GetWidth(), original->GetHeight(), defaults, errors);
+			for (const auto& error : errors) Logger::Error(error);
+			errors.clear();
+			if (!DefineSprite(id, *definition))
+				Logger::Error("Cannot apply config for " + id +
+					"; retaining full-image static Sprite");
 		}
-		Logger::Log("Imported " + std::to_string(files.size()) + " sprites. ");
-		return true; 
+		Logger::Log("Imported " + std::to_string(files.size()) + " sprites.");
+		return true;
 	}
 	catch (const std::exception& error)
 	{
 		Logger::Error(std::string("Sprite import failed: ") + error.what());
-		return false; 
+		return false;
 	}
 }
+
 
 SpriteRef AssetManager::GetSprite(const std::string& id) const
 {

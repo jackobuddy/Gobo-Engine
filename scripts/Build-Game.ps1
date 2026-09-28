@@ -29,26 +29,31 @@ try {
     $executables = @(Get-ChildItem -LiteralPath $binary -File |
         Where-Object { $_.Extension -eq '.exe' })
     if ($executables.Count -ne 1) {
-        throw 'Expected one game EXE in the selected standalone configuration.'
+        throw 'Expected one game EXE in the standalone configuration.'
     }
-    $fontLicense = Join-Path $suite 'Engine/assets/fonts/Roboto/OFL.txt'
+    $assets = Join-Path $binary 'Assets'
+    if (-not (Test-Path -LiteralPath $assets -PathType Container)) {
+        throw 'Staged Assets directory is missing.'
+    }
+    $fontLicense = Join-Path $binary 'licenses/Roboto/OFL.txt'
     if (-not (Test-Path -LiteralPath $fontLicense -PathType Leaf)) {
-        throw 'Engine font license is missing.'
+        throw 'Staged Engine font license is missing.'
     }
     New-Item -ItemType Directory -Path $package -ErrorAction Stop | Out-Null
     Get-ChildItem -LiteralPath $binary -File |
         Where-Object { $_.Extension -in '.exe','.dll' } |
         ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination $package }
-   $assets = Join-Path $project 'Assets'
-    if (-not (Test-Path -LiteralPath $assets -PathType Container)) {
-        throw 'Project Assets directory is missing.'
-    }
     Copy-Item -LiteralPath $assets -Destination (Join-Path $package 'Assets') -Recurse
-    $licenses = Join-Path $project 'licenses'
-    if (Test-Path -LiteralPath $licenses -PathType Container) {
-        Copy-Item -LiteralPath $licenses -Destination (Join-Path $package 'licenses') -Recurse
+    $config = Join-Path $binary 'project.config'
+    if (Test-Path -LiteralPath $config -PathType Leaf) {
+        Copy-Item -LiteralPath $config -Destination $package
     }
-$fontDestination = Join-Path $package 'licenses/Roboto'
+    $projectLicenses = Join-Path $project 'licenses'
+    if (Test-Path -LiteralPath $projectLicenses -PathType Container) {
+        Copy-Item -LiteralPath $projectLicenses -Destination (
+            Join-Path $package 'licenses') -Recurse
+            }
+    $fontDestination = Join-Path $package 'licenses/Roboto'
     New-Item -ItemType Directory -Path $fontDestination -Force | Out-Null
     Copy-Item -LiteralPath $fontLicense -Destination $fontDestination -Force
     foreach ($notice in 'THIRD_PARTY_NOTICES.md','LICENSE') {
@@ -58,10 +63,10 @@ $fontDestination = Join-Path $package 'licenses/Roboto'
         }
     }
     Write-Host "Standalone package: $package"
-    Write-Host 'Release users still need the matching Microsoft VC++ runtime.'
+    Write-Host 'Release users need the matching Microsoft VC++ runtime.'
 }
 catch {
-    Write-Warning "Packaging failed. Any incomplete package is left at: $package"
+    Write-Warning "Packaging failed. Incomplete package left at: $package"
     throw
 }
 finally { Pop-Location }

@@ -13,7 +13,7 @@ add_executable(GoboEngineTests
     WorldSessionTests.cpp
     CleanupRegressionTests.cpp
     SpriteAnimationTests.cpp
- "TilemapTests.cpp")
+ "TilemapTests.cpp" "AssetConfigTests.cpp")
 target_link_libraries(GoboEngineTests PRIVATE
     Gobo::Engine
     Catch2::Catch2WithMain
@@ -34,7 +34,7 @@ catch_discover_tests(GoboEngineTests
 set_target_properties(GoboEngineTests PROPERTIES
     FOLDER "Tests"
 )
-add_executable(GoboComponentCapacityTests ComponentCapacityTests.cpp "TilemapTests.cpp")
+add_executable(GoboComponentCapacityTests ComponentCapacityTests.cpp "TilemapTests.cpp" "AssetConfigTests.cpp")
 target_link_libraries(GoboComponentCapacityTests PRIVATE
     Gobo::Engine Catch2::Catch2WithMain)
 target_compile_features(GoboComponentCapacityTests PRIVATE cxx_std_20)
@@ -49,3 +49,12 @@ catch_discover_tests(GoboComponentCapacityTests
     DISCOVERY_MODE PRE_TEST
     PROPERTIES LABELS "engine")
 set_target_properties(GoboComponentCapacityTests PROPERTIES FOLDER "Tests")
+target_sources(GoboEngineTests PRIVATE AssetConfigTests.cpp)
+target_link_libraries(GoboEngineTests PRIVATE GoboAssetConfig)
+add_dependencies(GoboEngineTests GoboAssetConfigTool)
+add_test(NAME AssetConfigAuthoring
+    COMMAND ${CMAKE_COMMAND}
+        "-DTOOL=$<TARGET_FILE:GoboAssetConfigTool>"
+        "-DTEST_ROOT=${CMAKE_CURRENT_BINARY_DIR}/config-tests/$<CONFIG>"
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/AssetConfigAuthoringTest.cmake")
+set_tests_properties(AssetConfigAuthoring PROPERTIES LABELS "engine")

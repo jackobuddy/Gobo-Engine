@@ -22,8 +22,7 @@ add_executable(GoboExampleGame
     src/Entities/enemy.h
     src/Systems/ProjectileEmitSystem.h
     src/Scenes/ExampleScene.cpp
-    src/Scenes/ExampleScene.h
-)
+    src/Scenes/ExampleScene.h)
 target_link_libraries(GoboExampleGame PRIVATE Gobo::Engine)
 add_custom_command(TARGET GoboExampleGame POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
@@ -31,12 +30,15 @@ add_custom_command(TARGET GoboExampleGame POST_BUILD
         $<TARGET_FILE_DIR:GoboExampleGame>
     COMMAND_EXPAND_LISTS VERBATIM)
 add_custom_target(GoboExampleGame_Assets
+    COMMAND "$<TARGET_FILE:GoboAssetConfigTool>"
+        "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMAND ${CMAKE_COMMAND}
         "-DGOBO_ASSETS=${CMAKE_CURRENT_SOURCE_DIR}/Assets"
         "-DGOBO_RUNTIME=$<TARGET_FILE_DIR:GoboExampleGame>"
         "-DGOBO_BUILD_ROOT=${CMAKE_BINARY_DIR}"
         "-DGOBO_ENGINE=${GOBO_ENGINE_ROOT}"
         -P "${GOBO_SUITE_ROOT}/scripts/Stage-GameAssets.cmake"
+    DEPENDS GoboAssetConfigTool
     VERBATIM)
 add_dependencies(GoboExampleGame GoboExampleGame_Assets)
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT GoboExampleGame)

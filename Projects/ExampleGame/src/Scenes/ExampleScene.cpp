@@ -7,6 +7,7 @@
 #include <filesystem>
 #include <cstdlib>
 #include <fstream>
+#include <stdexcept>
 
 // This function runs once at the start of the Scene. 
 void ExampleScene::OnStart(GameContext& context)
@@ -18,7 +19,7 @@ void ExampleScene::OnStart(GameContext& context)
     AssetManager& assets = context.GetAssets();
 
     // Initialize our custom ProjectileEmitSystem. 
-    world.AddSystem<ProjectileEmitSystem>(assets.GetSprite("bullet"));
+    world.AddSystem<ProjectileEmitSystem>(assets.GetSprite("spr_bullet"));
     if (auto* system = world.GetSystem<ProjectileEmitSystem>())
         system->SubscribeToEvents(events); 
 
@@ -37,21 +38,28 @@ void ExampleScene::OnStart(GameContext& context)
     const int mapNumCols = 25; 
     const int mapNumRows = 20; 
 
-    auto jungle = assets.GetTilemap("jungle"); 
-
-    std::ifstream mapFile(std::filesystem::u8path(assets.GetAssetPath("tilemaps/jungle.map"))); 
- 
-    Entity jungleMap = world.CreateEntity("jungle-map"); 
+    // Load our Jungle Tilemap. 
+    auto jungle = assets.GetTilemap("tilemaps/jungle");
+    if (!jungle)
+        throw std::runtime_error("Required Tilemap tilemaps/jungle is unavailable");
+    std::ifstream mapFile(std::filesystem::u8path(
+        assets.GetAssetPath("tilemaps/jungle.map")));
+    if (!mapFile)
+        throw std::runtime_error("Cannot open tilemaps/jungle.map");
+    Entity jungleMap = world.CreateEntity("jungle-map");
     jungleMap.Group("tilemaps");
-    jungleMap.AddComponent<TransformComponent>(Vector2(0.0f), Vector2(tileScale), 0.0);
-    jungleMap.AddComponent<TilemapComponent>(jungle, mapNumCols, mapNumRows, -1); 
+    jungleMap.AddComponent<TransformComponent>(
+        Vector2(0.0f), Vector2(tileScale), 0.0);
+    jungleMap.AddComponent<TilemapComponent>(
+        jungle, mapNumCols, mapNumRows, -1);
+    auto* placedMap = jungleMap.GetComponent<TilemapComponent>();
+    if (!placedMap || !placedMap->LoadCSV(mapFile))
+        throw std::runtime_error("Cannot load tilemaps/jungle.map cells");
 
-    TilemapComponent* placedMap = jungleMap.GetComponent<TilemapComponent>(); 
-    placedMap->LoadCSV(mapFile); 
-   
-    // Set the World Map Size. 
-    world.SetWorldSize(Vector2(mapNumCols * jungle->GetWidth() * tileScale, 
-        mapNumRows * jungle->GetHeight() * tileScale)); 
+    // Set the World size. 
+    world.SetWorldSize(Vector2(
+        mapNumCols * jungle->GetWidth() * tileScale,
+        mapNumRows * jungle->GetHeight() * tileScale));
 
     // Create our Player Character
     world.CreateCharacter<Player>("player", { 

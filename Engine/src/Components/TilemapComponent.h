@@ -60,7 +60,7 @@ public:
                     std::size_t consumed = 0;
                     const int index = std::stoi(field, &consumed);
                     if (consumed != field.size() ||
-                        !definition->IsValidTileIndex(index))
+                        (index != -1 && !definition->IsValidTileIndex(index)))
                         return Error("Tilemap has an invalid tile index.");
                     next.push_back(index);
                 }

@@ -8,6 +8,7 @@
       "features": [ "png" ]
     },
     "sdl3-mixer",
-    "sdl3-ttf"
+    "sdl3-ttf",
+    "nlohmann-json"
   ]
 }
