@@ -155,6 +155,16 @@ public:
 	{
 		quitRequestHandler = std::move(handler);
 	}
+	void RequestDebugModeToggle()
+	{
+		if (debugModeToggleRequestHandler)
+			debugModeToggleRequestHandler();
+	}
+
+	void SetDebugModeToggleRequestHandler(std::function<void()> handler)
+	{
+		debugModeToggleRequestHandler = std::move(handler);
+	}
 
 	// Adds a Component to an Entity.
 	template <typename TComponent, typename ...TArgs> void AddComponent(Entity entity, TArgs&& ... args); 
@@ -226,6 +236,7 @@ private:
 
 	// Handler used to request quitting the game from the World. 
 	std::function<void()> quitRequestHandler;
+	std::function<void()> debugModeToggleRequestHandler;
 
 	// Set size of the world map. The Camera System uses this to determine the bounds of the map. 
 	Vector2 worldSize = Vector2(1920, 1080); 

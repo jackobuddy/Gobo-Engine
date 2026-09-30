@@ -11,8 +11,8 @@ class WorldSession final
 
 {
 public:
-    WorldSession(const EngineSystemPipeline& pipeline,
-        std::function<void()> quitRequestHandler);
+    WorldSession(const EngineSystemPipeline& pipeline, std::function<void()> quitRequestHandler,
+        std::function<void()> debugModeToggleRequestHandler);
     ~WorldSession();
 
     WorldSession(const WorldSession&) = delete;

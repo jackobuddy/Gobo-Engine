@@ -38,9 +38,9 @@ private:
 
 	using SceneFactory = std::function<std::unique_ptr<Scene>()>;
 
-	SceneManager(WorldHost& worldHost, const EngineSystemPipeline& pipeline, 
-		Vector2 defaultCameraPosition, Vector2 defaultCameraViewSize, 
-		std::function<void()> quitRequestHandler); 
+	SceneManager(WorldHost& worldHost, const EngineSystemPipeline& pipeline, Vector2 defaultCameraPosition,
+		Vector2 defaultCameraViewSize, std::function<void()> quitRequestHandler, 
+		std::function<void()> debugModeToggleRequestHandler);
 
 	bool RegisterFactory(const std::string& id, SceneFactory factory); 
 	bool StartInitial(const std::string& id, GameContext& context);
@@ -56,6 +56,7 @@ private:
 	Vector2 defaultCameraPosition;
 	Vector2 defaultCameraViewSize;
 	std::function<void()> quitRequestHandler;
+	std::function<void()> debugModeToggleRequestHandler;
 	std::unordered_map<std::string, SceneFactory> factories;
 	std::unique_ptr<Scene> activeScene;
 	std::string activeSceneID;

@@ -20,8 +20,13 @@
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include "../Rendering/Renderer.h"
+#include "../Rendering/TextLabelConfig.h"
+#include "../Rendering/TextManager.h"
 #include "../Rendering/Window.h"
 #include "../Scenes/SceneManager.h"
+#include <iomanip>
+#include <limits>
+#include <sstream>
 #include <SDL3/SDL.h>
 #include <exception>
 #include <stdexcept>
@@ -37,6 +42,10 @@ bool Application::Initialize(const GameConfig& config)
 	heldKeys.clear();
 	acceptedLeft = acceptedRight = false;
 	inputFocused = true;
+	debugOverlayElapsedSeconds = 0.0f;
+	debugOverlayFrameCount = 0;
+	debugOverlayCreated = false; 
+	debugModeToggleRequested = false;
 
 	// Start up our SDL Video. 
 	if (not SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO))
@@ -79,8 +88,9 @@ bool Application::Initialize(const GameConfig& config)
 
 	systemPipeline = std::make_unique<EngineSystemPipeline>(config.systems);
 	worldHost = std::make_unique<WorldHost>();
-	sceneManager = std::unique_ptr<SceneManager>(new SceneManager(
-		*worldHost, *systemPipeline, camera.position, camera.GetViewSize(), [this]() { isRunning = false; }
+	sceneManager = std::unique_ptr<SceneManager>(new SceneManager(*worldHost, *systemPipeline,
+		camera.position, camera.GetViewSize(), [this]() { isRunning = false; },
+		[this]() { debugModeToggleRequested = true; }
 	));
 
 	isRunning = true; 
@@ -210,6 +220,11 @@ void Application::Shutdown()
 	sceneManager.reset(); 
 	worldHost.reset();
 	systemPipeline.reset();
+
+	debugOverlayCreated = false; 
+	debugOverlayElapsedSeconds = 0.0f; 
+	debugOverlayFrameCount = 0; 
+
 	// TextLabel textures must be released while both their
 	// fonts and SDL_Renderer are still alive.
 	if (renderer)
@@ -246,6 +261,10 @@ int Application::Run(IGame& game)
 			*renderer, *sceneManager, isRunning);
 		game.BindContext(*context);
 
+		phase = "Create debug overlay";
+		if (not CreateDebugOverlay())
+			throw std::runtime_error("Debug overlay initialization failed");
+
 		phase = "RegisterScenes";
 		game.RegisterScenes(*sceneManager);
 		if (!sceneManager->HasScene(config.startingScene))
@@ -279,6 +298,11 @@ int Application::Run(IGame& game)
 			phase = "Input";
 			ProcessInput(*context);
 			if (!isRunning) break;
+			if (debugModeToggleRequested)
+			{
+				game.SetDebugMode(!game.GetDebugMode());
+				debugModeToggleRequested = false;
+			}
 
 			phase = "System Update";
 			systemPipeline->Update(context->GetWorld(),
@@ -333,9 +357,11 @@ int Application::Run(IGame& game)
 				if (elapsed < frameMS)
 					SDL_Delay(static_cast<std::uint32_t>(frameMS - elapsed));
 			}
+
 			tick = SDL_GetTicks();
-			deltaSeconds = Clamp(static_cast<float>(tick - previousTick)
-				/ 1000.0f, 0.0f, 0.2f);
+			const float elapsedSeconds = static_cast<float>(tick - previousTick) / 1000.0f; 
+			deltaSeconds = Clamp(static_cast<float>(tick - previousTick) / 1000.0f, 0.0f, 0.2f);
+			UpdateDebugOverlay(game.GetDebugMode(), elapsedSeconds); 
 			previousTick = tick;
 		}
 	}
@@ -364,4 +390,91 @@ int Application::Run(IGame& game)
 	context.reset();
 	Shutdown();
 	return result;
+}
+
+bool Application::CreateDebugOverlay()
+{
+	if (!renderer)
+		return false;
+
+	TextManager& text = renderer->GetTextManager();
+	if (text.Has(DebugOverlayLabelID))
+	{
+		debugOverlayCreated = true;
+		return true;
+	}
+
+	TextLabelConfig config;
+	config.text = "Debug overlay initializing...";
+	config.position = Vector2(8.0f, 8.0f);
+	config.color = Color{ 255, 255, 255, 255 };
+	config.scale = 1.0f;
+	config.layer = std::numeric_limits<int>::max();
+	config.visible = false;
+	if (!renderer->GetTextManager().Create(DebugOverlayLabelID, config))
+	{
+		Logger::Error("Failed to create the debug overlay label.");
+		return false;
+	}
+	debugOverlayElapsedSeconds = 0.0f;
+	debugOverlayFrameCount = 0;
+	debugOverlayCreated = true;
+	return true;
+}
+
+void Application::UpdateDebugOverlay(bool debugMode, float elapsedSeconds)
+{
+	if (!renderer || !assetManager)
+		return;
+
+	TextManager& text = renderer->GetTextManager();
+
+	if (!debugMode)
+	{
+		text.SetVisible(DebugOverlayLabelID, false);
+		debugOverlayElapsedSeconds = 0.0f;
+		debugOverlayFrameCount = 0;
+		return;
+	}
+
+	if (!text.Has(DebugOverlayLabelID))
+	{
+		debugOverlayCreated = false;
+
+		if (!CreateDebugOverlay())
+			return;
+	}
+
+	if (!text.SetVisible(DebugOverlayLabelID, true))
+	{
+		Logger::Error("Failed to show the debug overlay label.");
+		return;
+	}
+
+	if (elapsedSeconds <= 0.0f)
+		return;
+	debugOverlayElapsedSeconds += elapsedSeconds;
+	++debugOverlayFrameCount;
+	if (debugOverlayElapsedSeconds < DebugOverlayRefreshSeconds)
+		return;
+
+	const float fps = static_cast<float>(debugOverlayFrameCount) /
+		debugOverlayElapsedSeconds;
+	const double textureMiB = static_cast<double>(
+		assetManager->GetEstimatedTextureBytes()) /
+		(1024.0 * 1024.0);
+
+	std::ostringstream message;
+	message << std::fixed << std::setprecision(1)
+		<< "FPS: " << fps
+		<< " | Frame: " << (1000.0f / fps) << " ms"
+		<< " | Textures: " << assetManager->GetTextureCount()
+		<< " | Texture memory: " << textureMiB << " MiB"
+		<< " | Sprite definitions: " << assetManager->GetSpriteCount();
+
+	if (!text.SetText(DebugOverlayLabelID, message.str()))
+		Logger::Error("Failed to update the debug overlay label.");
+
+	debugOverlayElapsedSeconds = 0.0f;
+	debugOverlayFrameCount = 0;
 }

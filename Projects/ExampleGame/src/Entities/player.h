@@ -70,6 +70,8 @@ public:
 
 		if (event.symbol == SDLK_ESCAPE)
 			world->RequestQuit();
+		if (event.symbol == SDLK_F1)
+			world->RequestDebugModeToggle(); 
 	}
 
 	virtual void OnAllKeys(KeyAllEvent& event) override

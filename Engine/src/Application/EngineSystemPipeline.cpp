@@ -88,7 +88,7 @@ void EngineSystemPipeline::Render(World& world, AssetManager& assets, Camera& ca
     if (debugMode)
     {
         if (auto* system = world.GetSystem<RenderCollisionSystem>())
-            system->Update(renderer, camera);
+            system->Update(world, renderer, camera);
     }
 }
 

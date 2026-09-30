@@ -6,13 +6,21 @@
 #include <utility>
 
 
-WorldSession::WorldSession(const EngineSystemPipeline& pipeline, std::function<void()> quitRequestHandler): 
-    events(std::make_unique<EventManager>()), world(std::make_unique<World>())
+WorldSession::WorldSession(const EngineSystemPipeline& pipeline, std::function<void()> quitRequestHandler,
+    std::function<void()> debugModeToggleRequestHandler): events(std::make_unique<EventManager>()),
+    world(std::make_unique<World>())
 {
-    if (!quitRequestHandler)
+    if (!quitRequestHandler || !debugModeToggleRequestHandler)
+    {
         throw std::invalid_argument(
-            "WorldSession requires a quit request handler.");
+            "WorldSession requires request handlers.");
+    }
+
     world->SetQuitRequestHandler(std::move(quitRequestHandler));
+    world->SetDebugModeToggleRequestHandler(
+        std::move(debugModeToggleRequestHandler)
+    );
+
     pipeline.Install(*world, *events);
 }
 

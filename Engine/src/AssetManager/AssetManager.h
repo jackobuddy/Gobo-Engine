@@ -6,6 +6,8 @@
 #include <map>
 #include <string>
 #include <SDL3/SDL.h>
+#include <cstdint>
+#include <cstddef>
 
 struct TTF_Font; 
 
@@ -39,6 +41,9 @@ public:
 	bool ImportSprites();
 	// Quiet lookup for optional assets and validation.
 	bool HasTexture(const std::string& assetID) const; 
+	std::size_t GetTextureCount() const; 
+	std::uint64_t GetEstimatedTextureBytes() const; 
+	std::size_t GetSpriteCount() const; 
 	TilemapRef GetTilemap(const std::string& id) const;
 	bool DefineTilemap(const std::string& id, const Tilemap& definition);
 
@@ -54,6 +59,7 @@ private:
 	static bool managerExists;
 	std::map<std::string, SpriteRef> sprites;
 	std::map<std::string, SDL_Texture*> textures;
+	std::uint64_t estimatedTextureBytes = 0; 
 	std::map<std::string, TTF_Font*> fonts;
 	bool fontLibraryInitialized = false; 
 	Renderer& renderer; 

@@ -71,6 +71,7 @@ void AssetManager::ClearAssets()
 	for (auto texture : textures)
 		SDL_DestroyTexture(texture.second); 
 	textures.clear(); 
+	estimatedTextureBytes = 0; 
 
 	for (auto& [id, font] : fonts)
 		TTF_CloseFont(font); 
@@ -105,6 +106,9 @@ bool AssetManager::AddTexture(const std::string& assetID, const std::string& fil
 		return false;
 	}
 
+	const std::uint64_t textureBytes = static_cast<std::uint64_t>(surface->w) * 
+		static_cast<std::uint64_t>(surface->h) * 4ULL;
+
 	// Import as one static Sprite covering the complete image.
 	auto definition = std::make_shared<const Sprite>(assetID, surface->w, surface->h);
 	textures.emplace(assetID, texture.get());
@@ -117,6 +121,7 @@ bool AssetManager::AddTexture(const std::string& assetID, const std::string& fil
 		textures.erase(assetID);
 		throw;
 	}
+	estimatedTextureBytes += textureBytes; 
 	texture.release(); // AssetManager now owns this SDL texture.
 	Logger::Log("Imported static Sprite: " + assetID);
 	return true;
@@ -316,7 +321,6 @@ bool AssetManager::ImportSprites()
 	}
 }
 
-
 SpriteRef AssetManager::GetSprite(const std::string& id) const
 {
 	const auto found = sprites.find(id); 
@@ -376,4 +380,19 @@ bool AssetManager::DefineTilemap(const std::string& id,
 	const Tilemap& definition)
 {
 	return DefineSprite(id, definition);
+}
+
+std::size_t AssetManager::GetTextureCount() const
+{
+	return textures.size();
+}
+
+std::uint64_t AssetManager::GetEstimatedTextureBytes() const
+{
+	return estimatedTextureBytes;
+}
+
+std::size_t AssetManager::GetSpriteCount() const
+{
+	return sprites.size();
 }

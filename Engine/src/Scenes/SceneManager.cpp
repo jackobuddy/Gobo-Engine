@@ -14,10 +14,12 @@
 #include <utility>
 
 
-SceneManager::SceneManager(WorldHost& worldHost, const EngineSystemPipeline& pipeline, 
-    Vector2 defaultCameraPosition, Vector2 defaultCameraViewSize, std::function<void()> quitRequestHandler): 
-        worldHost(worldHost), pipeline(pipeline), defaultCameraPosition(defaultCameraPosition),
-        defaultCameraViewSize(defaultCameraViewSize), quitRequestHandler(std::move(quitRequestHandler))
+SceneManager::SceneManager(WorldHost& worldHost, const EngineSystemPipeline& pipeline,
+    Vector2 defaultCameraPosition, Vector2 defaultCameraViewSize, std::function<void()> quitRequestHandler,
+    std::function<void()> debugModeToggleRequestHandler): worldHost(worldHost), pipeline(pipeline),
+    defaultCameraPosition(defaultCameraPosition), defaultCameraViewSize(defaultCameraViewSize),
+    quitRequestHandler(std::move(quitRequestHandler)), 
+    debugModeToggleRequestHandler(std::move(debugModeToggleRequestHandler))
 {
 }
 
@@ -111,9 +113,8 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     try
     {
         nextScene = found->second();
-        nextSession = std::make_unique<WorldSession>(
-            pipeline, quitRequestHandler
-        );
+        nextSession = std::make_unique<WorldSession>(pipeline, quitRequestHandler, 
+            debugModeToggleRequestHandler);
     }
     catch (const std::exception& error)
     {

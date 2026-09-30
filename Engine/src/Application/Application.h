@@ -30,7 +30,18 @@ public:
 private:
 	bool Initialize(const GameConfig& config); 
 	void ProcessInput(class GameContext& context); 
-	void Shutdown(); 
+	void Shutdown();
+	
+	bool CreateDebugOverlay(); 
+	void UpdateDebugOverlay(bool debugMode, float elapsedSeconds); 
+
+	inline static constexpr const char* DebugOverlayLabelID = "gobo.debug.overlay";
+	static constexpr float DebugOverlayRefreshSeconds = 0.25f; 
+
+	float debugOverlayElapsedSeconds = 0.0f;
+	std::uint32_t debugOverlayFrameCount = 0;
+	bool debugOverlayCreated = false; 
+	bool debugModeToggleRequested = false;
 
 	std::unique_ptr<WorldHost> worldHost;
 	std::unique_ptr<EngineSystemPipeline> systemPipeline;
