@@ -86,7 +86,11 @@ int wmain(int argc, wchar_t** argv)
             auto extension = AssetConfig::PathText(entry.path().extension());
             for (char& c : extension)
                 if (c >= 'A' && c <= 'Z') c += 'a' - 'A';
-            if (extension == ".png") images.push_back(entry.path());
+            const bool supportedImage = extension == ".png" || extension == ".jpg" || extension == ".jpeg"
+                || extension == ".webp" || extension == ".bmp" || extension == ".tga";
+
+            if (supportedImage)
+                images.push_back(entry.path());
         }
         std::sort(images.begin(), images.end());
         for (const auto& image : images)

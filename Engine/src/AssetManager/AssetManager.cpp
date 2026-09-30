@@ -269,7 +269,11 @@ bool AssetManager::ImportSprites()
 			std::string extension = PathToUTF8(entry.path().extension());
 			std::transform(extension.begin(), extension.end(), extension.begin(),
 				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-			if (extension != ".png") continue;
+			const bool supportedImage =
+				extension == ".png" || extension == ".jpg" || extension == ".jpeg" ||
+				extension == ".webp" || extension == ".bmp" || extension == ".tga";
+
+			if (!supportedImage) continue;
 			fs::path relative = entry.path().lexically_relative(root);
 			relative.replace_extension();
 			files.emplace_back(PathToUTF8(relative), PathToUTF8(entry.path()));

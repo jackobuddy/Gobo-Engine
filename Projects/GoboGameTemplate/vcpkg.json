@@ -5,7 +5,7 @@
     "sdl3",
     {
       "name": "sdl3-image",
-      "features": [ "png" ]
+      "features": [ "png", "jpeg", "webp" ]
     },
     "sdl3-mixer",
     "sdl3-ttf",
