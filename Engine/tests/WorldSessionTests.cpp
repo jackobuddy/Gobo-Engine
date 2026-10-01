@@ -62,12 +62,12 @@ TEST_CASE("WorldHost follows the active session",
     EngineSystemPipeline pipeline(NoSystems());
     WorldHost host;
     int oldDestroyed = 0;
-    auto first = std::make_unique<WorldSession>(pipeline, [] {});
+    auto first = std::make_unique<WorldSession>(pipeline, [] {}, [] {});
     first->GetWorld().CreateObject<TrackedObject>(
         "old_object", oldDestroyed);
     host.SetActiveSession(std::move(first));
     REQUIRE(host.GetWorld().FindObject("old_object") != nullptr);
-    auto second = std::make_unique<WorldSession>(pipeline, [] {});
+    auto second = std::make_unique<WorldSession>(pipeline, [] {}, [] {});
     second->GetWorld().CreateEntity("new_object");
     host.SetActiveSession(std::move(second));
     CHECK(oldDestroyed == 1);
@@ -81,8 +81,8 @@ TEST_CASE("Built-in systems install for every session",
     SystemsConfig config = NoSystems();
     config.useRenderingSystem = true;
     EngineSystemPipeline pipeline(config);
-    WorldSession first(pipeline, [] {});
-    WorldSession second(pipeline, [] {});
+    WorldSession first(pipeline, [] {}, [] {});
+    WorldSession second(pipeline, [] {}, [] {});
     CHECK(first.GetWorld().HasSystem<RenderSystem>());
     CHECK(second.GetWorld().HasSystem<RenderSystem>());
 }

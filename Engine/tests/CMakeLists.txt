@@ -13,7 +13,7 @@ add_executable(GoboEngineTests
     WorldSessionTests.cpp
     CleanupRegressionTests.cpp
     SpriteAnimationTests.cpp
- "TilemapTests.cpp" "AssetConfigTests.cpp")
+ "TilemapTests.cpp" "AssetConfigTests.cpp" "MouseHoverTests.cpp")
 target_link_libraries(GoboEngineTests PRIVATE
     Gobo::Engine
     Catch2::Catch2WithMain
@@ -34,7 +34,7 @@ catch_discover_tests(GoboEngineTests
 set_target_properties(GoboEngineTests PROPERTIES
     FOLDER "Tests"
 )
-add_executable(GoboComponentCapacityTests ComponentCapacityTests.cpp "TilemapTests.cpp" "AssetConfigTests.cpp")
+add_executable(GoboComponentCapacityTests ComponentCapacityTests.cpp "TilemapTests.cpp" "AssetConfigTests.cpp" "MouseHoverTests.cpp")
 target_link_libraries(GoboComponentCapacityTests PRIVATE
     Gobo::Engine Catch2::Catch2WithMain)
 target_compile_features(GoboComponentCapacityTests PRIVATE cxx_std_20)

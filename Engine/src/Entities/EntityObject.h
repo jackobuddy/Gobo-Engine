@@ -11,6 +11,9 @@
 #include "../Events/RightMouseButtonHeldEvent.h"
 #include "../Events/LeftMouseButtonReleasedEvent.h"
 #include "../Events/RightMouseButtonReleasedEvent.h"
+#include "../Events/MouseEnteredEvent.h"
+#include "../Events/MouseHoveredEvent.h"
+#include "../Events/MouseLeftEvent.h"
 #include <string>
 #include <utility>
 
@@ -58,23 +61,33 @@ public:
     // Requires a KeyboardControlledComponent.
     virtual void OnAllKeys(KeyAllEvent& event) {}
     // Triggered once when the left mouse button is pressed. 
-    // Requires a MouseControlledComponent.
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
     virtual void OnLeftMouseButtonPressed(LeftMouseButtonPressedEvent& event) {}
     // Triggered when the left mouse button is released. 
-    // Requires a MouseControlledComponent.
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
     virtual void OnLeftMouseButtonReleased(LeftMouseButtonReleasedEvent& event) {}
     // Triggered when the right mouse button is pressed. 
-    // Requires a MouseControlledComponent.
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
     virtual void OnRightMouseButtonPressed(RightMouseButtonPressedEvent& event) {}
     // Triggered when the right mouse button is released. 
-    // Requires a MouseControlledComponent.
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
     virtual void OnRightMouseButtonReleased(RightMouseButtonReleasedEvent& event) {}
     // Triggered when the left mouse button is being held down. 
-    // Requires a MouseControlledComponent.
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
     virtual void OnLeftMouseButtonHeld(LeftMouseButtonHeldEvent& event) {}
     // Triggered when the right mouse button is being held down. 
-    // Requires a MouseControlledComponent.
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
     virtual void OnRightMouseButtonHeld(RightMouseButtonHeldEvent& event) {}
+    // Triggered once when the cursor first enteres this object's collision box. 
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent. 
+    virtual void OnMouseEntered(MouseEnteredEvent& event) {}
+    // Triggered once every focused frame while the cursor is inside the object's collision box.
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
+    virtual void OnMouseHovered(MouseHoveredEvent& event) {}
+    // Triggered once when the cursor exits, input is cancelled, or the window loses focus. 
+    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
+    virtual void OnMouseLeave(MouseLeftEvent& event) {}
+
     // Triggered when the object is destroyed. 
 	virtual void OnDestroyed() {}
 

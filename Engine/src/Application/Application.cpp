@@ -17,6 +17,7 @@
 #include "../Events/RightMouseButtonHeldEvent.h"
 #include "../Events/LeftMouseButtonReleasedEvent.h"
 #include "../Events/RightMouseButtonReleasedEvent.h"
+#include "../Events/MouseMotionEvent.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include "../Rendering/Renderer.h"
@@ -126,6 +127,18 @@ void Application::ProcessInput(GameContext& context)
 		if (valid) world = screen + context.GetCamera().position;
 		events.EmitEvent<T>(world, screen, valid, inside, cancel);
 	};
+	const auto emitMouseMotion = [&]<class T>(float x, float y, bool cancel = false)
+	{
+		Vector2 screen(0), world(0);
+		const bool valid = renderer &&
+			renderer->WindowToRender(Vector2(x, y), screen);
+		const Vector2 size = renderer->GetViewSize();
+		const bool inside = valid && screen.x >= 0 && screen.y >= 0 &&
+			screen.x < size.x && screen.y < size.y;
+		if (valid)
+			world = screen + context.GetCamera().position;
+		events.EmitEvent<T>(world, screen, valid, inside, cancel);
+	};
 	SDL_Event event{};
 	while (SDL_PollEvent(&event))
 	{
@@ -145,7 +158,14 @@ void Application::ProcessInput(GameContext& context)
 				emitRelease.template operator() < LeftMouseButtonReleasedEvent > (x, y, true);
 			if (acceptedRight)
 				emitRelease.template operator() < RightMouseButtonReleasedEvent > (x, y, true);
+			emitMouseMotion.template operator() <MouseMotionEvent>(x, y, true); 
 			acceptedLeft = acceptedRight = false;
+		}
+		else if (inputFocused && event.type == SDL_EVENT_WINDOW_MOUSE_LEAVE)
+		{
+			float x = 0, y = 0;
+			SDL_GetMouseState(&x, &y);
+			emitMouseMotion.template operator() < MouseMotionEvent > (x, y, true);
 		}
 		else if (inputFocused && event.type == SDL_EVENT_KEY_DOWN)
 		{
@@ -199,6 +219,7 @@ void Application::ProcessInput(GameContext& context)
 		acceptedRight = false;
 		emitRelease.template operator() < RightMouseButtonReleasedEvent > (x, y, true);
 	}
+	emitMouseMotion.template operator() < MouseMotionEvent > (x, y);
 	const auto keys = heldKeys;
 	for (auto key : keys)
 	{

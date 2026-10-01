@@ -9,7 +9,20 @@ file(MAKE_DIRECTORY "${project}/Assets/Sprites/nested")
 file(WRITE "${project}/CMakeLists.txt" "# Test fixture\n")
 file(WRITE "${project}/project.config" "{\"sprite\":{\"width\":16}}")
 # Generator identifies names; PNG decoding is the runtime importer's job.
-file(WRITE "${project}/Assets/Sprites/nested/s_tree.png" "")
+set(authoringFixture
+    "${CMAKE_CURRENT_LIST_DIR}/fixtures/config-authoring.png"
+)
+
+if(NOT EXISTS "${authoringFixture}")
+    message(FATAL_ERROR
+        "Missing asset-config test fixture: ${authoringFixture}"
+    )
+endif()
+
+file(COPY_FILE
+    "${authoringFixture}"
+    "${project}/Assets/Sprites/nested/s_tree.png"
+)
 file(WRITE "${project}/Assets/Sprites/plain.png" "")
 file(WRITE "${project}/Assets/Sprites/anim_preserve.png" "")
 file(WRITE "${project}/Assets/Sprites/anim_preserve.config" "invalid-but-owned")
