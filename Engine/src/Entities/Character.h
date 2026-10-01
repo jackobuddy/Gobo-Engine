@@ -75,11 +75,4 @@ public:
 		collision->offsetY = c.collision.offsetY;
 		health->healthPercentage = c.health.healthPercentage;
 	}
-
-	// Returns a pointer to the Character's Box Collision Component. 
-	BoxCollisionComponent* GetBoxCollision() { return GetComponent<BoxCollisionComponent>(); }
-	// Returns a pointer to the Character's Health Component
-	HealthComponent* GetHealth() { return GetComponent<HealthComponent>(); }
-	// Returns a pointer to the Character's Sprite Collision Component. 
-	SpriteComponent* GetSprite() { return GetComponent<SpriteComponent>(); }
 };

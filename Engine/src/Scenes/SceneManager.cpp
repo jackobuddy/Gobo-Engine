@@ -161,8 +161,10 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     activeScene.reset();
     // These services are Scene-scoped in the first implementation.
     context.GetText().Clear();
+
     // Swapping the session destroys the old World and EventManager.
     worldHost.SetActiveSession(std::move(nextSession));
+    context.GetWorld().SetAssetManager(context.GetAssets()); 
     context.GetCamera().position = defaultCameraPosition;
     if (!context.SetViewSize(static_cast<int>(defaultCameraViewSize.x),
         static_cast<int>(defaultCameraViewSize.y)))

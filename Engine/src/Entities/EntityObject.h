@@ -14,7 +14,9 @@
 #include <string>
 #include <utility>
 
+class AssetManager; 
 class CollisionEvent; 
+
 
 class EntityObject
 {
@@ -147,6 +149,7 @@ public:
     bool Updates = true; 
 
 protected: 
+    AssetManager* GetAssetManager() const; 
 	Entity entity; 
 
 private:

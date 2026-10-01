@@ -23,7 +23,9 @@
 #include <exception>
 #include <vector>
 
+class AssetManager;
 class EventManager; 
+class SceneManager; 
 
 
 // The World manages the creation and destruction of entities, systems, 
@@ -193,10 +195,17 @@ public:
 	TObject& CreateObject(const std::string& name, TArgs&&... args);
 
 private:
+	friend class EntityObject;
+	friend class SceneManager; 
+
+	void SetAssetManager(AssetManager& value) noexcept { assetManager = &value; }
+	AssetManager* GetAssetManager() const noexcept { return assetManager; }
+
 	void RemoveName(Entity entity);
 	Entity AllocateEntityHandle();
 	std::shared_ptr<void> lifetime = std::make_shared<int>(0);
-	EventManager* eventManager = nullptr; // session owns it
+	EventManager* eventManager = nullptr; 
+	AssetManager* assetManager = nullptr; 
 	unsigned callbackDepth = 0;
 	bool flushing = false;
 	std::set<Entity> destructionBatch;
@@ -390,37 +399,57 @@ inline bool World::HasComponent(Entity entity) const
 template<typename TComponent>
 inline TComponent* World::GetComponent(const Entity& entity)
 {
-	const auto componentID = Component<TComponent>::GetID();
-
-	if (not IsValidComponetAccess(entity, componentID))
+	if (!IsEntityAlive(entity))
 	{
-		Logger::Error("GetComponent() returned an invalid Component Access.");
+		Logger::Error("GetComponent() received a dead or foreign Entity.");
 		return nullptr;
 	}
 
-	// Returns a reference to the needed Component. 
-	auto ComponentPool = 
-		std::static_pointer_cast<Pool<TComponent>>(componentPools[componentID]); 
-	
-	return ComponentPool->Get(entity.GetID());
+	const auto componentID = Component<TComponent>::GetID();
+
+	if (componentID >= MAX_COMPONENTS)
+	{
+		Logger::Error("Maximum component type count exceeded.");
+		return nullptr;
+	}
+
+	if (componentID >= componentPools.size() || !componentPools[componentID] ||
+		!entityComponentSignatures[entity.GetID()].test(componentID))
+	{
+		return nullptr;
+	}
+
+	auto componentPool = std::static_pointer_cast<Pool<TComponent>>(componentPools[componentID]);
+
+	return componentPool->Get(entity.GetID());
 }
 
 template<typename TComponent>
 inline const TComponent* World::GetComponent(const Entity& entity) const
 {
-	const auto componentID = Component<TComponent>::GetID();
-
-	if (not IsValidComponetAccess(entity, componentID))
+	if (!IsEntityAlive(entity))
 	{
-		Logger::Error("GetComponent() returned an invalid Component Access.");
+		Logger::Error("GetComponent() received a dead or foreign Entity.");
 		return nullptr;
 	}
 
-	// Returns a reference to the needed Component. 
-	auto ComponentPool =
-		std::static_pointer_cast<Pool<TComponent>>(componentPools[componentID]);
+	const auto componentID = Component<TComponent>::GetID();
 
-	return ComponentPool->Get(entity.GetID());
+	if (componentID >= MAX_COMPONENTS)
+	{
+		Logger::Error("Maximum component type count exceeded.");
+		return nullptr;
+	}
+
+	if (componentID >= componentPools.size() || !componentPools[componentID] ||
+		!entityComponentSignatures[entity.GetID()].test(componentID))
+	{
+		return nullptr;
+	}
+
+	auto componentPool = std::static_pointer_cast<Pool<TComponent>>(componentPools[componentID]);
+
+	return componentPool->Get(entity.GetID());
 }
 
 template<typename TSystem, typename ...TArgs>

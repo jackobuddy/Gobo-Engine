@@ -1,8 +1,13 @@
 #pragma once
 
-#include "../Entities/EntityObject.h"
+#include "../AssetManager/AssetManager.h"
+#include "../Components/SpriteComponent.h"
 #include "../Components/TransformComponent.h"
 #include "../Components/RigidBodyComponent.h"
+#include "../Components/SpriteComponent.h"
+#include "../Components/BoxCollisionComponent.h"
+#include "../Components/HealthComponent.h"
+#include "../Entities/EntityObject.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 
@@ -41,6 +46,58 @@ public:
 		transform->rotation = config.rotation;
 		rigidBody->velocity = config.velocity;
 		this->Updates = config.updates;
+	}
+
+	// Adds a new Sprite Component to the Actor if needed, then applies the provided Sprite settings
+	// to the new Component. 
+	bool AddSprite(const std::string& spriteID, int layer = 0, int alpha = 255, bool fixed = false, 
+		bool hidden = false)
+	{
+		const SpriteRef definition = ResolveSprite(spriteID);
+		if (!definition)
+			return false;
+
+		if (!HasComponent<SpriteComponent>())
+		{
+			AddComponent<SpriteComponent>(definition, layer, alpha, fixed, hidden);
+			return HasComponent<SpriteComponent>();
+		}
+
+		SpriteComponent* sprite = GetComponent<SpriteComponent>();
+		if (!sprite)
+		{
+			Logger::Error("Actor has an invalid SpriteComponent.");
+			return false;
+		}
+
+		if (!sprite->SetSprite(definition))
+			return false;
+
+		sprite->SetLayer(layer);
+		sprite->SetAlpha(alpha);
+		sprite->SetFixed(fixed);
+		sprite->SetIsHidden(hidden);
+		return true;
+	}
+	// Sets the Sprite used by this Actor's Sprite Component. Requires a SpriteComponent to already
+	// be on the class. If you need to add a SpriteComponent, use AddSprite(...) instead. 
+	bool SetSprite(const std::string& spriteID)
+	{
+		if (!HasComponent<SpriteComponent>())
+		{
+			Logger::Error("SetSprite requires this Actor to have a SpriteComponent.");
+			return false;
+		}
+
+		SpriteComponent* sprite = GetComponent<SpriteComponent>();
+		if (!sprite)
+		{
+			Logger::Error("Actor has an invalid SpriteComponent.");
+			return false;
+		}
+
+		const SpriteRef definition = ResolveSprite(spriteID);
+		return definition && sprite->SetSprite(definition);
 	}
 
 	Vector2 GetLocation()
@@ -161,4 +218,27 @@ public:
 	TransformComponent* GetTransform() { return GetComponent<TransformComponent>(); }
 	// Returns a pointer to the Actor's Rigid Body Component
 	RigidBodyComponent* GetRigidBody() { return GetComponent<RigidBodyComponent>(); }
+	// Returns a pointer to the Actor's Box Collision Component. 
+	BoxCollisionComponent* GetBoxCollision() { return GetComponent<BoxCollisionComponent>(); }
+	// Returns a pointer to the Actor's Health Component
+	HealthComponent* GetHealth() { return GetComponent<HealthComponent>(); }
+	// Returns a pointer to the Actor's Sprite Collision Component. 
+	SpriteComponent* GetSprite() { return GetComponent<SpriteComponent>(); }
+
+private:
+	SpriteRef ResolveSprite(const std::string& spriteID) const
+	{
+		if (spriteID.empty())
+		{
+			Logger::Error("Sprite ID must not be empty.");
+			return {};
+		}
+		AssetManager* assets = GetAssetManager();
+		if (!assets)
+		{
+			Logger::Error("Cannot resolve a Sprite before the World has asset access.");
+			return {};
+		}
+		return assets->GetSprite(spriteID);
+	}
 };
