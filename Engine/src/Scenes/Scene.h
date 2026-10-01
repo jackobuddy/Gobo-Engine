@@ -18,4 +18,26 @@ public:
 		if (!context.SetViewSize(width, height)) { context.RequestQuit(); return false; }
 		return true; 
 	}
+
+protected:
+	void QuitGame()
+	{
+		if (activeContext) 
+			activeContext->RequestQuit(); 
+	}
+
+private:
+	friend class SceneManager; 
+
+	void AttachContext(GameContext& context)
+	{
+		activeContext = &context; 
+	}
+
+	void DetachContext()
+	{
+		activeContext = nullptr; 
+	}
+
+	GameContext* activeContext = nullptr; 
 };

@@ -15,6 +15,8 @@ add_executable(GoboGameTemplate
     src/main.cpp
     src/Game.cpp
     src/Scenes/MainScene.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(GoboGameTemplate PRIVATE Gobo::Engine)
 add_custom_command(TARGET GoboGameTemplate POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different

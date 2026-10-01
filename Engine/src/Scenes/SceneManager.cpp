@@ -154,6 +154,8 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
                 "Scene OnEnd failed for '" + activeSceneID + "'."
             );
         }
+
+        activeScene->DetachContext(); 
     }
     // Destroy the old Scene object while its old World still exists.
     activeScene.reset();
@@ -170,6 +172,7 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     }
     activeSceneID = id;
     activeScene = std::move(nextScene);
+    activeScene->AttachContext(context); 
     try
     {
         activeScene->OnStart(context);
@@ -182,6 +185,7 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
             "Scene OnStart failed for '" + activeSceneID +
             "': " + error.what()
         );
+        activeScene->DetachContext(); 
         activeScene.reset();
         worldHost.ClearActiveSession();
         activeSceneID.clear();
@@ -194,6 +198,7 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
         Logger::Error(
             "Scene OnStart failed for '" + activeSceneID + "'."
         );
+        activeScene->DetachContext();
         activeScene.reset();
         worldHost.ClearActiveSession();
         activeSceneID.clear();
@@ -250,6 +255,8 @@ void SceneManager::Shutdown(GameContext& context)
         {
             Logger::Error("Scene OnEnd failed.");
         }
+
+        activeScene->DetachContext();
     }
     activeScene.reset();
     worldHost.ClearActiveSession();

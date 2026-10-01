@@ -23,6 +23,8 @@ add_executable(GoboExampleGame
     src/Systems/ProjectileEmitSystem.h
     src/Scenes/ExampleScene.cpp
     src/Scenes/ExampleScene.h)
+target_include_directories(${PROJECT_NAME} PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_link_libraries(GoboExampleGame PRIVATE Gobo::Engine)
 add_custom_command(TARGET GoboExampleGame POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
