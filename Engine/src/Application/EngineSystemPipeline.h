@@ -14,7 +14,7 @@ public:
 	explicit EngineSystemPipeline(SystemsConfig config); 
 
 	void Install(World& world, EventManager& events) const; 
-	void Update(World& world, EventManager& events, Camera& camera, float deltaSeconds) const; 
+	void Update(World& world, Camera& camera, float deltaSeconds) const; 
 	void Render(World& world, AssetManager& assets, Camera& camera, Renderer& renderer, bool debugMode) const; 
 
 private:

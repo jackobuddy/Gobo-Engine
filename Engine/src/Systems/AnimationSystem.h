@@ -16,7 +16,18 @@ public:
             if (!world || !world->CanRunCallbacks(entity)) continue;
             if (!entity.HasComponent<SpriteComponent>()) continue;
             if (auto* sprite = entity.GetComponent<SpriteComponent>())
-                sprite->Advance(deltaSeconds);
+            {
+                if (!sprite->Advance(deltaSeconds))
+                    continue;
+                const std::string animationID = sprite->GetAnimationID();
+                if (!world->CanRunCallbacks(entity))
+                    continue;
+                if (EntityObject* object = world->GetObject(entity))
+                {
+                    World::CallbackScope scope(*world);
+                    object->OnAnimationFinished(animationID);
+                }
+            }
         }
     }
 };

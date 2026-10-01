@@ -1,7 +1,6 @@
 #include "World.h"
 #include "../Logger/Logger.h"
 #include "../Systems/MovementSystem.h"
-#include "../Events/CollisionEvent.h"
 #include "../Events/EventManager.h"
 #include <stdexcept>
 #include <concepts>

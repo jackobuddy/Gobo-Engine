@@ -1,6 +1,6 @@
 # Gobo Engine Documentation - Standing Instructions
 
-Last updated: 2026-09-26 CDT
+Last updated: 2026-10-01 CDT
 
 ## Authority and boundaries
 
@@ -14,6 +14,9 @@ Last updated: 2026-09-26 CDT
 - Maintain this `Documentation` site as the Designer wiki. It documents only the public, game-author-facing surface: creating a game from the template, `IGame`, `GameConfig`, `GameContext`, Scene workflow, and supported gameplay-facing Engine types.
 - Use clear everyday language. Explain technical words when needed. Include short, working-context examples whenever they help a designer get started.
 - Do not expose internal ownership, raw SDL setup, implementation-only system mechanics, or unfinished APIs as normal designer workflows.
+- Never link from the Designer Guide to the Engineering Wiki. Keep the designer learning path self-contained.
+- Explain every EntityObject callback in the designer reference: exact signature, required components/system, when it fires, event fields, practical use, and common mistakes. Distinguish object callbacks, hit-tested interactions, and explicit EventManager subscriptions.
+- Teach through complete, placed examples: identify the class/file/callback, setup, required artwork/config, and expected result. Use Character for the introductory player tutorial and current ExampleGame as a verified reference.
 
 ## Every review
 
@@ -24,6 +27,9 @@ Last updated: 2026-09-26 CDT
 5. Keep the site directly usable from `Documentation/index.html`: no server, build, or package installation.
 6. Keep markup, navigation, search, links, and examples synchronized and validate the site data before completing a review.
 7. Treat department feedback as a useful lead, not a substitute for source verification; reports can describe an earlier build while the Engine changes rapidly.
+8. Recheck source changes reported during a review before keeping a limitation in the guide. Remove completed or no-longer-applicable QA queue entries only after verification.
+9. Keep one canonical definition per wiki page in content/wiki-data.js. Do not accumulate historical overrides or leave obsolete instructions searchable. Retain a small compatibility comment in wiki-data-extra.js while existing entry points load it.
+10. Verify callback coverage against EntityObject.h, and trace system subscriptions/dispatch instead of assuming a declared hook is connected. Check search against function names inside article text, plus links, navigation, and mobile readability.
 
 ## Site organization
 

@@ -1,7 +1,11 @@
 #pragma once
+
 #include "ObjectInputDispatch.h"
 #include "../Components/MouseControlledComponent.h"
 #include "../Events/EventManager.h"
+#include "../Events/MouseWheelEvent.h"
+
+
 class MouseControlSystem : public System
 {
 public:
@@ -20,6 +24,8 @@ public:
             this, &MouseControlSystem::OnLeftMouseButtonReleased);
         events.SubscribeToEvent<RightMouseButtonReleasedEvent>(
             this, &MouseControlSystem::OnRightMouseButtonReleased);
+        events.SubscribeToEvent<MouseWheelEvent>(
+            this, &MouseControlSystem::OnMouseWheel);
     }
     void OnLeftMouseButtonPressed(LeftMouseButtonPressedEvent& e)
     {
@@ -50,5 +56,10 @@ public:
     {
         DispatchObjectInput(GetSystemEntities(), e,
             &EntityObject::OnRightMouseButtonReleased);
+    }
+    void OnMouseWheel(MouseWheelEvent& event)
+    {
+        DispatchObjectInput(GetSystemEntities(), event,
+            &EntityObject::OnMouseWheel);
     }
 };

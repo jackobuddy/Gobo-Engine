@@ -27,12 +27,14 @@ public:
 	}
 
 	// On Collision Event for our Player. 
-	virtual void OnCollision(Entity& other) override
+	virtual void OnCollisionEnter(const Entity& other) override
 	{
+		Entity target = other; 
+
 		// If we are hit by a projectile...
 		if (other.BelongsToGroup("projectiles"))
 		{
-			ProjectileComponent* projectileComponent = other.GetComponent<ProjectileComponent>();
+			ProjectileComponent* projectileComponent = target.GetComponent<ProjectileComponent>();
 			if (not projectileComponent) return;
 
 			// If the projectile isn't friendly, we should take damage from it. 
@@ -45,7 +47,7 @@ public:
 				if (health->healthPercentage <= 0)
 					Destroy();
 
-				other.Destroy();
+				target.Destroy();
 			}
 		}
 	}

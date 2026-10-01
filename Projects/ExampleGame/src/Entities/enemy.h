@@ -9,13 +9,14 @@ public:
 	using Character::Character;
 
 	// Called on a Collision Event
-    void OnCollision(Entity& other) override
+    void OnCollisionEnter(const Entity& other) override
     {
+        Entity target = other; 
         // Non-projectile collisions are normal; ignore them.
-        if (!other.IsAlive() or !other.HasComponent<ProjectileComponent>())
+        if (!other.IsAlive() or !target.HasComponent<ProjectileComponent>())
             return;
 
-        const auto* projectile = other.GetComponent<ProjectileComponent>();
+        const auto* projectile = target.GetComponent<ProjectileComponent>();
 
         if (!projectile or !projectile->isFriendly) return;
 
@@ -27,6 +28,6 @@ public:
         if (health->healthPercentage <= 0)
             Destroy();
 
-        other.Destroy();
+        target.Destroy();
     }
 };

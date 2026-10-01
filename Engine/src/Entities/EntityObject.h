@@ -14,11 +14,12 @@
 #include "../Events/MouseEnteredEvent.h"
 #include "../Events/MouseHoveredEvent.h"
 #include "../Events/MouseLeftEvent.h"
+#include "../Events/MouseWheelEvent.h"
 #include <string>
 #include <utility>
 
 class AssetManager; 
-class CollisionEvent; 
+class World; 
 
 
 class EntityObject
@@ -40,8 +41,15 @@ public:
 	virtual void OnCreated() {}
     // This function runs once every frame, if the object Updates. 
     virtual void Update(float deltaSeconds) {}
-    // Triggered when a Collision occurs with this object. 
-	virtual void OnCollision(Entity& other) {}
+    // Triggered when a collision first occurs with another Entity. 
+    // Requires a TransformComponent and a BoxCollisionComponent. 
+    virtual void OnCollisionEnter(const Entity& other) {}
+    // Triggered each frame while a collision occurs with another Entity. 
+    // Requires a TransformComponent and a BoxCollisionComponent. 
+    virtual void OnCollisionStay(const Entity& other) {}
+    // Triggered when a collision ends with another Entity. 
+    // Requires a TransformComponent and a BoxCollisionComponent. 
+    virtual void OnCollisionLeave(const Entity& other) {}
     // Triggered when the object is left-clicked on. 
     // Requires a MouseControlledComponent, TransformComponent, and a BoxCollisionComponent. 
     virtual void OnLeftClicked() {}
@@ -87,6 +95,12 @@ public:
     // Triggered once when the cursor exits, input is cancelled, or the window loses focus. 
     // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
     virtual void OnMouseLeave(MouseLeftEvent& event) {}
+    // Triggered when the Mouse Wheel is moved. 
+    // Requires a MouseControlComponent. 
+    virtual void OnMouseWheel(MouseWheelEvent& event) {}
+    // Triggered at the end of an Animation. 
+    // Requires an AnimationComponent and a TransformComponent. 
+    virtual void OnAnimationFinished(const std::string& animationID) {}
 
     // Triggered when the object is destroyed. 
 	virtual void OnDestroyed() {}
@@ -163,6 +177,7 @@ public:
 
 protected: 
     AssetManager* GetAssetManager() const; 
+    World* GetWorld() const noexcept { return entity.GetWorld(); }
 	Entity entity; 
 
 private:

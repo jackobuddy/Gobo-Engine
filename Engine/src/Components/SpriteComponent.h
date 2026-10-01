@@ -125,20 +125,27 @@ private:
 
 	static bool Error(const std::string& message) { Logger::Error(message); return false; }
 
-	void Advance(float deltaSeconds)
+	bool Advance(float deltaSeconds)
 	{
-		const auto* animation = AsAnimation();
-		if (not animation or not playing or not std::isfinite(deltaSeconds) or deltaSeconds <= 0) return;
-
-		const int count = animation->GetRow(row).frameCount;
-		cursor += static_cast<double>(deltaSeconds) * fps; 
-		if (loops) cursor = std::fmod(cursor, static_cast<double>(count));
-		else if (cursor >= count)
+		const Animation* animation = AsAnimation();
+		if (!animation || !playing || !std::isfinite(deltaSeconds) ||
+			deltaSeconds <= 0.0f)
+			return false;
+		const int frameCount = animation->GetRow(row).frameCount;
+		if (frameCount <= 0)
+			return false;
+		cursor += deltaSeconds * fps;
+		if (loops)
 		{
-			cursor = count - 1; 
-			playing = false; 
-			finished = true; 
+			cursor = std::fmod(cursor, static_cast<float>(frameCount));
+			return false;
 		}
+		if (cursor < static_cast<float>(frameCount))
+			return false;
+		cursor = static_cast<float>(frameCount - 1);
+		playing = false;
+		finished = true;
+		return true;
 	}
 
 	SpriteRef definition; 

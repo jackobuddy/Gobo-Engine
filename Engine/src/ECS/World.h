@@ -89,12 +89,24 @@ public:
 	{
 		return CreateObject<TActor>(name, config);
 	}
+	template <typename TActor = Actor> requires std::derived_from<TActor, Actor>
+	TActor& CreateAutoNamedActor(const std::string& baseName,
+		const Actor::Config& config = {})
+	{
+		return CreateActor<TActor>(GenerateUniqueName(baseName), config);
+	}
 	// Creates a new Character-type Entity. 
 	template <typename TCharacter = Character>
 	requires std::derived_from<TCharacter, Character>
 	TCharacter& CreateCharacter(const std::string& name, const Character::Config& config = {})
 	{
 		return CreateObject<TCharacter>(name, config);
+	}
+	template <typename TCharacter = Character> requires std::derived_from<TCharacter, Character>
+	TCharacter& CreateAutoNamedCharacter(const std::string& baseName, 
+		const Character::Config& config = {})
+	{
+		return CreateCharacter<TCharacter>(GenerateUniqueName(baseName), config);
 	}
 
 	EntityObject* FindObject(const std::string& name);

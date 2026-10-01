@@ -40,7 +40,7 @@ This script:
 1. Synchronizes and initializes Git submodules.
 2. Bootstraps the included vcpkg installation.
 3. Configures the `windows-x64` CMake preset.
-4. Installs the SDL3, SDL3_image, SDL3_ttf, and SDL3_mixer dependencies declared in `vcpkg.json`.
+4. Resolves the manifest dependencies, including SDL3, SDL3_image, SDL3_ttf, SDL3_mixer, nlohmann-json, and the test dependencies.
 
 Build the suite’s Debug configuration:
 
@@ -60,7 +60,7 @@ From the repository root, run:
 
 The name must start with a letter and contain only letters, numbers, and underscores. The script copies `Projects/GoboGameTemplate` to `Projects/MyGame`, removes template build output, and updates the project name in its CMake and vcpkg files. Add `-InitializeGit` to initialize a separate Git repository in the new project.
 
-> The project-creation script is currently located at the repository root. If it is later moved to `scripts`, use `./scripts/New-GoboProject.ps1` instead.
+The project-creation script is located at the repository root.
 
 Build the new project from its own folder:
 
@@ -74,13 +74,17 @@ The template’s CMake project adds `../../Engine` and links its executable to t
 
 ### Add artwork and other assets
 
-The template stages your game’s `Assets/` folder next to the executable whenever it builds. Put PNG artwork in `Assets/Sprites/`; nested folders are supported. Engine imports those PNGs before your `Game::LoadContent` callback, using the path relative to `Assets/Sprites` without `.png` as the sprite ID. For example, `Assets/Sprites/ui/heart.png` is available as `"ui/heart"` through `assets.GetSprite("ui/heart")`.
+The template stages your game’s `Assets/` folder next to the executable whenever it builds. Put artwork in `Assets/Sprites/`; nested folders are supported. Engine imports PNG, JPG/JPEG, WebP, BMP, and TGA images before `Game::LoadContent`. An ID is the path relative to `Assets/Sprites` without its extension: `Assets/Sprites/ui/heart.png` becomes `"ui/heart"`. Use `Actor::AddSprite("ui/heart")` to add artwork or `Character::SetSprite("ui/heart")` to choose artwork on an existing sprite component. `assets.GetSprite(id)` returns the shared definition for configuration-based use.
+
+An image can have a matching JSON file such as `anim_player.config` beside `anim_player.png`. It describes a static crop, named animation rows, or a tile atlas, and can set an artwork pivot. The template build generates missing starter configs for recognized names such as `spr_`, `anim_`, and `tile_`; it preserves existing files. An optional game-root `project.config` supplies defaults. Both configs and assets are staged for running and packaging. Edit the originals in your project; build output is replaced on the next build.
+
+If a sheet appears as one large image, check its config and the log: invalid or missing image metadata falls back to a full-image static sprite. Two images with the same relative name but different extensions produce a duplicate ID and stop startup.
 
 Keep sounds, maps, and other files elsewhere under `Assets/`, such as `Assets/sounds/confirm.wav`. When code needs a file path, use `assets.GetAssetPath("sounds/confirm.wav")` so it resolves from the staged Assets folder. Do not put game content in `Engine/Assets`.
 
 ## Build a shareable game package
 
-After your project builds, create a self-contained folder with its executable, runtime DLLs, assets, licenses, and available notices:
+After your project builds, return to the repository root and create a folder with its executable, runtime DLLs, assets, configs, licenses, and available notices:
 
 ```powershell
 .\scripts\Build-Game.ps1 -ProjectDirectory .\Projects\MyGame -Configuration Release
@@ -91,6 +95,10 @@ The script writes a timestamped package beneath `Projects\MyGame\out\package\win
 ## Use the Engine from a game project
 
 Gobo Engine is a static CMake library, not a standalone game executable. A game project links to `Gobo::Engine`, includes `<GoboEngine.h>`, implements an `IGame`, and gives that object to `Application::Run`. The supplied template already wires this up, so copying it is the supported starting point.
+
+Your Game registers scenes and chooses `startingScene`. Create level objects in `Scene::OnStart`, then put their behavior in Actor or Character subclasses. Engine automatically calls enabled callbacks for keyboard, mouse buttons, wheel, hover, collision enter/stay/leave, and completed one-shot animations. The template starts with an empty scene; the Designer Guide's first playable tutorial walks through adding a moving Character.
+
+Open [the Designer Guide](Documentation/index.html) directly in a browser. Start with **First playable**, then use **Entity callbacks** to find exact function signatures, component requirements, and examples. Search includes article text and function names. The guide also covers image configs, tilemaps, text, audio, scene transitions, and current ExampleGame patterns.
 
 ## Visual Studio workflow
 

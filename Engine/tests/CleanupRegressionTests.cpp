@@ -64,7 +64,7 @@ namespace {
             AddComponent<TransformComponent>();
             AddComponent<BoxCollisionComponent>(10, 10);
         }
-        void OnCollision(Entity&) override { ++count; }
+        void OnCollisionEnter(const Entity&) override { ++count; }
     };
     struct Ping : Event {};
     struct Listener
@@ -169,7 +169,7 @@ TEST_CASE("Both eligible objects receive one collision hook")
     world.CreateObject<Contact>("a", first);
     world.CreateObject<Contact>("b", second);
     world.Update();
-    world.GetSystem<CollisionSystem>()->Update(world, events);
+    world.GetSystem<CollisionSystem>()->Update(world);
     CHECK(first == 1); CHECK(second == 1);
 }
 TEST_CASE("Unsubscribe then delete skips the next listener")

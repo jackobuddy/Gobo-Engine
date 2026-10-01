@@ -3,7 +3,6 @@
 #include "../ECS/World.h"
 #include "../Components/BoxCollisionComponent.h"
 #include "../Components/TransformComponent.h"
-#include "../Events/CollisionEvent.h"
 #include "../Events/EventManager.h"
 #include <cmath>
 #include <map>
@@ -20,13 +19,47 @@ class CollisionSystem : public System
         return a.x < b.x + b.w && a.x + a.w > b.x &&
             a.y < b.y + b.h && a.y + a.h > b.y;
     }
+
+    struct ContactKey
+    {
+        Entity first; 
+        Entity second; 
+
+        bool operator==(const ContactKey& other) const = default; 
+    };
+
+    struct ContactKeyLess
+    {
+        bool operator()(const ContactKey& left,
+            const ContactKey& right) const
+        {
+            if (left.first < right.first)
+                return true;
+
+            if (right.first < left.first)
+                return false;
+
+            return left.second < right.second;
+        }
+    };
+
+    static ContactKey MakeContactKey(Entity a, Entity b)
+    {
+        if (b < a)
+            std::swap(a, b);
+
+        return { a, b };
+    }
+
+    std::set<ContactKey, ContactKeyLess> activeContacts;
+
 public:
     CollisionSystem()
     {
         RequireComponent<TransformComponent>();
         RequireComponent<BoxCollisionComponent>();
     }
-    void Update(World& world, EventManager& events)
+    void Update(World& world)
     {
         std::vector<Box> boxes;
 
@@ -98,14 +131,38 @@ public:
 
         World::CallbackScope callback(world);
 
-        for (auto [a, b] : contacts)
+        std::set<ContactKey, ContactKeyLess> currentContacts;
+        for (const auto& [a, b] : contacts)
         {
-            if (!world.CanRunCallbacks(a) || !world.CanRunCallbacks(b)) continue;
-            events.EmitEvent<CollisionEvent>(a, b);
-            if (!world.CanRunCallbacks(a) || !world.CanRunCallbacks(b)) continue;
-            if (auto* first = world.GetObject(a)) first->OnCollision(b);
-            if (!world.CanRunCallbacks(a) || !world.CanRunCallbacks(b)) continue;
-            if (auto* second = world.GetObject(b)) second->OnCollision(a);
+            if (!world.CanRunCallbacks(a) || !world.CanRunCallbacks(b))
+                continue;
+            const ContactKey key = MakeContactKey(a, b);
+            const bool wasActive = activeContacts.contains(key);
+            currentContacts.insert(key);
+            World::CallbackScope scope(world);
+            if (EntityObject* first = world.GetObject(a))
+            {
+                if (wasActive) first->OnCollisionStay(b);
+                else           first->OnCollisionEnter(b);
+            }
+            if (EntityObject* second = world.GetObject(b))
+            {
+                if (wasActive) second->OnCollisionStay(a);
+                else           second->OnCollisionEnter(a);
+            }
         }
+        for (const ContactKey& key : activeContacts)
+        {
+            if (currentContacts.contains(key))
+                continue;
+            World::CallbackScope scope(world);
+            if (world.CanRunCallbacks(key.first))
+                if (EntityObject* first = world.GetObject(key.first))
+                    first->OnCollisionLeave(key.second);
+            if (world.CanRunCallbacks(key.second))
+                if (EntityObject* second = world.GetObject(key.second))
+                    second->OnCollisionLeave(key.first);
+        }
+        activeContacts = std::move(currentContacts);
     }
 };

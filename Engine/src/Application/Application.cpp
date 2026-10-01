@@ -18,6 +18,7 @@
 #include "../Events/LeftMouseButtonReleasedEvent.h"
 #include "../Events/RightMouseButtonReleasedEvent.h"
 #include "../Events/MouseMotionEvent.h"
+#include "../Events/MouseWheelEvent.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include "../Rendering/Renderer.h"
@@ -139,6 +140,23 @@ void Application::ProcessInput(GameContext& context)
 			world = screen + context.GetCamera().position;
 		events.EmitEvent<T>(world, screen, valid, inside, cancel);
 	};
+	const auto emitMouseWheel = [&](float x, float y, float horizontal, float vertical)
+	{
+		Vector2 screenPosition(0.0f, 0.0f);
+		const bool positionValid = renderer &&
+			renderer->WindowToRender(Vector2(x, y), screenPosition);
+		const Vector2 viewSize = renderer->GetViewSize();
+		const bool insideViewport = positionValid &&
+			screenPosition.x >= 0.0f && screenPosition.y >= 0.0f &&
+			screenPosition.x < viewSize.x && screenPosition.y < viewSize.y;
+		Vector2 worldPosition(0.0f, 0.0f);
+		if (positionValid)
+			worldPosition = screenPosition + context.GetCamera().position;
+		if (insideViewport)
+			events.EmitEvent<MouseWheelEvent>(worldPosition, screenPosition,
+				positionValid, insideViewport,
+				horizontal, vertical);
+	};
 	SDL_Event event{};
 	while (SDL_PollEvent(&event))
 	{
@@ -200,6 +218,17 @@ void Application::ProcessInput(GameContext& context)
 				emitRelease.template operator() < RightMouseButtonReleasedEvent > (
 					event.button.x, event.button.y, false);
 			}
+		}
+		else if (inputFocused && event.type == SDL_EVENT_MOUSE_WHEEL)
+		{
+			float mouseX = 0.0f;
+			float mouseY = 0.0f;
+			SDL_GetMouseState(&mouseX, &mouseY);
+			const float direction =
+				event.wheel.direction == SDL_MOUSEWHEEL_FLIPPED ? -1.0f : 1.0f;
+			emitMouseWheel(mouseX, mouseY,
+				event.wheel.x * direction,
+				event.wheel.y * direction);
 		}
 	}
 	if (!context.IsRunning() || !inputFocused) return;
@@ -326,8 +355,7 @@ int Application::Run(IGame& game)
 			}
 
 			phase = "System Update";
-			systemPipeline->Update(context->GetWorld(),
-				context->GetEvents(), camera, deltaSeconds);
+			systemPipeline->Update(context->GetWorld(), camera, deltaSeconds);
 			if (!isRunning) break;
 
 			phase = "Scene/Entity Update";
