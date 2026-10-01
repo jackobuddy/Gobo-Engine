@@ -30,6 +30,7 @@
 #include "Math/Math.h"
 #include "Rendering/Camera.h"
 #include "Rendering/Renderer.h"
+#include "Rendering/TextAlignment.h"
 #include "Rendering/TextLabelConfig.h"
 #include "Rendering/TextManager.h"
 #include "Scenes/Scene.h"

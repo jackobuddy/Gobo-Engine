@@ -92,6 +92,27 @@ bool TextManager::SetColor(const std::string & id,
     return label and label->SetColor(color);
 }
 
+bool TextManager::SetFontSize(const std::string& id, float value)
+{
+    TextLabel* label = Find(id);
+    return label && label->SetFontSize(value);
+}
+bool TextManager::SetWrapWidth(const std::string& id, float value)
+{
+    TextLabel* label = Find(id);
+    return label && label->SetWrapWidth(value);
+}
+bool TextManager::SetWordWrap(const std::string& id, bool value)
+{
+    TextLabel* label = Find(id);
+    return label && label->SetWordWrap(value);
+}
+bool TextManager::SetAlignment(const std::string& id, TextAlignment value)
+{
+    TextLabel* label = Find(id);
+    return label && label->SetAlignment(value);
+}
+
 bool TextManager::SetPosition(const std::string& id,
     Vector2 position)
 {
@@ -126,6 +147,37 @@ bool TextManager::SetVisible(const std::string& id, bool visible)
     return true;
 }
 
+bool TextManager::SetSpace(const std::string& id, TextSpace space)
+{
+    TextLabel* label = Find(id); 
+    if (not label) return false; 
+    label->SetSpace(space); 
+    return true; 
+}
+
+bool TextManager::SetStyle(const std::string& id, const TextStyle& style)
+{
+    TextLabel* label = Find(id); 
+    if (not label) return false; 
+    label->SetStyle(style); 
+    return true; 
+}
+
+bool TextManager::Render(Vector2 cameraPosition)
+{
+    if (orderDirty) RebuildRenderOrder();
+
+    bool succeeded = true;
+    for (const TextLabel* label : renderOrder)
+    {
+        Vector2 screenPosition = label->GetPosition();
+        if (label->GetSpace() == TextSpace::World)
+            screenPosition -= cameraPosition;
+        succeeded = label->Render(screenPosition) && succeeded;
+    }
+    return succeeded;
+}
+
 void TextManager::RebuildRenderOrder()
 {
     renderOrder.clear();
@@ -144,12 +196,15 @@ void TextManager::RebuildRenderOrder()
     orderDirty = false;
 }
 
-bool TextManager::Render()
+bool TextManager::Measure(const TextLabelConfig& config, TextMetrics& metrics) const
 {
-    if (orderDirty)
-        RebuildRenderOrder();
-    bool succeeded = true;
-    for (const TextLabel* label : renderOrder)
-        succeeded = label->Render() and succeeded;
-    return succeeded;
+    return assets && TextLabel::Measure(*assets, config, metrics);
+}
+
+bool TextManager::GetMetrics(const std::string& id, TextMetrics& metrics) const
+{
+    const TextLabel* label = Find(id);
+    if (!label) { metrics = {}; return false; }
+    metrics = label->GetMetrics();
+    return true;
 }

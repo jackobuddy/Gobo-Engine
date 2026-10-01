@@ -5,6 +5,7 @@
 #include <memory>
 
 struct SDL_Renderer; 
+class Camera; 
 class Window; 
 class AssetManager;
 class TextManager; 
@@ -36,7 +37,7 @@ public:
 	void Destroy();
 	bool InitializeText(AssetManager& assets);
 	void ShutdownText();
-	bool RenderText();
+	bool RenderText(const Camera& camera);
 	TextManager& GetTextManager();
 	bool BeginFrame(Color clearColor); 
 	void Present(); 

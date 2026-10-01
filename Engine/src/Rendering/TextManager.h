@@ -1,6 +1,8 @@
 #pragma once
 
 #include "TextLabelConfig.h"
+#include "TextAlignment.h"
+#include "Math/Math.h"
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -31,10 +33,19 @@ public:
     bool SetText(const std::string& id, const std::string& text);
     bool SetFont(const std::string& id, const std::string& fontID);
     bool SetColor(const std::string& id, Color color);
+    bool SetFontSize(const std::string& id, float value); 
+    bool SetWrapWidth(const std::string& id, float value); 
+    bool SetWordWrap(const std::string& id, bool value); 
+    bool SetAlignment(const std::string& id, TextAlignment value); 
     bool SetPosition(const std::string& id, Vector2 position);
     bool SetScale(const std::string& id, float scale);
     bool SetLayer(const std::string& id, int layer);
     bool SetVisible(const std::string& id, bool visible);
+    bool SetSpace(const std::string& id, TextSpace space);
+    bool SetStyle(const std::string& id, const TextStyle& style);
+    bool Render(Vector2 cameraPosition);
+    bool Measure(const TextLabelConfig& config, TextMetrics& metrics) const;
+    bool GetMetrics(const std::string& id, TextMetrics& metrics) const;
     bool Render();
 
 private:

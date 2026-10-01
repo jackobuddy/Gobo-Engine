@@ -395,7 +395,7 @@ int Application::Run(IGame& game)
 			if (!isRunning) break;
 
 			phase = "Text/Present/Audio";
-			if (!renderer->RenderText())
+			if (!renderer->RenderText(camera))
 				Logger::Error("One or more text labels failed to render");
 			renderer->Present();
 			audioManager->Update();

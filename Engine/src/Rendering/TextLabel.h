@@ -1,6 +1,7 @@
 #pragma once
 
 #include "TextLabelConfig.h"
+#include "TextAlignment.h"
 #include <cstdint>
 #include <string>
 #include <SDL3/SDL.h>
@@ -32,8 +33,22 @@ private:
     void SetScale(float scale);
     void SetLayer(int layer);
     void SetVisible(bool visible);
-    bool Render() const;
+    bool SetFontSize(float value); 
+    bool SetWrapWidth(float value); 
+    bool SetWordWrap(bool value); 
+    bool SetAlignment(TextAlignment value); 
+    bool SetSpace(TextSpace value);
+    bool SetStyle(const TextStyle& value);
+    TextSpace GetSpace() const { return space; }
+    Vector2 GetPosition() const { return position; }
+    bool Render(Vector2 screenPosition) const;
+    TextLabelConfig MakeConfig() const;
     bool RebuildTexture();
+
+    static bool CreateSurface(AssetManager& assets, const TextLabelConfig& config, Color color,
+        int outlineWidth, SDL_Surface*& surface);
+    TextMetrics GetMetrics() const;
+    static bool Measure(AssetManager& assets, const TextLabelConfig& config, TextMetrics& metrics);
 
     SDL_Renderer* renderer = nullptr;
     AssetManager* assets = nullptr;
@@ -47,5 +62,13 @@ private:
     float scale = 1.0f;
     int layer = 0;
     bool visible = true;
+    float fontSize = 0.0f; 
+    float wrapWidth = 0.0f; 
+    bool wordWrap = false; 
+    TextAlignment alignment = TextAlignment::Left; 
+    TextSpace space = TextSpace::Screen;
+    TextStyle style{};
     std::uint64_t creationOrder = 0;
+    SDL_Texture* shadowTexture = nullptr;
+    SDL_Texture* outlineTexture = nullptr;
 };

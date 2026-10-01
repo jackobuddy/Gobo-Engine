@@ -1,5 +1,6 @@
 #include "Renderer.h"
 #include "Window.h"
+#include "Camera.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include "TextManager.h"
@@ -113,9 +114,9 @@ void Renderer::ShutdownText()
 	textManager.reset();
 }
 
-bool Renderer::RenderText()
+bool Renderer::RenderText(const Camera& camera)
 {
-	return textManager ? textManager->Render() : true;
+	return textManager ? textManager->Render(camera.position) : true;
 }
 
 TextManager& Renderer::GetTextManager()
