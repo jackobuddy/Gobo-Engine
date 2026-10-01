@@ -11,12 +11,16 @@ using SpriteRef = std::shared_ptr<const Sprite>;
 class Sprite
 {
 public:
-	Sprite(std::string textureID, int width, int height, int originX = 0, int originY = 0) :
-		textureID(std::move(textureID)), width(width), height(height), originX(originX), originY(originY)
-	{
-		if (this->textureID.empty() or width <= 0 or height <= 0 or originX < 0 or originY < 0)
-			throw std::invalid_argument("Invalid Sprite definition. ");
-	}
+    Sprite(std::string textureID, int width, int height, int sourceX = 0, int sourceY = 0, int pivotX = 0,
+        int pivotY = 0): textureID(std::move(textureID)), width(width), height(height), sourceX(sourceX),
+		sourceY(sourceY), pivotX(pivotX), pivotY(pivotY)
+    {
+        if (this->textureID.empty() || width <= 0 || height <= 0 || sourceX < 0 || sourceY < 0 ||
+            pivotX < 0 || pivotY < 0)
+        {
+            throw std::invalid_argument("Invalid Sprite definition.");
+        }
+    }
 	virtual ~Sprite() = default;
 	virtual SpriteRef Clone() const
 	{
@@ -25,10 +29,12 @@ public:
 	const std::string& GetTextureID() const { return textureID; }
 	int GetWidth() const { return width; }
 	int GetHeight() const { return height; }
-	int GetOriginX() const { return originX; }
-	int GetOriginY() const { return originY; }
+	int GetSourceX() const { return sourceX; }
+	int GetSourceY() const { return sourceY; }
+	int GetPivotX() const { return pivotX; }
+	int GetPivotY() const { return pivotY; }
 
 private:
 	std::string textureID; 
-	int width, height, originX, originY; 
+	int width, height, sourceX, sourceY, pivotX, pivotY;
 };

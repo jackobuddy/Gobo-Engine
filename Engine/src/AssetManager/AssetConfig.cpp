@@ -89,23 +89,27 @@ namespace AssetConfig
 		void ValidateDefaults(const std::string& type, const Json& j)
 		{
 			if (type == "sprite")
-				Keys(j, { "width", "height", "originX", "originY" });
+				Keys(j, { "width", "height", "sourceX", "sourceY", "pivotX", "pivotY"});
 			else if (type == "animation")
-				Keys(j, { "width", "height", "defaultFPS", "defaultFrameCount", "rowCount" });
+				Keys(j, {"width", "height", "pivotX", "pivotY", "defaultFPS", "defaultFrameCount", "rowCount" });
 			else
 				Keys(j, { "width", "height", "atlasColumns", "atlasRows" });
 			Integer(j, "width");
 			Integer(j, "height");
 			if (type == "sprite")
 			{
-				Integer(j, "originX", 0);
-				Integer(j, "originY", 0);
+				Integer(j, "sourceX", 0);
+				Integer(j, "sourceY", 0);
+				Integer(j, "pivotX", 0); 
+				Integer(j, "pivotY", 0); 
 			}
 			else if (type == "animation")
 			{
 				FPS(j);
 				Integer(j, "defaultFrameCount");
 				Integer(j, "rowCount", 1, MaxRows);
+				Integer(j, "pivotX", 0);
+				Integer(j, "pivotY", 0);
 			}
 			else
 			{
@@ -145,12 +149,10 @@ namespace AssetConfig
 	Defaults EngineDefaults()
 	{
 		return {
-			{{"width", 32}, {"height", 32},
-				{"originX", 0}, {"originY", 0}},
-			{{"width", 32}, {"height", 32}, {"defaultFPS", 10},
+			{{"width", 32}, {"height", 32}, {"sourceX", 0}, {"sourceY", 0}, {"pivotX", 0}, {"pivotY", 0}},
+			{{"width", 32}, {"height", 32}, {"pivotX", 0}, {"pivotY", 0}, {"defaultFPS", 10},
 				{"defaultFrameCount", 1}, {"rowCount", 1}},
-			{{"width", 32}, {"height", 32},
-				{"atlasColumns", 1}, {"atlasRows", 1}}
+			{{"width", 32}, {"height", 32}, {"atlasColumns", 1}, {"atlasRows", 1}}
 		};
 	}
 
@@ -207,11 +209,7 @@ namespace AssetConfig
 		return {};
 	}
 
-	OrderedJson MakeConfig(
-		const std::string& type,
-		const Defaults& defaults,
-		int imageWidth,
-		int imageHeight)
+	OrderedJson MakeConfig(const std::string& type, const Defaults& defaults, int imageWidth, int imageHeight)
 	{
 		const Json& values = ForType(type, defaults);
 		ValidateDefaults(type, values);
@@ -222,52 +220,37 @@ namespace AssetConfig
 
 		if (type == "sprite")
 		{
-			const int originX = Integer(values, "originX", 0);
-			const int originY = Integer(values, "originY", 0);
+			const int sourceX = Integer(values, "sourceX", 0);
+			const int sourceY = Integer(values, "sourceY", 0);
+			const int pivotX = Integer(values, "pivotX", 0);
+			const int pivotY = Integer(values, "pivotY", 0);
 
-			if (originX >= imageWidth || originY >= imageHeight)
+			if (sourceX >= imageWidth || sourceY >= imageHeight)
 				throw std::runtime_error(
-					"Sprite origin must be inside the image.");
+					"Sprite source must be inside the image.");
 
-			result["width"] = ClampDimension(
-				Integer(values, "width"),
-				imageWidth - originX,
-				"width");
-
-			result["height"] = ClampDimension(
-				Integer(values, "height"),
-				imageHeight - originY,
-				"height");
-
-			result["originX"] = originX;
-			result["originY"] = originY;
+			result["width"] = ClampDimension(Integer(values, "width"), imageWidth - sourceX, "width");
+			result["height"] = ClampDimension(Integer(values, "height"), imageHeight - sourceY, "height");
+			result["sourceX"] = sourceX;
+			result["sourceY"] = sourceY;
+			result["pivotX"] = pivotX;
+			result["pivotY"] = pivotY;
 		}
 		else if (type == "animation")
 		{
-			const int width = ClampDimension(
-				Integer(values, "width"),
-				imageWidth,
-				"width");
-
-			const int height = ClampDimension(
-				Integer(values, "height"),
-				imageHeight,
-				"height");
-
-			const int defaultFrames = ClampCount(
-				Integer(values, "defaultFrameCount"),
-				imageWidth,
-				width,
-				"defaultFrameCount");
-
-			const int rowCount = ClampCount(
-				Integer(values, "rowCount", 1, MaxRows),
-				imageHeight,
-				height,
-				"rowCount");
+			const int width = ClampDimension(Integer(values, "width"), imageWidth, "width"); 
+			const int height = ClampDimension(Integer(values, "height"), imageHeight, "height");
+			const int pivotX = Integer(values, "pivotX", 0);
+			const int pivotY = Integer(values, "pivotY", 0);
+			const int defaultFrames = ClampCount(Integer(values, "defaultFrameCount"), imageWidth,
+				width, "defaultFrameCount");
+			const int rowCount = ClampCount(Integer(values, "rowCount", 1, MaxRows), imageHeight,
+				height, "rowCount");
 
 			result["width"] = width;
 			result["height"] = height;
+			result["pivotX"] = pivotX;
+			result["pivotY"] = pivotY;
 			result["defaultFPS"] = values.at("defaultFPS");
 			result["defaultFrameCount"] = defaultFrames;
 			result["rowCount"] = rowCount;
@@ -320,11 +303,11 @@ namespace AssetConfig
 		const std::string type = Lower(document.at("type").get<std::string>());
 		Json values = ForType(type, defaults);
 		if (type == "sprite")
-			Keys(document, { "schemaVersion", "type", "width", "height",
-				"originX", "originY" });
+			Keys(document, { "schemaVersion", "type", "width", "height", "sourceX", "sourceY", "pivotX",
+				"pivotY"});
 		else if (type == "animation")
-			Keys(document, { "schemaVersion", "type", "width", "height",
-				"defaultFPS", "defaultFrameCount", "rowCount", "rows" });
+			Keys(document, {"schemaVersion", "type", "width", "height", "pivotX", "pivotY", "defaultFPS",
+				"defaultFrameCount", "rowCount", "rows"});
 		else
 			Keys(document, { "schemaVersion", "type", "width", "height",
 				"atlasColumns", "atlasRows" });
@@ -355,11 +338,13 @@ namespace AssetConfig
 			};
 		if (type == "sprite")
 		{
-			const int x = Integer(values, "originX", 0);
-			const int y = Integer(values, "originY", 0);
-			fits(static_cast<std::int64_t>(x) + width,
-				static_cast<std::int64_t>(y) + height);
-			return Sprite(id, width, height, x, y).Clone();
+			const int sourceX = Integer(values, "sourceX", 0);
+			const int sourceY = Integer(values, "sourceY", 0);
+			const int pivotX = Integer(values, "pivotX", 0);
+			const int pivotY = Integer(values, "pivotY", 0);
+
+			fits(static_cast<std::int64_t>(sourceX) + width, static_cast<std::int64_t>(sourceY) + height);
+			return Sprite(id, width, height, sourceX, sourceY, pivotX, pivotY).Clone();
 		}
 		if (type == "tilemap")
 		{
@@ -392,7 +377,10 @@ namespace AssetConfig
 				static_cast<std::int64_t>(count) * height);
 			rows.push_back({ name, rowFrames });
 		}
-		Animation animation(id, width, height, FPS(values), frames, count);
+		const int pivotX = Integer(values, "pivotX", 0);
+		const int pivotY = Integer(values, "pivotY", 0);
+
+		Animation animation(id, width, height, FPS(values), frames, count, pivotX, pivotY);
 
 		// Avoid temporary collisions with Animation's initial row-N names.
 		std::string temporary = "__gobo_config_";

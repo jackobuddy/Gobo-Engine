@@ -338,8 +338,8 @@ bool AssetManager::DefineSprite(const std::string& id, const Sprite& definition)
 		Logger::Error("Cannot register Sprite: " + id + " (missing texture or ID)");
 		return false; 
 	}
-	std::int64_t requiredWidth = static_cast<std::int64_t>(definition.GetOriginX()) + definition.GetWidth();
-	std::int64_t requiredHeight = static_cast<std::int64_t>(definition.GetOriginY()) + definition.GetHeight(); 
+	std::int64_t requiredWidth = static_cast<std::int64_t>(definition.GetSourceX()) + definition.GetWidth();
+	std::int64_t requiredHeight = static_cast<std::int64_t>(definition.GetSourceY()) + definition.GetHeight();
 
 	if (const auto* tilemap = dynamic_cast<const Tilemap*>(&definition))
 	{

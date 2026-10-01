@@ -14,8 +14,8 @@ public:
 	};
 
 	Animation(std::string textureID, int width, int height, float defaultFPS, int defaultFrames,
-		int rowCount) : Sprite(std::move(textureID), width, height), defaultFPS(defaultFPS),
-		defaultFrames(defaultFrames)
+		int rowCount, int pivotX = 0, int pivotY = 0) : Sprite(std::move(textureID), width, height, 0, 0, 
+		pivotX, pivotY), defaultFPS(defaultFPS), defaultFrames(defaultFrames)
 	{
 		if (not std::isfinite(defaultFPS) or defaultFPS <= 0 or defaultFrames <= 0 or rowCount <= 0)
 			throw std::invalid_argument("Invalid Animation defaults.");
