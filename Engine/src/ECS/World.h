@@ -27,6 +27,7 @@ class AssetManager;
 class DrawManager; 
 class EventManager; 
 class SceneManager; 
+class TextManager; 
 
 
 // The World manages the creation and destruction of entities, systems, 
@@ -159,6 +160,25 @@ public:
 	}
 	Vector2 GetWorldSize() const { return worldSize; }
 
+	bool RequestSceneChange(const std::string& sceneID)
+	{
+		return sceneChangeRequestHandler && sceneChangeRequestHandler(sceneID); 
+	}
+	void SetSceneChangeRequestHandler(std::function<bool(const std::string&)> handler)
+	{
+		sceneChangeRequestHandler = std::move(handler); 
+	}
+
+	void SetTextManager(TextManager& value)
+	{
+		textManager = &value;
+	}
+
+	TextManager* GetTextManager() const
+	{
+		return textManager;
+	}
+
 	// Requests that the game be ended. 
 	void RequestQuit()
 	{
@@ -222,6 +242,7 @@ private:
 	EventManager* eventManager = nullptr; 
 	AssetManager* assetManager = nullptr; 
 	DrawManager* drawManager = nullptr; 
+	TextManager* textManager = nullptr;
 	unsigned callbackDepth = 0;
 	bool flushing = false;
 	std::set<Entity> destructionBatch;
@@ -262,6 +283,7 @@ private:
 	// Handler used to request quitting the game from the World. 
 	std::function<void()> quitRequestHandler;
 	std::function<void()> debugModeToggleRequestHandler;
+	std::function<bool(const std::string&)> sceneChangeRequestHandler;
 
 	// Set size of the world map. The Camera System uses this to determine the bounds of the map. 
 	Vector2 worldSize = Vector2(1920, 1080); 

@@ -233,7 +233,7 @@ private:
 			Logger::Error("Sprite ID must not be empty.");
 			return {};
 		}
-		AssetManager* assets = GetAssetManager();
+		AssetManager* assets = GetAsset();
 		if (!assets)
 		{
 			Logger::Error("Cannot resolve a Sprite before the World has asset access.");

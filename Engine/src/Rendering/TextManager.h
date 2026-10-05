@@ -37,6 +37,7 @@ public:
     bool SetWrapWidth(const std::string& id, float value); 
     bool SetWordWrap(const std::string& id, bool value); 
     bool SetAlignment(const std::string& id, TextAlignment value); 
+    bool SetAnchor(const std::string& id, TextAnchor anchor);
     bool SetPosition(const std::string& id, Vector2 position);
     bool SetScale(const std::string& id, float scale);
     bool SetLayer(const std::string& id, int layer);

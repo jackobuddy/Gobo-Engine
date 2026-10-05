@@ -30,6 +30,10 @@ public:
 	bool HasActiveScene() const; 
 	const std::string& GetActiveSceneID() const; 
 
+	void OnKeyPressed(KeyPressedEvent& event);
+	void OnKeyReleased(KeyReleasedEvent& event);
+	void OnKeyHeld(KeyHeldEvent& event);
+
 	bool GoTo(const std::string& id);
 	bool Restart(); 
 

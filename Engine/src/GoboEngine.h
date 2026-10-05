@@ -34,6 +34,7 @@
 #include "Rendering/DrawSpace.h"
 #include "Rendering/Renderer.h"
 #include "Rendering/TextAlignment.h"
+#include "Rendering/TextAnchor.h"
 #include "Rendering/TextLabelConfig.h"
 #include "Rendering/TextManager.h"
 #include "Scenes/Scene.h"

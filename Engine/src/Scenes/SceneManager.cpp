@@ -166,6 +166,7 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     worldHost.SetActiveSession(std::move(nextSession));
     context.GetWorld().SetAssetManager(context.GetAssets()); 
     context.GetWorld().SetDrawManager(context.GetDraw()); 
+    context.GetWorld().SetTextManager(context.GetText());
     context.GetCamera().position = defaultCameraPosition;
     if (!context.SetViewSize(static_cast<int>(defaultCameraViewSize.x),
         static_cast<int>(defaultCameraViewSize.y)))
@@ -176,6 +177,11 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     activeSceneID = id;
     activeScene = std::move(nextScene);
     activeScene->AttachContext(context); 
+    context.GetWorld().SetSceneChangeRequestHandler([this](const std::string& sceneID)
+    {
+        return GoTo(sceneID);
+    }
+    );
     try
     {
         activeScene->OnStart(context);
@@ -209,6 +215,15 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
         quitRequestHandler();
         return false;
     }
+
+    EventManager* event = worldHost.GetWorld().eventManager;
+    if (event)
+    {
+        event->SubscribeToEvent<KeyHeldEvent>(this, &SceneManager::OnKeyHeld);
+        event->SubscribeToEvent<KeyPressedEvent>(this, &SceneManager::OnKeyPressed);
+        event->SubscribeToEvent<KeyReleasedEvent>(this, &SceneManager::OnKeyReleased);
+    }
+
     Logger::Log("Scene started: " + activeSceneID);
     return true;
 }
@@ -242,6 +257,24 @@ void SceneManager::Update(GameContext& context, float deltaSeconds)
 void SceneManager::Render(GameContext& context)
 {
     if (activeScene) activeScene->Render(context);
+}
+
+void SceneManager::OnKeyPressed(KeyPressedEvent& event)
+{
+    if (activeScene)
+        activeScene->OnKeyPressed(event); 
+}
+
+void SceneManager::OnKeyReleased(KeyReleasedEvent& event)
+{
+    if (activeScene)
+        activeScene->OnKeyReleased(event);
+}
+
+void SceneManager::OnKeyHeld(KeyHeldEvent& event)
+{ 
+    if (activeScene)
+        activeScene->OnKeyHeld(event);
 }
 
 void SceneManager::Shutdown(GameContext& context)

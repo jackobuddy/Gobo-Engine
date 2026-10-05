@@ -3,6 +3,7 @@
 #include "../AssetManager/BuiltinAssets.h"
 #include "../Math/Math.h"
 #include "TextAlignment.h"
+#include "TextAnchor.h"
 #include "TextMetrics.h"
 #include "TextSpace.h"
 #include "TextStyle.h"
@@ -22,6 +23,7 @@ struct TextLabelConfig
 	float wrapWidth = 0.0f; 
 	bool wordWrap = false; 
 	TextAlignment alignment = TextAlignment::Left; 
+	TextAnchor anchor = TextAnchor::TopLeft; 
 	TextSpace space = TextSpace::Screen; 
 	TextStyle style{}; 
 };

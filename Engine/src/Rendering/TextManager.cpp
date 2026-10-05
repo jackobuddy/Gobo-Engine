@@ -163,6 +163,19 @@ bool TextManager::SetStyle(const std::string& id, const TextStyle& style)
     return true; 
 }
 
+bool TextManager::SetAnchor(const std::string& id, TextAnchor anchor)
+{
+    TextLabel* label = Find(id); 
+    if (not label)
+    {
+        Logger::Error("Cannot set text anchor. Label was not found: " + id); 
+        return false; 
+    }
+
+    label->SetAnchor(anchor); 
+    return true; 
+}
+
 bool TextManager::Render(Vector2 cameraPosition)
 {
     if (orderDirty) RebuildRenderOrder();

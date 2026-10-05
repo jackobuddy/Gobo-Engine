@@ -21,6 +21,7 @@
 
 class AssetManager; 
 class DrawManager;
+class TextManager; 
 class World; 
 
 
@@ -178,8 +179,9 @@ public:
     bool Updates = true; 
 
 protected: 
-    AssetManager* GetAssetManager() const; 
+    AssetManager* GetAsset() const; 
     DrawManager* GetDraw() const noexcept; 
+    TextManager* GetText() const noexcept; 
     World* GetWorld() const noexcept { return entity.GetWorld(); }
 	Entity entity; 
 

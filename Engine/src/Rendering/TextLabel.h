@@ -2,6 +2,7 @@
 
 #include "TextLabelConfig.h"
 #include "TextAlignment.h"
+#include "TextAnchor.h"
 #include <cstdint>
 #include <string>
 #include <SDL3/SDL.h>
@@ -37,10 +38,12 @@ private:
     bool SetWrapWidth(float value); 
     bool SetWordWrap(bool value); 
     bool SetAlignment(TextAlignment value); 
+    void SetAnchor(TextAnchor value) { anchor = value; }
     bool SetSpace(TextSpace value);
     bool SetStyle(const TextStyle& value);
     TextSpace GetSpace() const { return space; }
     Vector2 GetPosition() const { return position; }
+    TextAnchor GetAnchor() const { return anchor; }
     bool Render(Vector2 screenPosition) const;
     TextLabelConfig MakeConfig() const;
     bool RebuildTexture();
@@ -66,6 +69,7 @@ private:
     float wrapWidth = 0.0f; 
     bool wordWrap = false; 
     TextAlignment alignment = TextAlignment::Left; 
+    TextAnchor anchor = TextAnchor::TopLeft; 
     TextSpace space = TextSpace::Screen;
     TextStyle style{};
     std::uint64_t creationOrder = 0;

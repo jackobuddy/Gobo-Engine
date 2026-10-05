@@ -45,6 +45,7 @@ bool TextLabel::Initialize(const TextLabelConfig& config)
     wrapWidth = std::max(0.0f, config.wrapWidth);
     wordWrap = config.wordWrap;
     alignment = config.alignment;
+    anchor = config.anchor; 
     space = config.space;
     style = config.style;
     return RebuildTexture();
@@ -180,12 +181,11 @@ TextLabelConfig TextLabel::MakeConfig() const
     config.scale = scale;
     config.layer = layer;
     config.visible = visible;
-
     config.fontSize = fontSize;
     config.wrapWidth = wrapWidth;
     config.wordWrap = wordWrap;
     config.alignment = alignment;
-
+    config.anchor = anchor; 
     config.space = space;
     config.style = style;
 
@@ -374,8 +374,12 @@ bool TextLabel::CreateSurface(AssetManager& assets, const TextLabelConfig& confi
 bool TextLabel::Render(Vector2 screenPosition) const
 {
     if (!visible || text.empty()) return true;
+    if (!renderer || !texture) return false;
 
-    const SDL_FRect mainRect{ screenPosition.x, screenPosition.y, width * scale, height * scale };
+    const Vector2 renderedSize(width * scale, height * scale);
+    const Vector2 anchorOffset = GetTextAnchorOffset(anchor, renderedSize);
+    const SDL_FRect mainRect{screenPosition.x - anchorOffset.x, screenPosition.y - anchorOffset.y,
+        renderedSize.x, renderedSize.y};
     bool ok = true;
 
     if (shadowTexture && style.shadow.enabled)
@@ -403,7 +407,7 @@ bool TextLabel::Measure(AssetManager& assets, const TextLabelConfig& config, Tex
     if (config.text.empty())
         return true;
     SDL_Surface* surface = nullptr;
-    if (!CreateSurface(assets, config, config.color, config.style.outline.width, surface))
+    if (!CreateSurface(assets, config, config.color, 0, surface))
         return false;
     const float scale = std::max(0.0f, config.scale);
     metrics.width = static_cast<float>(surface->w) * scale;
