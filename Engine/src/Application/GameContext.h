@@ -4,9 +4,11 @@
 #include "../Math/Math.h"
 #include <string>
 
+
 class AssetManager;
 class AudioManager;
 class Camera;
+class DrawManager; 
 class EventManager;
 class Renderer;
 class SceneManager; 
@@ -23,6 +25,7 @@ public:
 	World& GetWorld() const; 
 	AssetManager& GetAssets() const; 
 	EventManager& GetEvents() const; 
+	DrawManager& GetDraw() const; 
 	AudioManager& GetAudio() const; 
 	SceneManager& GetScenes() const;
 	TextManager& GetText() const; 

@@ -4,14 +4,17 @@
 #include "Math/Math.h"
 #include <memory>
 
+
 struct SDL_Renderer; 
 class Camera; 
 class Window; 
 class AssetManager;
 class TextManager; 
+class DrawManager; 
 class RenderSystem; 
 class RenderCollisionSystem; 
 class TilemapRenderSystem;
+
 
 class Renderer
 {
@@ -39,6 +42,11 @@ public:
 	void ShutdownText();
 	bool RenderText(const Camera& camera);
 	TextManager& GetTextManager();
+	bool InitializeDraw(); 
+	void ShutdownDraw(); 
+	void BeginDrawFrame(); 
+	bool RenderDrawCommands(const Camera& camera); 
+	DrawManager& GetDrawManager(); 
 	bool BeginFrame(Color clearColor); 
 	void Present(); 
 	bool IsInitialized() const { return renderer != nullptr; }
@@ -54,6 +62,7 @@ public:
 
 private:
 	friend class AssetManager;
+	friend class DrawManager; 
 	friend class RenderSystem; 
 	friend class RenderCollisionSystem; 
 	friend class TilemapRenderSystem; 
@@ -69,4 +78,5 @@ private:
 	// Stores the currently set config for the logical presentation
 	RenderViewConfig presentationConfig; 
 	std::unique_ptr<TextManager> textManager; 
+	std::unique_ptr<DrawManager> drawManager; 
 };

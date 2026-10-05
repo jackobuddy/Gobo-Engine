@@ -66,6 +66,7 @@ bool Application::Initialize(const GameConfig& config)
 	// Initialize our renderer. 
 	renderer = std::make_unique<Renderer>(window); 
 	if (not renderer->Initialize()) return false;
+	if (not renderer->InitializeDraw()) return false; 
 	if (not renderer->SetVSyncMode(config.vsyncMode)) return false; 
 	if (not renderer->SetRenderViewConfig(config.render)) return false; 
 
@@ -85,8 +86,7 @@ bool Application::Initialize(const GameConfig& config)
 		Logger::Error("The Engine default font is unavailable. ");
 		return false; 
 	}
-	if (not renderer->InitializeText(*assetManager))
-		return false; 
+	if (not renderer->InitializeText(*assetManager)) return false; 
 
 	systemPipeline = std::make_unique<EngineSystemPipeline>(config.systems);
 	worldHost = std::make_unique<WorldHost>();
@@ -394,9 +394,14 @@ int Application::Run(IGame& game)
 			game.Render(*context);
 			if (!isRunning) break;
 
+			phase = "Primitive Render"; 
+			if (!renderer->RenderDrawCommands(camera))
+				Logger::Error("One or more primitive draw commands failed."); 
+
 			phase = "Text/Present/Audio";
 			if (!renderer->RenderText(camera))
-				Logger::Error("One or more text labels failed to render");
+				Logger::Error("One or more text labels failed to render.");
+
 			renderer->Present();
 			audioManager->Update();
 			auto tick = SDL_GetTicks();

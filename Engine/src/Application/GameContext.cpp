@@ -2,6 +2,7 @@
 #include "WorldHost.h"
 #include "../AssetManager/AssetManager.h"
 #include "../Audio/AudioManager.h"
+#include "../Rendering/DrawManager.h"
 #include "../ECS/World.h"
 #include "../Events/EventManager.h"
 #include "../Rendering/Camera.h"
@@ -20,6 +21,7 @@ GameContext::GameContext(WorldHost& worldHost, AssetManager& assets, AudioManage
 World& GameContext::GetWorld() const { return worldHost.GetWorld(); }
 AssetManager& GameContext::GetAssets() const { return assets; }
 EventManager& GameContext::GetEvents() const { return worldHost.GetEvents(); }
+DrawManager& GameContext::GetDraw() const { return renderer.GetDrawManager(); }
 TextManager& GameContext::GetText() const { return renderer.GetTextManager(); }
 AudioManager& GameContext::GetAudio() const { return audio; }
 Camera& GameContext::GetCamera() const { return camera; }

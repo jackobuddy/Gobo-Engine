@@ -10,13 +10,27 @@ find_package(nlohmann_json CONFIG REQUIRED)
 # Shared metadata parser: no SDL initialization or renderer required.
 add_library(GoboAssetConfig STATIC
     src/AssetManager/AssetConfig.cpp
-    src/AssetManager/AssetConfig.h "src/Entities/EntityObject.cpp" "src/Events/MouseMotionEvent.h" "src/Events/MouseEnteredEvent.h" "src/Events/MouseHoveredEvent.h" "src/Events/MouseLeftEvent.h" "src/Events/MouseWheelEvent.h" "src/Rendering/TextAlignment.h" "src/Rendering/TextMetrics.h" "src/Rendering/TextSpace.h" "src/Rendering/TextStyle.h")
+    src/AssetManager/AssetConfig.h
+)
+
 target_include_directories(GoboAssetConfig PUBLIC
-    "${CMAKE_CURRENT_SOURCE_DIR}/src")
-target_link_libraries(GoboAssetConfig PUBLIC nlohmann_json::nlohmann_json)
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+target_link_libraries(GoboAssetConfig PUBLIC
+    nlohmann_json::nlohmann_json
+)
+
 target_compile_features(GoboAssetConfig PUBLIC cxx_std_20)
-set_target_properties(GoboAssetConfig PROPERTIES FOLDER "Engine")
-add_executable(GoboAssetConfigTool tools/AssetConfigTool.cpp "src/Entities/EntityObject.cpp" "src/Events/MouseMotionEvent.h" "src/Events/MouseEnteredEvent.h" "src/Events/MouseHoveredEvent.h" "src/Events/MouseLeftEvent.h" "src/Events/MouseWheelEvent.h" "src/Rendering/TextAlignment.h" "src/Rendering/TextMetrics.h" "src/Rendering/TextSpace.h" "src/Rendering/TextStyle.h")
+
+set_target_properties(GoboAssetConfig PROPERTIES
+    FOLDER "Engine"
+)
+
+add_executable(GoboAssetConfigTool
+    tools/AssetConfigTool.cpp
+)
+
 target_link_libraries(GoboAssetConfigTool PRIVATE
     GoboAssetConfig
     SDL3::SDL3
@@ -61,10 +75,11 @@ set(GOBO_ENGINE_SOURCES
     src/Rendering/Window.cpp
     src/Rendering/TextLabel.cpp
     src/Rendering/TextManager.cpp
-    src/Scenes/SceneManager.cpp)
+    src/Scenes/SceneManager.cpp
+    src/Rendering/DrawManager.cpp)
 file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-add_library(GoboEngine STATIC ${GOBO_ENGINE_SOURCES} ${GOBO_ENGINE_HEADERS} "src/Entities/EntityObject.cpp" "src/Events/MouseMotionEvent.h" "src/Events/MouseEnteredEvent.h" "src/Events/MouseHoveredEvent.h" "src/Events/MouseLeftEvent.h" "src/Events/MouseWheelEvent.h" "src/Rendering/TextAlignment.h" "src/Rendering/TextMetrics.h" "src/Rendering/TextSpace.h" "src/Rendering/TextStyle.h")
+add_library(GoboEngine STATIC ${GOBO_ENGINE_SOURCES} ${GOBO_ENGINE_HEADERS} "src/Entities/EntityObject.cpp" "src/Events/MouseMotionEvent.h" "src/Events/MouseEnteredEvent.h" "src/Events/MouseHoveredEvent.h" "src/Events/MouseLeftEvent.h" "src/Events/MouseWheelEvent.h" "src/Rendering/TextAlignment.h" "src/Rendering/TextMetrics.h" "src/Rendering/TextSpace.h" "src/Rendering/TextStyle.h" "src/Rendering/DrawSpace.h" "src/Rendering/DrawCommand.h" "src/Rendering/DrawManager.h" "src/Rendering/DrawManager.cpp")
 add_library(Gobo::Engine ALIAS GoboEngine)
 target_include_directories(GoboEngine
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"

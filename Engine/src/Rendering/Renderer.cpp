@@ -4,6 +4,7 @@
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include "TextManager.h"
+#include "DrawManager.h"
 #include "../AssetManager/AssetManager.h"
 #include <SDL3/SDL.h>
 #include <utility>
@@ -130,6 +131,7 @@ void Renderer::Destroy()
 {
 	// Mandatory ordering: labels release SDL textures first.
 	textManager.reset();
+	drawManager.reset(); 
 	if (renderer)
 	{
 		SDL_DestroyRenderer(renderer);
@@ -196,4 +198,38 @@ bool Renderer::WindowToRender(Vector2 windowPosition, Vector2& renderPosition) c
 
 	renderPosition = Vector2(x, y);
 	return true;
+}
+
+bool Renderer::InitializeDraw()
+{
+	if (not renderer)
+	{
+		Logger::Error("Cannot initialize drawing before the SDL Renderer");
+		return false; 
+	}
+
+	drawManager = std::make_unique<DrawManager>(*this); 
+	return true; 
+}
+
+void Renderer::ShutdownDraw()
+{
+	drawManager.reset(); 
+}
+
+void Renderer::BeginDrawFrame()
+{
+	if (drawManager)
+		drawManager->BeginFrame(); 
+}
+
+bool Renderer::RenderDrawCommands(const Camera& camera)
+{
+	return drawManager ? drawManager->Render(camera.position) : true; 
+}
+
+DrawManager& Renderer::GetDrawManager()
+{
+	if (not drawManager) throw std::runtime_error("DrawManager is unavailable. ");
+	return *drawManager; 
 }

@@ -18,7 +18,9 @@
 #include <string>
 #include <utility>
 
+
 class AssetManager; 
+class DrawManager;
 class World; 
 
 
@@ -177,6 +179,7 @@ public:
 
 protected: 
     AssetManager* GetAssetManager() const; 
+    DrawManager* GetDraw() const noexcept; 
     World* GetWorld() const noexcept { return entity.GetWorld(); }
 	Entity entity; 
 

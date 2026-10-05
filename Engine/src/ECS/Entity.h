@@ -5,7 +5,7 @@
 #include <string>
 #include <tuple>
 
-class World; 
+class World;  
 
 class Entity
 {

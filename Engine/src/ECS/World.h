@@ -24,6 +24,7 @@
 #include <vector>
 
 class AssetManager;
+class DrawManager; 
 class EventManager; 
 class SceneManager; 
 
@@ -212,12 +213,15 @@ private:
 
 	void SetAssetManager(AssetManager& value) noexcept { assetManager = &value; }
 	AssetManager* GetAssetManager() const noexcept { return assetManager; }
+	void SetDrawManager(DrawManager& value) { drawManager = &value; }
+	DrawManager* GetDrawManager() const { return drawManager; }
 
 	void RemoveName(Entity entity);
 	Entity AllocateEntityHandle();
 	std::shared_ptr<void> lifetime = std::make_shared<int>(0);
 	EventManager* eventManager = nullptr; 
 	AssetManager* assetManager = nullptr; 
+	DrawManager* drawManager = nullptr; 
 	unsigned callbackDepth = 0;
 	bool flushing = false;
 	std::set<Entity> destructionBatch;
