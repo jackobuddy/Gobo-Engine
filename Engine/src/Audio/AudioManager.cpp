@@ -209,6 +209,19 @@ void AudioManager::ResumeBus(const std::string& bus)
 	busIt->second.paused = false; 
 }
 
+bool AudioManager::IsActiveOnBus(const std::string& audioID, const std::string& bus) const
+{
+	const auto found = buses.find(bus);
+	if (found == buses.end()) return false;
+
+	for (const AudioVoice& voice : found->second.voices)
+		if (voice.active && voice.audioID == audioID && voice.track &&
+			(MIX_TrackPlaying(voice.track) or MIX_TrackPaused(voice.track)))
+			return true;
+
+	return false;
+}
+
 void AudioManager::StopBus(const std::string& bus)
 {
 	auto busIt = buses.find(bus); 

@@ -15,7 +15,8 @@ public:
 
 	void Install(World& world, EventManager& events) const; 
 	void Update(World& world, Camera& camera, float deltaSeconds) const; 
-	void Render(World& world, AssetManager& assets, Camera& camera, Renderer& renderer, bool debugMode) const; 
+	void RenderBackground(World& world, AssetManager& assets, Camera& camera, Renderer& renderer) const;
+	bool RenderForeground(World& world, AssetManager& assets, const Camera& camera, Renderer& renderer, bool debugMode) const;
 
 private:
 	SystemsConfig config; 

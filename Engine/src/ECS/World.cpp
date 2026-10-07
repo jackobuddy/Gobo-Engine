@@ -225,6 +225,11 @@ Character* World::FindCharacter(const std::string& name)
 	return dynamic_cast<Character*>(FindObject(name));
 }
 
+ClickTarget* World::FindClickTarget(const std::string& name)
+{
+	return dynamic_cast<ClickTarget*>(FindObject(name)); 
+}
+
 std::string World::GenerateUniqueName(const std::string& baseName)
 {
 	if (!entitiesByName.contains(baseName))

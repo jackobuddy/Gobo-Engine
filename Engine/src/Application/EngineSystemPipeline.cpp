@@ -75,20 +75,29 @@ void EngineSystemPipeline::Update(World& world, Camera& camera, float deltaSecon
         system->Update();
 }
 
-void EngineSystemPipeline::Render(World& world, AssetManager& assets, Camera& camera, Renderer& renderer, bool debugMode) const
+void EngineSystemPipeline::RenderBackground(World& world, AssetManager& assets, 
+    Camera& camera, Renderer& renderer) const
 {
-    // Lock the Camera Position to inside the camera view. 
     camera.position.x = Floor(camera.position.x);
     camera.position.y = Floor(camera.position.y);
-
     if (auto* system = world.GetSystem<TilemapRenderSystem>())
-        system->Update(renderer, assets, camera); 
-    if (auto* system = world.GetSystem<RenderSystem>())
         system->Update(renderer, assets, camera);
+}
+
+bool EngineSystemPipeline::RenderForeground(World& world,
+    AssetManager& assets, const Camera& camera, Renderer& renderer,
+    bool debugMode) const
+{
+    bool succeeded = true;
+    if (auto* system = world.GetSystem<RenderSystem>())
+        succeeded = system->RenderMerged(renderer.GetDrawManager(),
+            renderer, assets, camera);
+    else
+        succeeded = renderer.RenderDrawCommands(camera);
     if (debugMode)
     {
         if (auto* system = world.GetSystem<RenderCollisionSystem>())
             system->Update(world, renderer, camera);
     }
+    return succeeded;
 }
-

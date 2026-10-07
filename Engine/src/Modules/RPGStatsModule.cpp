@@ -155,7 +155,6 @@ std::vector<std::string> RPGStatsModule::GetStatIDsInCategory(const std::string&
 void RPGStatsModule::Start(ModuleServices&)
 {
     if (started) throw std::logic_error("RPGStatsModule already started");
-    if (definitions.empty()) throw std::logic_error("No RPG stats defined");
     evaluationOrder.clear();
     std::map<std::string, int> state; // 0 unvisited, 1 visiting, 2 complete.
     std::function<void(const std::string&)> visit = [&](const std::string& id)

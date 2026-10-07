@@ -28,6 +28,7 @@ public:
 	void SetBusVolume(const std::string& bus, float volume); 
 	void PauseBus(const std::string& bus); 
 	void ResumeBus(const std::string& bus); 
+	bool IsActiveOnBus(const std::string& audioID, const std::string& bus) const;
 	void StopBus(const std::string& bus); 
 	void StopAll(); 
 

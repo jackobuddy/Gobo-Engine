@@ -401,9 +401,8 @@ int Application::Run(IGame& game)
 				throw std::runtime_error("BeginFrame failed");
 
 			phase = "System Render";
-			systemPipeline->Render(context->GetWorld(),
-				context->GetAssets(), camera, *renderer,
-				game.GetDebugMode());
+			systemPipeline->RenderBackground(context->GetWorld(), context->GetAssets(), camera,
+				*renderer); 
 			if (!isRunning) break;
 
 			phase = "Module Render"; 
@@ -418,9 +417,10 @@ int Application::Run(IGame& game)
 			game.Render(*context);
 			if (!isRunning) break;
 
-			phase = "Primitive Render"; 
-			if (!renderer->RenderDrawCommands(camera))
-				Logger::Error("One or more primitive draw commands failed."); 
+			phase = "Layered Render"; 
+			if (!systemPipeline->RenderForeground(context->GetWorld(),
+				context->GetAssets(), camera, *renderer, game.GetDebugMode()))
+				Logger::Error("One or more layered draw commands failed.");
 
 			phase = "Text/Present/Audio";
 			if (!renderer->RenderText(camera))

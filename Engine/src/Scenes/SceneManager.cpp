@@ -9,6 +9,7 @@
 #include "../Logger/Logger.h"
 #include "../Modules/ModuleManager.h"
 #include "../Rendering/Camera.h"
+#include "../Rendering/DrawManager.h"
 #include "../Rendering/TextManager.h"
 #include "../ECS/World.h"
 #include <exception>
@@ -163,6 +164,7 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     activeScene.reset();
     // These services are Scene-scoped in the first implementation.
     context.GetText().Clear();
+    context.GetDraw().BeginFrame(); 
 
     // Swapping the session destroys the old World and EventManager.
     worldHost.SetActiveSession(std::move(nextSession));
@@ -311,6 +313,7 @@ void SceneManager::Shutdown(GameContext& context)
     worldHost.ClearActiveSession();
     activeSceneID.clear();
     context.GetText().Clear();
+    context.GetDraw().BeginFrame(); 
     context.GetCamera().position = defaultCameraPosition;
     if (!context.SetViewSize(static_cast<int>(defaultCameraViewSize.x),
         static_cast<int>(defaultCameraViewSize.y)))

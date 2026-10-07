@@ -9,6 +9,7 @@
 #include "../Logger/Logger.h"
 #include "../Entities/Actor.h"
 #include "../Entities/Character.h"
+#include "../Entities/ClickTarget.h"
 #include <unordered_map>
 #include <typeindex>
 #include <set>
@@ -111,6 +112,19 @@ public:
 	{
 		return CreateCharacter<TCharacter>(GenerateUniqueName(baseName), config);
 	}
+	// Creates a new ClickTarget-type Entity. 
+	template <typename TClickTarget = ClickTarget>
+	requires std::derived_from<TClickTarget, ClickTarget>
+	TClickTarget& CreateClickTarget(const std::string& name, const ClickTarget::Config& config = {})
+	{
+		return CreateObject<TClickTarget>(name, config); 
+	}
+	template <typename TClickTarget = ClickTarget> requires std::derived_from<TClickTarget, ClickTarget>
+	TClickTarget& CreateNamedClickTarget(const std::string& baseName,
+		const ClickTarget::Config& config = {})
+	{
+		return CreateClickTarget<TClickTarget>(GenerateUniqueName(baseName), config); 
+	}
 
 	EntityObject* FindObject(const std::string& name);
 	EntityObject* GetObject(Entity entity); 
@@ -118,6 +132,7 @@ public:
 	std::unordered_map<std::string, std::uint64_t> nextNameSuffix;
 	Entity FindEntity(const std::string& name) const;
 	Character* FindCharacter(const std::string& name);
+	ClickTarget* FindClickTarget(const std::string& name); 
 
 	template <typename TObject>
 	TObject* FindObjectAs(const std::string& name)

@@ -28,7 +28,7 @@ void ExampleScene::OnStart(GameContext& context)
 
     // Create our HUD's Health Tracker. 
     context.GetText().Create("hud.health", { 
-        .text = "Health: 100", .position = Vector2(20.0f, 20.0f), .layer = 100 });
+        .layer = 100, .position = Vector2(20.0f, 20.0f), .text = "Health: 100" });
 
     // Play our Helicoper Sound Loop. 
     audio.Play("helicopter-loop", { .bus = "SFX", .volume = 1.0f, .loops = -1 });
