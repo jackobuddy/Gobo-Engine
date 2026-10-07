@@ -28,6 +28,7 @@ class DrawManager;
 class EventManager; 
 class SceneManager; 
 class TextManager; 
+class ModuleManager; 
 
 
 // The World manages the creation and destruction of entities, systems, 
@@ -160,8 +161,8 @@ public:
 	}
 	Vector2 GetWorldSize() const { return worldSize; }
 
-	bool RequestSceneChange(const std::string& sceneID)
-	{
+	bool RequestSceneChange(const std::string& sceneID) 
+	{ 
 		return sceneChangeRequestHandler && sceneChangeRequestHandler(sceneID); 
 	}
 	void SetSceneChangeRequestHandler(std::function<bool(const std::string&)> handler)
@@ -169,15 +170,11 @@ public:
 		sceneChangeRequestHandler = std::move(handler); 
 	}
 
-	void SetTextManager(TextManager& value)
-	{
-		textManager = &value;
-	}
+	void SetTextManager(TextManager& value) { textManager = &value; }
+	TextManager* GetTextManager() const { return textManager; }
 
-	TextManager* GetTextManager() const
-	{
-		return textManager;
-	}
+	void SetModuleManager(ModuleManager& value) noexcept { moduleManager = &value; }
+	ModuleManager* GetModuleManager() const noexcept { return moduleManager; }
 
 	// Requests that the game be ended. 
 	void RequestQuit()
@@ -243,6 +240,7 @@ private:
 	AssetManager* assetManager = nullptr; 
 	DrawManager* drawManager = nullptr; 
 	TextManager* textManager = nullptr;
+	ModuleManager* moduleManager = nullptr;
 	unsigned callbackDepth = 0;
 	bool flushing = false;
 	std::set<Entity> destructionBatch;

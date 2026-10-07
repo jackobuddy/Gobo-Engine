@@ -169,6 +169,7 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     context.GetWorld().SetAssetManager(context.GetAssets()); 
     context.GetWorld().SetDrawManager(context.GetDraw()); 
     context.GetWorld().SetTextManager(context.GetText());
+    context.GetWorld().SetModuleManager(context.GetModules()); 
     context.GetCamera().position = defaultCameraPosition;
     if (!context.SetViewSize(static_cast<int>(defaultCameraViewSize.x),
         static_cast<int>(defaultCameraViewSize.y)))

@@ -21,3 +21,9 @@ TextManager* EntityObject::GetText() const noexcept
 	World* world = entity.GetWorld(); 
 	return world ? world->GetTextManager() : nullptr; 
 }
+
+ModuleManager* EntityObject::GetModules() const noexcept
+{
+	World* world = entity.GetWorld();
+	return world ? world->GetModuleManager() : nullptr;
+}

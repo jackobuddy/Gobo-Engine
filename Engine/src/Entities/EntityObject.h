@@ -15,6 +15,7 @@
 #include "../Events/MouseHoveredEvent.h"
 #include "../Events/MouseLeftEvent.h"
 #include "../Events/MouseWheelEvent.h"
+#include "../Modules/ModuleManager.h"
 #include <string>
 #include <utility>
 
@@ -23,7 +24,6 @@ class AssetManager;
 class DrawManager;
 class TextManager; 
 class World; 
-
 
 class EntityObject
 {
@@ -40,6 +40,8 @@ public:
 	Entity GetEntity() const { return entity; }
     // Returns the name of the object. 
 	const std::string& GetName() const { return name; }
+    // Returns a pointer to our Module Manager. 
+    ModuleManager* GetModules() const noexcept;
     // This function runs once at the creation of the Entity. 
 	virtual void OnCreated() {}
     // This function runs once every frame, if the object Updates. 
@@ -138,6 +140,13 @@ public:
     const TComponent* GetComponent() const
     {
         return entity.GetComponent<TComponent>();
+    }
+
+    template <class TModule>
+    TModule* GetModule() const noexcept
+    {
+        ModuleManager* modules = GetModules();
+        return modules ? modules->Get<TModule>() : nullptr;
     }
 
     bool IsAlive() const

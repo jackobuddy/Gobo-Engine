@@ -1,7 +1,7 @@
 #pragma once
 
 class GameContext; 
-class ModuleServices; 
+struct ModuleServices; 
 
 class Module
 {

@@ -14,7 +14,10 @@ add_executable(GoboEngineTests
     CleanupRegressionTests.cpp
     SpriteAnimationTests.cpp
     ModuleManagerTests.cpp
- "TilemapTests.cpp" "AssetConfigTests.cpp" "MouseHoverTests.cpp")
+    RPGStatsModuleTests.cpp
+    TilemapTests.cpp 
+    AssetConfigTests.cpp
+    MouseHoverTests.cpp)
 target_link_libraries(GoboEngineTests PRIVATE
     Gobo::Engine
     Catch2::Catch2WithMain
