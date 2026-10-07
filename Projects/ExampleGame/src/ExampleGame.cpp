@@ -31,3 +31,9 @@ void Game::LoadContent(AssetManager& assets, AudioManager& audio)
         assets.GetAssetPath("sounds/helicopter.wav"), true);
     audio.SetBusVolume("SFX", 0.30f);
 }
+
+void Game::RegisterModules(ModuleManager& modules)
+{
+    if (not modules.Add<RPGStatsModule>())
+        throw std::runtime_error("Module registration failed."); 
+}

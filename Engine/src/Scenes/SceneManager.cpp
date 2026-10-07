@@ -7,6 +7,7 @@
 #include "../Events/EventManager.h"
 #include "../Events/SceneStartedEvent.h"
 #include "../Logger/Logger.h"
+#include "../Modules/ModuleManager.h"
 #include "../Rendering/Camera.h"
 #include "../Rendering/TextManager.h"
 #include "../ECS/World.h"
@@ -155,6 +156,7 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
             );
         }
 
+        context.GetModules().LeaveSceneAll(context); 
         activeScene->DetachContext(); 
     }
     // Destroy the old Scene object while its old World still exists.
@@ -180,8 +182,20 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     context.GetWorld().SetSceneChangeRequestHandler([this](const std::string& sceneID)
     {
         return GoTo(sceneID);
+    });
+
+    if (not context.GetModules().EnterSceneAll(context))
+    {
+        Logger::Error("Module scene attachment failed for '" + id + "'.");
+        activeScene->DetachContext(); 
+        activeScene.reset(); 
+        worldHost.ClearActiveSession(); 
+        activeSceneID.clear(); 
+        context.GetText().Clear(); 
+        quitRequestHandler(); 
+        return false; 
     }
-    );
+
     try
     {
         activeScene->OnStart(context);
@@ -190,10 +204,8 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     }
     catch (const std::exception& error)
     {
-        Logger::Error(
-            "Scene OnStart failed for '" + activeSceneID +
-            "': " + error.what()
-        );
+        Logger::Error("Scene OnStart failed for '" + activeSceneID + "': " + error.what());
+        context.GetModules().LeaveSceneAll(context); 
         activeScene->DetachContext(); 
         activeScene.reset();
         worldHost.ClearActiveSession();
@@ -204,9 +216,8 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     }
     catch (...)
     {
-        Logger::Error(
-            "Scene OnStart failed for '" + activeSceneID + "'."
-        );
+        Logger::Error("Scene OnStart failed for '" + activeSceneID + "'.");
+        context.GetModules().LeaveSceneAll(context); 
         activeScene->DetachContext();
         activeScene.reset();
         worldHost.ClearActiveSession();
@@ -292,6 +303,7 @@ void SceneManager::Shutdown(GameContext& context)
             Logger::Error("Scene OnEnd failed.");
         }
 
+        context.GetModules().LeaveSceneAll(context); 
         activeScene->DetachContext();
     }
     activeScene.reset();

@@ -13,6 +13,7 @@ add_executable(GoboEngineTests
     WorldSessionTests.cpp
     CleanupRegressionTests.cpp
     SpriteAnimationTests.cpp
+    ModuleManagerTests.cpp
  "TilemapTests.cpp" "AssetConfigTests.cpp" "MouseHoverTests.cpp")
 target_link_libraries(GoboEngineTests PRIVATE
     Gobo::Engine

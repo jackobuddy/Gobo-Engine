@@ -21,6 +21,8 @@
 #include "../Events/MouseWheelEvent.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
+#include "../Modules/ModuleManager.h"
+#include "../Modules/ModuleServices.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/TextLabelConfig.h"
 #include "../Rendering/TextManager.h"
@@ -94,6 +96,7 @@ bool Application::Initialize(const GameConfig& config)
 		camera.position, camera.GetViewSize(), [this]() { isRunning = false; },
 		[this]() { debugModeToggleRequested = true; }
 	));
+	moduleManager = std::make_unique<ModuleManager>();
 
 	isRunning = true; 
 	isShutdown = false; 
@@ -268,6 +271,11 @@ void Application::Shutdown()
 
 	// Ensure the game shuts down in the proper order. 
 	sceneManager.reset(); 
+	if (moduleManager)
+	{
+		moduleManager->ShutdownAll(); 
+		moduleManager.reset(); 
+	}
 	worldHost.reset();
 	systemPipeline.reset();
 
@@ -296,7 +304,7 @@ int Application::Run(IGame& game)
 	int result = 0;
 	bool contentStarted = false;
 	const char* phase = "Configure";
-	std::unique_ptr<GameContext> context;
+	std::unique_ptr<GameContext> context; 
 	try
 	{
 		const GameConfig config = game.Configure();
@@ -308,8 +316,11 @@ int Application::Run(IGame& game)
 			throw std::runtime_error("Engine initialization failed");
 		context = std::make_unique<GameContext>(
 			*worldHost, *assetManager, *audioManager, camera,
-			*renderer, *sceneManager, isRunning);
+			*renderer, *sceneManager, *moduleManager, isRunning);
 		game.BindContext(*context);
+
+		phase = "RegisterModules";
+		game.RegisterModules(*moduleManager); 
 
 		phase = "Create debug overlay";
 		if (not CreateDebugOverlay())
@@ -327,6 +338,11 @@ int Application::Run(IGame& game)
 		phase = "LoadContent";
 		contentStarted = true;
 		game.LoadContent(*assetManager, *audioManager);
+
+		phase = "Module Start"; 
+		ModuleServices moduleServices{assetManager.get(), audioManager.get()};
+		if (not moduleManager->StartAll(moduleServices))
+			throw std::runtime_error("Module startup failed."); 
 
 		phase = "Scene OnStart";
 		if (isRunning && !sceneManager->StartInitial(
@@ -358,6 +374,10 @@ int Application::Run(IGame& game)
 			systemPipeline->Update(context->GetWorld(), camera, deltaSeconds);
 			if (!isRunning) break;
 
+			phase = "Module Update";
+			moduleManager->UpdateAll(*context, deltaSeconds); 
+			if (!isRunning) break; 
+
 			phase = "Scene/Entity Update";
 			sceneManager->Update(*context, deltaSeconds);
 			if (!isRunning) break;
@@ -385,6 +405,10 @@ int Application::Run(IGame& game)
 				context->GetAssets(), camera, *renderer,
 				game.GetDebugMode());
 			if (!isRunning) break;
+
+			phase = "Module Render"; 
+			moduleManager->RenderAll(*context); 
+			if (!isRunning) break; 
 
 			phase = "Scene Render";
 			sceneManager->Render(*context);
@@ -440,6 +464,7 @@ int Application::Run(IGame& game)
 		try { game.Stop(); }
 		catch (...) { Logger::Error("Game Stop failed"); result = 1; }
 	}
+	if (moduleManager) moduleManager->ShutdownAll(); 
 	game.ClearContext();
 	context.reset();
 	Shutdown();

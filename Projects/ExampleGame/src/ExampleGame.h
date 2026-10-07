@@ -8,4 +8,5 @@ public:
     GameConfig Configure() const override;
     void RegisterScenes(SceneManager& scenes) override;
     void LoadContent(AssetManager& assets, AudioManager& audio) override;
+    void RegisterModules(ModuleManager& modules) override; 
 };

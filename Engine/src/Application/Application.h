@@ -9,6 +9,7 @@
 
 class AssetManager; 
 class AudioManager; 
+class ModuleManager; 
 class IGame; 
 class Renderer; 
 class SceneManager; 
@@ -50,6 +51,7 @@ private:
 	std::shared_ptr<Renderer> renderer; 
 	std::shared_ptr<AssetManager> assetManager; 
 	std::shared_ptr<AudioManager> audioManager; 
+	std::unique_ptr<ModuleManager> moduleManager; 
 	Camera camera; 
 	std::unordered_set<SDL_Keycode> heldKeys; 
 	bool acceptedLeft = false;

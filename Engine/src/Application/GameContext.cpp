@@ -5,6 +5,7 @@
 #include "../Rendering/DrawManager.h"
 #include "../ECS/World.h"
 #include "../Events/EventManager.h"
+#include "../Modules/ModuleManager.h"
 #include "../Rendering/Camera.h"
 #include "../Rendering/Renderer.h"
 #include "../Rendering/TextManager.h"
@@ -13,8 +14,9 @@
 
 
 GameContext::GameContext(WorldHost& worldHost, AssetManager& assets, AudioManager& audio, 
-	Camera& camera, Renderer& renderer, SceneManager& scenes, bool& isRunning): worldHost(worldHost), 
-	assets(assets), audio(audio), camera(camera), renderer(renderer), scenes(scenes), isRunning(isRunning)
+    Camera& camera, Renderer& renderer, SceneManager& scenes, ModuleManager& modules, 
+    bool& isRunning): worldHost(worldHost), assets(assets), audio(audio), camera(camera),
+    renderer(renderer), scenes(scenes), modules(modules), isRunning(isRunning)
 {
 }
 
@@ -24,6 +26,7 @@ EventManager& GameContext::GetEvents() const { return worldHost.GetEvents(); }
 DrawManager& GameContext::GetDraw() const { return renderer.GetDrawManager(); }
 TextManager& GameContext::GetText() const { return renderer.GetTextManager(); }
 AudioManager& GameContext::GetAudio() const { return audio; }
+ModuleManager& GameContext::GetModules() const { return modules; }
 Camera& GameContext::GetCamera() const { return camera; }
 SceneManager& GameContext::GetScenes() const { return scenes; }
 bool GameContext::SetViewSize(int width, int height)

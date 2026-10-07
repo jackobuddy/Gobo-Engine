@@ -10,6 +10,7 @@ class AudioManager;
 class Camera;
 class DrawManager; 
 class EventManager;
+class ModuleManager; 
 class Renderer;
 class SceneManager; 
 class TextManager;
@@ -19,8 +20,8 @@ class WorldHost;
 class GameContext
 {
 public: 
-	GameContext(WorldHost& worldHost, AssetManager& assets, AudioManager& audio, 
-		Camera& camera, Renderer& renderer, SceneManager& scenes, bool& isRunning);
+	GameContext(WorldHost& worldHost, AssetManager& assets, AudioManager& audio, Camera& camera, 
+		Renderer& renderer, SceneManager& scenes, ModuleManager& modules, bool& isRunning);
 
 	World& GetWorld() const; 
 	AssetManager& GetAssets() const; 
@@ -29,6 +30,7 @@ public:
 	AudioManager& GetAudio() const; 
 	SceneManager& GetScenes() const;
 	TextManager& GetText() const; 
+	ModuleManager& GetModules() const; 
 	Camera& GetCamera() const; 
 	Vector2 GetViewSize() const; 
 	bool SetViewSize(int width, int height);
@@ -43,5 +45,6 @@ private:
 	Camera& camera; 
 	Renderer& renderer;
 	SceneManager& scenes;
+	ModuleManager& modules; 
 	bool& isRunning; 
 };
