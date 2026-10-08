@@ -29,6 +29,7 @@
 #include "Events/KeyHeldEvent.h"
 #include "Events/MouseWheelEvent.h"
 #include "Events/SceneStartedEvent.h"
+#include "Maps/MapLoader.h"
 #include "Math/Math.h"
 #include "Modules/Module.h"
 #include "Modules/ModuleManager.h"

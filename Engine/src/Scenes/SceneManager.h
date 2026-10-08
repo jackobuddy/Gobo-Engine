@@ -2,6 +2,7 @@
 
 #include "Scene.h"
 #include "../Math/Math.h"
+#include "../Maps/MapLoader.h"
 #include <concepts>
 #include <cstddef>
 #include <functional>
@@ -25,10 +26,12 @@ public:
 		return RegisterFactory(id, []() { return std::make_unique<TScene>();});
 	}
 
+	const MapTypeRegistry& GetMapTypes() const noexcept { return mapTypes; }
 	bool HasScene(const std::string& id) const; 
 	std::size_t GetRegisteredSceneCount() const; 
 	bool HasActiveScene() const; 
 	const std::string& GetActiveSceneID() const; 
+
 
 	void OnKeyPressed(KeyPressedEvent& event);
 	void OnKeyReleased(KeyReleasedEvent& event);
@@ -39,6 +42,8 @@ public:
 
 private:
 	friend class Application; 
+
+	MapTypeRegistry& GetMapTypesForRegistration() noexcept { return mapTypes; }
 
 	using SceneFactory = std::function<std::unique_ptr<Scene>()>;
 
@@ -59,6 +64,7 @@ private:
 	const EngineSystemPipeline& pipeline;
 	Vector2 defaultCameraPosition;
 	Vector2 defaultCameraViewSize;
+	MapTypeRegistry mapTypes; 
 	std::function<void()> quitRequestHandler;
 	std::function<void()> debugModeToggleRequestHandler;
 	std::unordered_map<std::string, SceneFactory> factories;

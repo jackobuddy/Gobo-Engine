@@ -25,6 +25,11 @@ void Game::RegisterScenes(SceneManager& scenes)
     scenes.Register<ExampleScene>("example");
 }
 
+void Game::RegisterMapTypes(MapTypeRegistry& types)
+{
+
+}
+
 void Game::LoadContent(AssetManager& assets, AudioManager& audio)
 {
     audio.LoadAudio("helicopter-loop",

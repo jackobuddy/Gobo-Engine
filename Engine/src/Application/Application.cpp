@@ -331,6 +331,9 @@ int Application::Run(IGame& game)
 		if (!sceneManager->HasScene(config.startingScene))
 			throw std::runtime_error("Starting Scene is not registered");
 
+		phase = "RegisterMapTypes";
+		game.RegisterMapTypes(sceneManager->GetMapTypesForRegistration());
+
 		phase = "ImportSprites";
 		if (!assetManager->ImportSprites())
 			throw std::runtime_error("Automatic sprite import failed");

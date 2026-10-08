@@ -7,6 +7,7 @@ class GameContext;
 class SceneManager; 
 class AssetManager;
 class AudioManager;
+class MapTypeRegistry;
 class ModuleManager; 
 
 class IGame
@@ -18,6 +19,7 @@ public:
 
 	virtual GameConfig Configure() const { return {}; }
 	virtual void RegisterScenes(SceneManager& scenes) {}
+	virtual void RegisterMapTypes(MapTypeRegistry&) {}
 	virtual void RegisterModules(ModuleManager& modules) {}
 
 	virtual void LoadContent(AssetManager& assets, AudioManager& audio) {}

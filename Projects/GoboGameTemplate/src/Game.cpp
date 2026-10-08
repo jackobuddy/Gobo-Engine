@@ -16,6 +16,12 @@ void Game::RegisterScenes(SceneManager& scenes)
     scenes.Register<MainScene>("main");
 }
 
+void Game::RegisterMapTypes(MapTypeRegistry& types)
+{
+    // Register Entity Classes that are used in .gobomap files here. 
+    // types.Register<class_name>("class name used for map file type name"); 
+}
+
 void Game::LoadContent(AssetManager& assets, AudioManager& audio)
 {
     // Load game-wide content here. Build scene objects in Scene::OnStart.
