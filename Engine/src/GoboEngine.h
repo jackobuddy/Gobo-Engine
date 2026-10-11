@@ -17,6 +17,7 @@
 #include "Components/ProjectileEmitterComponent.h"
 #include "Components/RigidBodyComponent.h"
 #include "Components/SpriteComponent.h"
+#include "Components/TextInputComponent.h"
 #include "Components/TransformComponent.h"
 #include "ECS/Entity.h"
 #include "ECS/World.h"
@@ -58,4 +59,5 @@
 #include "Systems/ProjectileLifecycleSystem.h"
 #include "Systems/RenderCollisionSystem.h"
 #include "Systems/RenderSystem.h"
+#include "Systems/TextInputSystem.h"
 #include "Systems/TilemapRenderSystem.h"

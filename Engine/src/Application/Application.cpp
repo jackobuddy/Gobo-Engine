@@ -28,6 +28,7 @@
 #include "../Rendering/TextManager.h"
 #include "../Rendering/Window.h"
 #include "../Scenes/SceneManager.h"
+#include "../Systems/TextInputSystem.h"
 #include <iomanip>
 #include <limits>
 #include <sstream>
@@ -106,6 +107,9 @@ bool Application::Initialize(const GameConfig& config)
 void Application::ProcessInput(GameContext& context)
 {
 	EventManager& events = context.GetEvents();
+
+	SyncTextInput(context); 
+
 	const auto emitMouse = [&]<class T>(float x, float y, bool cancel = false)
 	{
 		Vector2 screen(0), world(0);
@@ -188,14 +192,29 @@ void Application::ProcessInput(GameContext& context)
 			SDL_GetMouseState(&x, &y);
 			emitMouseMotion.template operator() < MouseMotionEvent > (x, y, true);
 		}
+		else if (inputFocused && event.type == SDL_EVENT_TEXT_INPUT)
+		{
+			if (auto* input = context.GetWorld().GetSystem<TextInputSystem>())
+				if (event.text.text) input->AcceptText(event.text.text); 
+		}
 		else if (inputFocused && event.type == SDL_EVENT_KEY_DOWN)
 		{
-			if (heldKeys.insert(event.key.key).second)
+			auto* input = context.GetWorld().GetSystem<TextInputSystem>(); 
+			if (input && input->HasActive())
+			{
+				if (event.key.key == SDLK_BACKSPACE) input->Backspace(); 
+				else if (not event.key.repeat && 
+					(event.key.key == SDLK_ESCAPE or event.key.key == SDLK_RETURN))
+					events.EmitEvent<KeyPressedEvent>(event.key.key); 
+			}
+			else if (heldKeys.insert(event.key.key).second)
 				events.EmitEvent<KeyPressedEvent>(event.key.key);
 		}
 		else if (event.type == SDL_EVENT_KEY_UP)
 		{
-			if (heldKeys.erase(event.key.key))
+			const bool tracked = heldKeys.erase(event.key.key) != 0; 
+			auto* input = context.GetWorld().GetSystem<TextInputSystem>(); 
+			if (tracked and not (input and input->HasActive()))
 				events.EmitEvent<KeyReleasedEvent>(event.key.key);
 		}
 		else if (inputFocused && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
@@ -233,6 +252,7 @@ void Application::ProcessInput(GameContext& context)
 				event.wheel.x * direction,
 				event.wheel.y * direction);
 		}
+		SyncTextInput(context); 
 	}
 	if (!context.IsRunning() || !inputFocused) return;
 	float x = 0, y = 0;
@@ -270,6 +290,8 @@ void Application::Shutdown()
 	isRunning = false; 
 
 	// Ensure the game shuts down in the proper order. 
+	if (window and window->GetSDLWindow() and SDL_TextInputActive(window->GetSDLWindow()))
+		SDL_StopTextInput(window->GetSDLWindow()); 
 	sceneManager.reset(); 
 	if (moduleManager)
 	{
@@ -396,6 +418,8 @@ int Application::Run(IGame& game)
 			phase = "Scene transition";
 			sceneManager->ProcessPending(*context);
 			if (!isRunning) break;
+
+			SyncTextInput(*context); 
 
 			phase = "Render begin";
 			const Color clear{ config.clearColor.r, config.clearColor.g,
@@ -559,4 +583,26 @@ void Application::UpdateDebugOverlay(bool debugMode, float elapsedSeconds)
 
 	debugOverlayElapsedSeconds = 0.0f;
 	debugOverlayFrameCount = 0;
+}
+
+void Application::SyncTextInput(GameContext& context)
+{
+	if (!window || !window->GetSDLWindow()) return;
+
+	SDL_Window* native = window->GetSDLWindow();
+	auto* input = context.GetWorld().GetSystem<TextInputSystem>();
+	const bool wanted = inputFocused && input && input->HasActive();
+
+	if (wanted == SDL_TextInputActive(native)) return;
+	if (wanted)
+	{
+		const auto keys = std::move(heldKeys);
+		heldKeys.clear();
+		for (auto key : keys)
+			context.GetEvents().EmitEvent<KeyReleasedEvent>(key);
+		if (!SDL_StartTextInput(native))
+			Logger::SDLError("SDL_StartTextInput failed", SDL_GetError());
+	}
+	else if (!SDL_StopTextInput(native))
+		Logger::SDLError("SDL_StopTextInput failed", SDL_GetError());
 }

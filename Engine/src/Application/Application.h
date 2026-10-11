@@ -9,6 +9,7 @@
 
 class AssetManager; 
 class AudioManager; 
+class GameContext; 
 class ModuleManager; 
 class IGame; 
 class Renderer; 
@@ -35,6 +36,8 @@ private:
 	
 	bool CreateDebugOverlay(); 
 	void UpdateDebugOverlay(bool debugMode, float elapsedSeconds); 
+
+	void SyncTextInput(GameContext& context); 
 
 	inline static constexpr const char* DebugOverlayLabelID = "gobo.debug.overlay";
 	static constexpr float DebugOverlayRefreshSeconds = 0.25f; 

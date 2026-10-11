@@ -2,6 +2,8 @@
 
 #include "Module.h"
 #include "../ECS/Entity.h"
+#include "RPGStatsModule/StatExpression.h"
+#include <filesystem>
 #include <functional>
 #include <map>
 #include <memory>
@@ -17,8 +19,8 @@ class World;
 class RPGStatsModule; 
 
 using StatValues = std::unordered_map<std::string, double>; 
-
-enum class StatValueType { Integer, Float };
+using StringStatValues = std::unordered_map<std::string, std::string>;
+enum class StatValueType { Integer, Float, String };
 
 struct StatModifier
 {
@@ -30,19 +32,19 @@ struct StatModifier
 
 struct StatDefinition
 {
-	std::string id; 
 	std::string category; 
-	StatValueType type = StatValueType::Float; 
-	std::optional<double> minimum; 
+	std::string id;
+	StatExpression expression; 
 	std::optional<double> maximum; 
-	std::vector<std::string> dependencies; 
-	std::function<double(const StatValues&)> formula; 
+	std::optional<double> minimum;
+	StatValueType type = StatValueType::Float;
 };
 
 struct StatProfile
 {
 	std::string id; 
 	StatValues baseValues; 
+	StringStatValues stringValues; 
 };
 
 class StatBlock final
@@ -57,6 +59,9 @@ public:
 
 	bool AddPoints(const std::string& statID, double amount); 
 	std::optional<double> GetPoints(const std::string& statID) const; 
+	bool SetString(const std::string& statID, std::string value); 
+	std::optional<std::string> GetString(const std::string& statID) const; 
+	bool ClearString(const std::string& statID); 
 	bool SetPermanentSource(const std::string& sourceID, std::vector<StatModifier> modifiers); 
 	bool RemovePermanentSource(const std::string& sourceID); 
 	bool ApplyEffect(const std::string& effectID, float seconds, std::vector<StatModifier> modifiers);
@@ -78,6 +83,7 @@ private:
 	RPGStatsModule* owner; 
 	std::string profileID; 
 	StatValues baseValues; 
+	StringStatValues stringValues; 
 	StatValues allocatedPoints; 
 	std::map<std::string, std::vector<StatModifier>> permanentSources;
 	std::map<std::string, TimedEffect> effects;
@@ -94,6 +100,8 @@ public:
 	bool DefineCategory(const std::string& id); 
 	bool DefineStat(StatDefinition definition); 
 	bool DefineProfile(StatProfile profile); 
+	bool UpdateProfile(const std::string& profileID, const std::string& statID, double value);
+	bool UpdateProfile(const std::string& profileID, const std::string& statID, std::string value);
 	bool DefineDamageType(const std::string& id); 
 	bool HasDamageType(const std::string& id) const; 
 	const StatDefinition* FindDefinition(const std::string& id) const; 
@@ -117,6 +125,9 @@ public:
 	void LeaveScene(GameContext&) override; 
 	void Shutdown() override; 
 
+	bool SetDebugReportRoot(std::filesystem::path projectRoot);
+	bool CreateDebugReport();
+
 private:
 	bool ValidModifiers(const std::vector<StatModifier>& modifiers) const; 
 	bool Calculate(StatBlock& block); 
@@ -133,4 +144,5 @@ private:
 	std::map<Entity, std::string> persistentBindings;
 	World* activeWorld = nullptr; // Borrowed; cleared by LeaveScene.
 	bool started = false;
+	std::filesystem::path reportRoot;
 };

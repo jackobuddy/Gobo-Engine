@@ -13,8 +13,8 @@ GameConfig Game::Configure() const
     config.render.renderWidth = 1280;
     config.render.renderHeight = 720;
     config.cameraPosition = Vector2(0.0f);
-    config.vsyncMode = 1;
-    config.frameRateIsCapped = true;
+    config.vsyncMode = 0;
+    config.frameRateIsCapped = false;
     config.targetFPS = 60;
     config.clearColor = { 21, 21, 21, 255 };
     return config;

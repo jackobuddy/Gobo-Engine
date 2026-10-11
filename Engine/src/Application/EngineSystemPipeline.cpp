@@ -15,6 +15,7 @@
 #include "../Systems/ProjectileLifecycleSystem.h"
 #include "../Systems/RenderCollisionSystem.h"
 #include "../Systems/RenderSystem.h"
+#include "../Systems/TextInputSystem.h"
 #include "../Systems/TilemapRenderSystem.h"
 
 EngineSystemPipeline::EngineSystemPipeline(SystemsConfig config) : config(config) 
@@ -41,6 +42,8 @@ void EngineSystemPipeline::Install(World& world, EventManager& events) const
         world.AddSystem<ProjectileLifecycleSystem>();
     if (config.useTilemapRenderSystem)
         world.AddSystem<TilemapRenderSystem>(); 
+    if (config.useTextInputSystem)
+        world.AddSystem<TextInputSystem>(world); 
     if (config.useKeyboardControlSystem)
     {
         world.AddSystem<KeyboardControlSystem>(); 

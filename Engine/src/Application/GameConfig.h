@@ -31,6 +31,7 @@ struct SystemsConfig
 	bool useProjectileLifecycleSystem = true; 
 	bool useRenderCollisionSystem = true; 
 	bool useRenderingSystem = true; 
+	bool useTextInputSystem = true; 
 	bool useTilemapRenderSystem = true; 
 };
 
