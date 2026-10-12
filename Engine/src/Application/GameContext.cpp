@@ -52,3 +52,16 @@ EntityObject* GameContext::FindObject(const std::string name) const
 }
 
 void GameContext::RequestQuit() { isRunning = false; }
+
+bool GameContext::RequestPause(const std::string& owner)
+{
+    return GetWorld().RequestPause(owner);
+}
+bool GameContext::ReleasePause(const std::string& owner)
+{
+    return GetWorld().ReleasePause(owner);
+}
+bool GameContext::IsPaused() const
+{
+    return GetWorld().IsPaused();
+}

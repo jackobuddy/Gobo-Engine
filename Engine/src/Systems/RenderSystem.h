@@ -85,25 +85,30 @@ public:
         RequireComponent<TransformComponent>();
         RequireComponent<SpriteComponent>();
     }
-    bool RenderMerged(DrawManager& draw, Renderer& renderer, 
-        AssetManager& assets, const Camera& camera)
+    bool RenderMerged(DrawManager& draw, Renderer& renderer, AssetManager& assets,
+        const Camera& camera)
     {
         std::vector<SpriteDrawCommand> sprites;
+
         for (Entity entity : GetSystemEntities())
         {
             World* world = entity.GetWorld();
-            if (!world || !world->CanRunCallbacks(entity)) continue;
+            if (!world || !world->CanRender(entity))
+                continue;
+
             auto* transform = entity.GetComponent<TransformComponent>();
             auto* sprite = entity.GetComponent<SpriteComponent>();
+
             if (!transform || !sprite || !sprite->definition ||
                 sprite->GetIsHidden() || sprite->GetAlpha() == 0)
                 continue;
+
             sprites.push_back({ entity, sprite->GetLayer() });
         }
-        return draw.RenderMerged(camera.position, sprites,
-            [&](Entity entity)
-            {
-                return DrawOne(entity, renderer, assets, camera);
-            });
+
+        return draw.RenderMerged(camera.position, sprites, [&](Entity entity)
+        {
+            return DrawOne(entity, renderer, assets, camera);
+        });
     }
 }; 

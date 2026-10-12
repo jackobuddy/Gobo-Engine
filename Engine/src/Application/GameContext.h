@@ -37,6 +37,9 @@ public:
 	EntityObject* FindObject(const std::string name) const; 
 	void RequestQuit(); 
 	bool IsRunning() const { return isRunning; }
+	bool RequestPause(const std::string& owner); 
+	bool ReleasePause(const std::string& owner); 
+	bool IsPaused() const; 
 
 private:
 	WorldHost& worldHost; 

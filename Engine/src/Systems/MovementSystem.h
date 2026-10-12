@@ -1,6 +1,7 @@
 #pragma once
 #include "../ECS/System.h"
 #include "../ECS/EntityTemplates.h"
+#include "../ECS/World.h"
 #include "../Components/TransformComponent.h"
 #include "../Components/RigidBodyComponent.h"
 
@@ -17,19 +18,22 @@ public:
 	}
 	~MovementSystem() = default; 
 
-	void Update(float deltaSeconds)
-	{
-		for (auto entity : GetSystemEntities())
-		{
-			TransformComponent* transform = entity.GetComponent<TransformComponent>();
-			const RigidBodyComponent* rigidbody = entity.GetComponent<RigidBodyComponent>();
+    void Update(float deltaSeconds)
+    {
+        for (Entity entity : GetSystemEntities())
+        {
+            World* world = entity.GetWorld();
+            if (!world || !world->CanUpdate(entity))
+                continue;
 
-			if (not transform or not rigidbody)
-				continue;
+            TransformComponent* transform = entity.GetComponent<TransformComponent>();
+            const RigidBodyComponent* rigidbody = entity.GetComponent<RigidBodyComponent>();
 
-			// Update the X and Y position based on Velocity. 
-			transform->position.x += rigidbody->velocity.x * deltaSeconds;
-			transform->position.y += rigidbody->velocity.y * deltaSeconds;
-		}
-	}
+            if (!transform || !rigidbody)
+                continue;
+
+            transform->position.x += rigidbody->velocity.x * deltaSeconds;
+            transform->position.y += rigidbody->velocity.y * deltaSeconds;
+        }
+    }
 };

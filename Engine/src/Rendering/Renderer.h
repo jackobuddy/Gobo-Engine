@@ -19,7 +19,8 @@ class TilemapRenderSystem;
 class Renderer
 {
 public:
-	Renderer(std::shared_ptr<Window> window, int initialVSyncMode = 0); 
+	Renderer(std::shared_ptr<Window> window, int initialVSyncMode = 0, 
+		RenderViewConfig initialRenderConfig = {});
 	~Renderer(); 
 
 	Renderer(const Renderer&) = delete; // Blocks copying during construction

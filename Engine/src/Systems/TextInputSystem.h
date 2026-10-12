@@ -15,14 +15,29 @@ public:
 
     bool Focus(Entity target)
     {
-        if (target.GetWorld() != &owner || !target.IsAlive() ||
-            !target.HasComponent<TextInputComponent>()) return false;
-        if (GetFocused() == target) return true;
+        if (target.GetWorld() != &owner or !owner.CanUpdate(target) or
+            !target.HasComponent<TextInputComponent>())
+            return false;
+
+        if (GetFocused() == target)
+            return true;
+
         Blur();
         active = target;
+
         if (auto* field = active.GetComponent<TextInputComponent>())
             field->SetEnabled(true);
+
         return true;
+    }
+
+    Entity GetFocused() const
+    {
+        if (active.GetWorld() != &owner or !owner.CanUpdate(active))
+            return {};
+
+        auto* field = active.GetComponent<TextInputComponent>();
+        return field && field->IsEnabled() ? active : Entity{};
     }
 
     void Blur()
@@ -31,13 +46,6 @@ public:
             if (auto* field = active.GetComponent<TextInputComponent>())
                 field->SetEnabled(false);
         active = Entity{};
-    }
-
-    Entity GetFocused() const
-    {
-        if (!active.IsAlive() || active.GetWorld() != &owner) return {};
-        auto* field = active.GetComponent<TextInputComponent>();
-        return field && field->IsEnabled() ? active : Entity{};
     }
 
     bool HasActive() const { return GetFocused().IsAlive(); }

@@ -366,7 +366,7 @@ bool RPGStatsModule::Calculate(StatBlock& block)
                 return values;
             };
         StatValues stable = calculatePass(false);
-        StatValues effective = calculatePass(true);
+        StatValues effective = block.effects.empty() ? stable : calculatePass(true);
         block.stableCache.swap(stable);
         block.effectiveCache.swap(effective);
         block.dirty = false;

@@ -22,35 +22,41 @@ class MouseCollisionSystem : public System
     {
         if (!event.valid || !event.insideView || event.cancelled)
             return false;
+
         World* world = entity.GetWorld();
-        if (!world || !world->CanRunCallbacks(entity))
+        if (!world || !world->CanUpdate(entity))
             return false;
+
         auto* transform = entity.GetComponent<TransformComponent>();
         auto* box = entity.GetComponent<BoxCollisionComponent>();
         if (!transform || !box)
             return false;
+
         bool fixed = false;
-        if (entity.HasComponent<SpriteComponent>())
-            if (auto* sprite = entity.GetComponent<SpriteComponent>())
-                fixed = sprite->IsFixed();
+        if (auto* sprite = entity.GetComponent<SpriteComponent>())
+            fixed = sprite->IsFixed();
+
         if (fixed && !event.hasScreenLocation)
             return false;
-        const Vector2 mouse = fixed ? event.screenLocation : event.mouseLocation;
+
+        const Vector2 mouse =
+            fixed ? event.screenLocation : event.mouseLocation;
         const float x = transform->position.x + box->offsetX;
         const float y = transform->position.y + box->offsetY;
         const float width = box->width * transform->scale.x;
         const float height = box->height * transform->scale.y;
+
         return mouse.x >= x && mouse.x <= x + width &&
             mouse.y >= y && mouse.y <= y + height;
     }
 
     template<class TEvent>
-    void Dispatch(Entity entity, TEvent& event,
-        void (EntityObject::* hook)(TEvent&))
+    void Dispatch(Entity entity, TEvent& event, void (EntityObject::* hook)(TEvent&))
     {
         World* world = entity.GetWorld();
-        if (!world || !world->CanRunCallbacks(entity))
+        if (!world || !world->CanUpdate(entity))
             return;
+
         if (EntityObject* object = world->GetObject(entity))
         {
             World::CallbackScope scope(*world);
@@ -60,9 +66,22 @@ class MouseCollisionSystem : public System
 
     void DispatchLeave(Entity entity, const MouseMotionEvent& source, bool cancelled)
     {
-        MouseLeftEvent event(source.mouseLocation, source.screenLocation,
-            source.valid, source.insideView, cancelled);
-        Dispatch(entity, event, &EntityObject::OnMouseLeave);
+        World* world = entity.GetWorld();
+        if (!world || !world->CanRunCallbacks(entity))
+            return;
+
+        if (EntityObject* object = world->GetObject(entity))
+        {
+            MouseLeftEvent event(
+                source.mouseLocation,
+                source.screenLocation,
+                source.valid,
+                source.insideView,
+                cancelled);
+
+            World::CallbackScope scope(*world);
+            object->OnMouseLeave(event);
+        }
     }
 
     void ClearHover(const MouseMotionEvent& source)

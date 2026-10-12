@@ -2,6 +2,7 @@
 #include "../Logger/Logger.h"
 #include "../Systems/MovementSystem.h"
 #include "../Events/EventManager.h"
+#include "../Components/PausePolicyComponent.h"
 #include <stdexcept>
 #include <concepts>
 #include <type_traits>
@@ -559,8 +560,36 @@ void World::UpdateObjects(float deltaSeconds)
 	CallbackScope callback(*this);
 	for (auto entity : snapshot)
 	{
-		if (!CanRunCallbacks(entity)) continue;
+		if (!CanUpdate(entity)) continue;
 		auto* object = GetObject(entity);
 		if (object && object->Updates) object->Update(deltaSeconds);
 	}
+}
+
+bool World::RequestPause(const std::string& owner)
+{
+	return !owner.empty() && requestedPauseOwners.insert(owner).second;
+}
+
+bool World::ReleasePause(const std::string& owner)
+{
+	return requestedPauseOwners.erase(owner) != 0;
+}
+
+bool World::CanUpdate(Entity entity) const
+{
+	if (!CanRunCallbacks(entity)) return false;
+	const auto* policy = GetComponent<PausePolicyComponent>(entity);
+	const PauseActivity mode = policy ? policy->activity
+		: PauseActivity::GameplayOnly;
+	return IsPaused() ? mode != PauseActivity::GameplayOnly
+		: mode != PauseActivity::PauseOnly;
+}
+
+bool World::CanRender(Entity entity) const
+{
+	if (!CanRunCallbacks(entity)) return false;
+	const auto* policy = GetComponent<PausePolicyComponent>(entity);
+	return !policy || policy->activity != PauseActivity::PauseOnly
+		|| IsPaused();
 }

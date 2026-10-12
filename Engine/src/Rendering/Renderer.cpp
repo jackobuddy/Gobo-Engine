@@ -10,10 +10,10 @@
 #include <utility>
 #include <stdexcept>
 
-Renderer::Renderer(std::shared_ptr<Window> window, int initialVSyncMode)
+Renderer::Renderer(std::shared_ptr<Window> window, int initialVSyncMode, 
+	RenderViewConfig initialRenderConfig): window(std::move(window)),
+	vsyncMode(Clamp(initialVSyncMode, -1, 1)), presentationConfig(initialRenderConfig)
 {
-	this->window = window; 
-	this->vsyncMode = Clamp(initialVSyncMode, -1, 1); 
 }
 
 Renderer::~Renderer()
@@ -23,37 +23,33 @@ Renderer::~Renderer()
 
 bool Renderer::Initialize()
 {
-	if (not window or not window->GetSDLWindow())
+	if (!window || !window->GetSDLWindow())
 	{
-		Logger::Error("Renderer Initialize was run without a valid window or SDL window. ");
-		return false; 
+		Logger::Error("Renderer Initialize was run without a valid window or SDL window.");
+		return false;
 	}
+
 	renderer = SDL_CreateRenderer(window->GetSDLWindow(), nullptr);
-	if (not renderer)
+	if (!renderer)
 	{
 		Logger::SDLError("SDL_CreateRenderer failed", SDL_GetError());
 		return false;
 	}
-	Logger::Log("SDL Renderer initialized successfully. "); 
 
-	// Output the chosen GPU to the log
+	Logger::Log("SDL Renderer initialized successfully.");
 	Logger::SDLLog("Selected Renderer", SDL_GetRendererName(renderer));
 
-	// TODO: Ensure that the VSync Default Mode can be set per project 
-	if (not SetVSyncMode(vsyncMode)) 
+	if (!SetVSyncMode(vsyncMode))
 	{
 		Logger::SDLError("Set VSync Mode failed", SDL_GetError());
-		return false; 
+		return false;
 	}
-	// Set the Logcial Presentatin Mode
-	// TODO: Get the default project settings for the Logical Presentation Mode. 
-	RenderViewConfig config; 
-	if (not SetRenderViewConfig(config))
+	if (!SetRenderViewConfig(presentationConfig))
 	{
-		Logger::Error("Failed to set Logical Presentation Mode. ");
-		return false; 
+		Logger::Error("Failed to set Logical Presentation Mode.");
+		return false;
 	}
-	return true; 
+	return true;
 }
 
 bool Renderer::SetVSyncMode(int m)

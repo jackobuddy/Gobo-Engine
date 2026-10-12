@@ -1,28 +1,38 @@
 #pragma once
 
-#include "../ECS/System.h"
-#include "../ECS/Entity.h"
+#include "../ECS/World.h"
 #include "../Components/ProjectileComponent.h"
-#include <SDL3/SDL.h>
+#include <cmath>
 
 class ProjectileLifecycleSystem : public System
-{	
-public: 
-	ProjectileLifecycleSystem()
-	{
-		RequireComponent<ProjectileComponent>(); 
-	}
+{
+public:
+    ProjectileLifecycleSystem()
+    {
+        RequireComponent<ProjectileComponent>();
+    }
 
-	void Update()
-	{
-		for (auto entity : GetSystemEntities())
-		{
-			ProjectileComponent* projectile = entity.GetComponent<ProjectileComponent>(); 
-			if (not projectile)
-				continue;
+    void Update(float deltaSeconds)
+    {
+        if (!std::isfinite(deltaSeconds) || deltaSeconds <= 0.0f)
+            return;
 
-			if (SDL_GetTicks() - projectile->startTime > projectile->duration)
-				entity.Destroy(); 
-		}
-	}
+        for (Entity entity : GetSystemEntities())
+        {
+            World* world = entity.GetWorld();
+            if (!world || !world->CanUpdate(entity))
+                continue;
+
+            ProjectileComponent* projectile = entity.GetComponent<ProjectileComponent>();
+            if (!projectile)
+                continue;
+
+            projectile->elapsedMilliseconds += static_cast<double>(deltaSeconds) * 1000.0;
+
+            if (projectile->elapsedMilliseconds > static_cast<double>(projectile->duration))
+            {
+                entity.Destroy();
+            }
+        }
+    }
 };

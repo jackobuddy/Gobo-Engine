@@ -264,8 +264,14 @@ void SceneManager::BeginFrame(GameContext& context)
 void SceneManager::Update(GameContext& context, float deltaSeconds)
 {
     if (!activeScene) return;
-    activeScene->Update(context, deltaSeconds);
-    if (context.IsRunning()) context.GetWorld().UpdateObjects(deltaSeconds);
+
+    if (context.IsPaused())
+        activeScene->UpdateWhilePaused(context, deltaSeconds);
+    else
+        activeScene->Update(context, deltaSeconds);
+
+    if (context.IsRunning())
+        context.GetWorld().UpdateObjects(deltaSeconds);
 }
 
 void SceneManager::Render(GameContext& context)
@@ -275,19 +281,31 @@ void SceneManager::Render(GameContext& context)
 
 void SceneManager::OnKeyPressed(KeyPressedEvent& event)
 {
-    if (activeScene)
-        activeScene->OnKeyPressed(event); 
+    if (!activeScene) return;
+
+    if (worldHost.GetWorld().IsPaused())
+        activeScene->OnKeyPressedWhilePaused(event);
+    else
+        activeScene->OnKeyPressed(event);
 }
 
 void SceneManager::OnKeyReleased(KeyReleasedEvent& event)
 {
-    if (activeScene)
+    if (!activeScene) return;
+
+    if (worldHost.GetWorld().IsPaused())
+        activeScene->OnKeyReleasedWhilePaused(event);
+    else
         activeScene->OnKeyReleased(event);
 }
 
 void SceneManager::OnKeyHeld(KeyHeldEvent& event)
-{ 
-    if (activeScene)
+{
+    if (!activeScene) return;
+
+    if (worldHost.GetWorld().IsPaused())
+        activeScene->OnKeyHeldWhilePaused(event);
+    else
         activeScene->OnKeyHeld(event);
 }
 

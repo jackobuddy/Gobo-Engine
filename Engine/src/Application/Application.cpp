@@ -67,11 +67,9 @@ bool Application::Initialize(const GameConfig& config)
 	if (not window->SetWindowMode(config.window.mode)) return false; 
 
 	// Initialize our renderer. 
-	renderer = std::make_unique<Renderer>(window); 
-	if (not renderer->Initialize()) return false;
-	if (not renderer->InitializeDraw()) return false; 
-	if (not renderer->SetVSyncMode(config.vsyncMode)) return false; 
-	if (not renderer->SetRenderViewConfig(config.render)) return false; 
+	renderer = std::make_unique<Renderer>(window, config.vsyncMode, config.render);
+	if (!renderer->Initialize()) return false;
+	if (!renderer->InitializeDraw()) return false;
 
 	// Initialize our audio manager
 	audioManager = std::make_shared<AudioManager>(); 
@@ -104,38 +102,75 @@ bool Application::Initialize(const GameConfig& config)
 	return true; 
 }
 
+void Application::CancelTrackedInput(GameContext& context)
+{
+	EventManager& events = context.GetEvents();
+
+	const auto keys = std::move(heldKeys);
+	heldKeys.clear();
+	for (SDL_Keycode key : keys)
+		events.EmitEvent<KeyReleasedEvent>(key);
+
+	const bool releaseLeft = acceptedLeft;
+	const bool releaseRight = acceptedRight;
+	acceptedLeft = false;
+	acceptedRight = false;
+
+	float x = 0.0f;
+	float y = 0.0f;
+	SDL_GetMouseState(&x, &y);
+
+	Vector2 screen(0.0f);
+	Vector2 world(0.0f);
+	const bool valid = renderer &&
+		renderer->WindowToRender(Vector2(x, y), screen);
+	const Vector2 size = renderer
+		? renderer->GetViewSize() : Vector2(0.0f);
+	const bool inside = valid &&
+		screen.x >= 0.0f && screen.y >= 0.0f &&
+		screen.x < size.x && screen.y < size.y;
+
+	if (valid)
+		world = screen + context.GetCamera().position;
+
+	if (releaseLeft)
+		events.EmitEvent<LeftMouseButtonReleasedEvent>(
+			world, screen, valid, inside, true);
+	if (releaseRight)
+		events.EmitEvent<RightMouseButtonReleasedEvent>(
+			world, screen, valid, inside, true);
+
+	// Also clears MouseCollisionSystem's current hover state.
+	events.EmitEvent<MouseMotionEvent>(
+		world, screen, valid, inside, true);
+}
+
+void Application::CommitPendingPause(GameContext& context)
+{
+	World& world = context.GetWorld();
+	const bool wasPaused = world.IsPaused();
+
+	if (world.HasPauseTransition())
+		CancelTrackedInput(context);
+
+	world.CommitPauseRequests();
+
+	if (wasPaused != world.IsPaused())
+	{
+		if (auto* input = world.GetSystem<TextInputSystem>())
+			input->Blur();
+	}
+}
+
 void Application::ProcessInput(GameContext& context)
 {
 	EventManager& events = context.GetEvents();
 
-	SyncTextInput(context); 
+	CommitPendingPause(context); 
+	SyncTextInput(context);
 
-	const auto emitMouse = [&]<class T>(float x, float y, bool cancel = false)
-	{
-		Vector2 screen(0), world(0);
-		const bool valid = renderer &&
-			renderer->WindowToRender(Vector2(x, y), screen);
-		const Vector2 size = renderer->GetViewSize();
-		const bool inside = valid && screen.x >= 0 && screen.y >= 0 &&
-			screen.x < size.x && screen.y < size.y;
-		if (valid) world = screen + context.GetCamera().position;
-		// Releases/cancels must still reach listeners outside the view.
-		if (cancel || inside)
-			events.EmitEvent<T>(world, screen, valid, inside, cancel);
-		return inside;
-	};
-	const auto emitRelease = [&]<class T>(float x, float y, bool cancel)
-	{
-		Vector2 screen(0), world(0);
-		const bool valid = renderer &&
-			renderer->WindowToRender(Vector2(x, y), screen);
-		const Vector2 size = renderer->GetViewSize();
-		const bool inside = valid && screen.x >= 0 && screen.y >= 0 &&
-			screen.x < size.x && screen.y < size.y;
-		if (valid) world = screen + context.GetCamera().position;
-		events.EmitEvent<T>(world, screen, valid, inside, cancel);
-	};
-	const auto emitMouseMotion = [&]<class T>(float x, float y, bool cancel = false)
+	const auto emitMouse = [&]<class T>(float x, float y, bool cancel = false, 
+		bool alwaysEmit = false)
 	{
 		Vector2 screen(0), world(0);
 		const bool valid = renderer &&
@@ -145,7 +180,18 @@ void Application::ProcessInput(GameContext& context)
 			screen.x < size.x && screen.y < size.y;
 		if (valid)
 			world = screen + context.GetCamera().position;
-		events.EmitEvent<T>(world, screen, valid, inside, cancel);
+
+		if (alwaysEmit || cancel || inside)
+			events.EmitEvent<T>(world, screen, valid, inside, cancel);
+		return inside;
+	};
+	const auto emitRelease = [&]<class T>(float x, float y, bool cancel)
+	{
+		emitMouse.template operator() < T > (x, y, cancel, true);
+	};
+	const auto emitMouseMotion = [&]<class T>(float x, float y, bool cancel = false)
+	{
+		emitMouse.template operator() < T > (x, y, cancel, true);
 	};
 	const auto emitMouseWheel = [&](float x, float y, float horizontal, float vertical)
 	{
@@ -174,17 +220,7 @@ void Application::ProcessInput(GameContext& context)
 		else if (event.type == SDL_EVENT_WINDOW_FOCUS_LOST)
 		{
 			inputFocused = false;
-			const auto keys = std::move(heldKeys);
-			heldKeys.clear();
-			for (auto key : keys) events.EmitEvent<KeyReleasedEvent>(key);
-			float x = 0, y = 0;
-			SDL_GetMouseState(&x, &y);
-			if (acceptedLeft)
-				emitRelease.template operator() < LeftMouseButtonReleasedEvent > (x, y, true);
-			if (acceptedRight)
-				emitRelease.template operator() < RightMouseButtonReleasedEvent > (x, y, true);
-			emitMouseMotion.template operator() <MouseMotionEvent>(x, y, true); 
-			acceptedLeft = acceptedRight = false;
+			CancelTrackedInput(context);
 		}
 		else if (inputFocused && event.type == SDL_EVENT_WINDOW_MOUSE_LEAVE)
 		{
@@ -252,33 +288,57 @@ void Application::ProcessInput(GameContext& context)
 				event.wheel.x * direction,
 				event.wheel.y * direction);
 		}
-		SyncTextInput(context); 
+		CommitPendingPause(context);
+		SyncTextInput(context);
 	}
+	CommitPendingPause(context);
 	if (!context.IsRunning() || !inputFocused) return;
-	float x = 0, y = 0;
+
+	float x = 0.0f;
+	float y = 0.0f;
 	const auto buttons = SDL_GetMouseState(&x, &y);
+
 	if (acceptedLeft && (buttons & SDL_BUTTON_LMASK))
 		emitMouse.template operator() < LeftMouseButtonHeldEvent > (x, y);
 	else if (acceptedLeft)
 	{
 		acceptedLeft = false;
-		emitRelease.template operator() < LeftMouseButtonReleasedEvent > (x, y, true);
+		emitRelease.template operator() < LeftMouseButtonReleasedEvent > (
+			x, y, true);
 	}
+	CommitPendingPause(context);
+	if (!context.IsRunning()) return;
+
 	if (acceptedRight && (buttons & SDL_BUTTON_RMASK))
 		emitMouse.template operator() < RightMouseButtonHeldEvent > (x, y);
 	else if (acceptedRight)
 	{
 		acceptedRight = false;
-		emitRelease.template operator() < RightMouseButtonReleasedEvent > (x, y, true);
+		emitRelease.template operator() < RightMouseButtonReleasedEvent > (
+			x, y, true);
 	}
+	CommitPendingPause(context);
+	if (!context.IsRunning()) return;
+
 	emitMouseMotion.template operator() < MouseMotionEvent > (x, y);
+	CommitPendingPause(context);
+	if (!context.IsRunning()) return;
+
 	const auto keys = heldKeys;
-	for (auto key : keys)
+	for (SDL_Keycode key : keys)
 	{
 		if (!context.IsRunning()) return;
+		if (!heldKeys.contains(key)) continue;
+
 		events.EmitEvent<KeyHeldEvent>(key);
+		CommitPendingPause(context);
 	}
-	if (context.IsRunning()) events.EmitEvent<KeyAllEvent>(heldKeys);
+
+	if (context.IsRunning())
+	{
+		events.EmitEvent<KeyAllEvent>(heldKeys);
+		CommitPendingPause(context);
+	}
 }
 
 void Application::Shutdown()
@@ -389,6 +449,9 @@ int Application::Run(IGame& game)
 			phase = "Input";
 			ProcessInput(*context);
 			if (!isRunning) break;
+
+			CommitPendingPause(*context);
+
 			if (debugModeToggleRequested)
 			{
 				game.SetDebugMode(!game.GetDebugMode());
@@ -408,7 +471,10 @@ int Application::Run(IGame& game)
 			if (!isRunning) break;
 
 			phase = "Game Update";
-			game.Update(*context, deltaSeconds);
+			if (context->IsPaused())
+				game.UpdateWhilePaused(*context, deltaSeconds);
+			else
+				game.Update(*context, deltaSeconds);
 			if (!isRunning) break;
 
 			phase = "World commit";

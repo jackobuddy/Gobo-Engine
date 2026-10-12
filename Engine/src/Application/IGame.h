@@ -26,6 +26,7 @@ public:
 	virtual void Stop() {}
 	virtual void BeginFrame(GameContext& context) {}
 	virtual void Update(GameContext& context, float deltaSeconds) {}
+	virtual void UpdateWhilePaused(GameContext& context, float deltaSeconds) {}
 	virtual void Render(GameContext& context) {}
 
 	bool GetDebugMode() const { return isDebugMode; }

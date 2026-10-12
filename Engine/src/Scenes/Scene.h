@@ -14,10 +14,14 @@ public:
 	virtual void OnStart(GameContext& context) {}
 	virtual void BeginFrame(GameContext& context) {}
 	virtual void Update(GameContext& context, float deltaSeconds) {}
+	virtual void UpdateWhilePaused(GameContext& context, float deltaSeconds) {}
 	virtual void Render(GameContext& context) {}
 	virtual void OnKeyPressed(KeyPressedEvent& event) {}
 	virtual void OnKeyReleased(KeyReleasedEvent& event) {}
 	virtual void OnKeyHeld(KeyHeldEvent& event) {}
+	virtual void OnKeyPressedWhilePaused(KeyPressedEvent& event) {}
+	virtual void OnKeyReleasedWhilePaused(KeyReleasedEvent& event) {}
+	virtual void OnKeyHeldWhilePaused(KeyHeldEvent& event) {}
 	virtual void OnEnd(GameContext& context) {}
 
 	bool SetViewSize(GameContext& context, int width, int height)

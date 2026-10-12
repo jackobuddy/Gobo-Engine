@@ -176,6 +176,17 @@ public:
 	}
 	Vector2 GetWorldSize() const { return worldSize; }
 
+	bool RequestPause(const std::string& owner); 
+	bool ReleasePause(const std::string& owner); 
+	bool IsPaused() const noexcept { return not activePauseOwners.empty(); }
+	bool HasPauseTransition() const noexcept
+	{
+		return requestedPauseOwners.empty() != activePauseOwners.empty(); 
+	}
+	void CommitPauseRequests() { activePauseOwners = requestedPauseOwners; }
+	bool CanUpdate(Entity entity) const; 
+	bool CanRender(Entity entity) const; 
+
 	bool RequestSceneChange(const std::string& sceneID) 
 	{ 
 		return sceneChangeRequestHandler && sceneChangeRequestHandler(sceneID); 
@@ -260,6 +271,9 @@ private:
 	bool flushing = false;
 	std::set<Entity> destructionBatch;
 	std::set<std::type_index> pendingSystemRemovals;
+	std::set<std::string> requestedPauseOwners; 
+	std::set<std::string> activePauseOwners; 
+
 	bool Busy() const
 	{
 		return callbackDepth != 0 || flushing ||

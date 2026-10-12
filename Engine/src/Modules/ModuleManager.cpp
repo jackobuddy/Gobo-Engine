@@ -66,10 +66,16 @@ bool ModuleManager::EnterSceneAll(GameContext& context)
 void ModuleManager::UpdateAll(GameContext& context, float deltaSeconds)
 {
     if (!sceneAttached) return;
+
     for (std::size_t i = 0; i < attachedCount; ++i)
     {
         if (!context.IsRunning()) break;
-        entries[i].module->Update(context, deltaSeconds);
+
+        Module* module = entries[i].module.get();
+        if (context.IsPaused() && !module->RunsWhilePaused())
+            continue;
+
+        module->Update(context, deltaSeconds);
     }
 }
 
