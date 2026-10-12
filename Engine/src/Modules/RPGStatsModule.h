@@ -33,8 +33,8 @@ struct StatModifier
 struct StatDefinition
 {
 	std::string category; 
-	std::string id;
 	StatExpression expression; 
+	std::string id;
 	std::optional<double> maximum; 
 	std::optional<double> minimum;
 	StatValueType type = StatValueType::Float;
@@ -59,6 +59,7 @@ public:
 
 	bool AddPoints(const std::string& statID, double amount); 
 	std::optional<double> GetPoints(const std::string& statID) const; 
+	bool SetBase(const std::string& statID, double value);
 	bool SetString(const std::string& statID, std::string value); 
 	std::optional<std::string> GetString(const std::string& statID) const; 
 	bool ClearString(const std::string& statID); 

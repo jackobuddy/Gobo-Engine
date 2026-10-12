@@ -47,6 +47,21 @@ std::optional<double> StatBlock::GetPoints(const std::string& statID) const
     return found == allocatedPoints.end() ? 0.0 : found->second;
 }
 
+bool StatBlock::SetBase(const std::string& statID, double value)
+{
+    const auto found = owner->definitions.find(statID);
+    if (found == owner->definitions.end() ||
+        found->second.type == StatValueType::String ||
+        !std::isfinite(value) ||
+        (found->second.type == StatValueType::Integer &&
+            std::floor(value) != value))
+        return false;
+
+    baseValues[statID] = value;
+    dirty = true;
+    return true;
+}
+
 bool StatBlock::SetPermanentSource(const std::string& sourceID, std::vector<StatModifier> modifiers)
 {
     if (sourceID.empty() || !owner->ValidModifiers(modifiers)) return false;
