@@ -78,10 +78,11 @@ set(GOBO_ENGINE_SOURCES
     src/Scenes/Scene.cpp
     src/Modules/ModuleManager.cpp
     src/Modules/RPGStatsModule.cpp
-    src/Maps/MapLoader.cpp)
+    src/Maps/MapLoader.cpp
+    src/Entities/EntityObject.cpp)
 file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
-add_library(GoboEngine STATIC ${GOBO_ENGINE_SOURCES} ${GOBO_ENGINE_HEADERS} "src/Entities/EntityObject.cpp" "src/Events/MouseMotionEvent.h" "src/Events/MouseEnteredEvent.h" "src/Events/MouseHoveredEvent.h" "src/Events/MouseLeftEvent.h" "src/Events/MouseWheelEvent.h" "src/Rendering/TextAlignment.h" "src/Rendering/TextMetrics.h" "src/Rendering/TextSpace.h" "src/Rendering/TextStyle.h" "src/Rendering/DrawSpace.h" "src/Rendering/DrawCommand.h" "src/Rendering/DrawManager.h" "src/Rendering/DrawManager.cpp" "src/Scenes/Scene.cpp" "src/Rendering/TextAnchor.h" "src/Modules/ModuleServices.h" "src/Modules/Module.h" "src/Modules/RPGStatsModule.h" "src/Modules/DialogueModule.h" "src/Modules/InventoryModule.h" "src/Modules/ModuleManager.h" "src/Modules/ModuleManager.cpp" "src/Entities/ClickTarget.h" "src/Components/PausePolicyComponent.h")
+add_library(GoboEngine STATIC ${GOBO_ENGINE_SOURCES} ${GOBO_ENGINE_HEADERS})
 add_library(Gobo::Engine ALIAS GoboEngine)
 target_include_directories(GoboEngine
     PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/src"

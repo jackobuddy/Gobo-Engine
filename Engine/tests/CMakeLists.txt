@@ -38,7 +38,7 @@ catch_discover_tests(GoboEngineTests
 set_target_properties(GoboEngineTests PROPERTIES
     FOLDER "Tests"
 )
-add_executable(GoboComponentCapacityTests ComponentCapacityTests.cpp "TilemapTests.cpp" "AssetConfigTests.cpp" "MouseHoverTests.cpp")
+add_executable(GoboComponentCapacityTests ComponentCapacityTests.cpp)
 target_link_libraries(GoboComponentCapacityTests PRIVATE
     Gobo::Engine Catch2::Catch2WithMain)
 target_compile_features(GoboComponentCapacityTests PRIVATE cxx_std_20)
@@ -53,7 +53,6 @@ catch_discover_tests(GoboComponentCapacityTests
     DISCOVERY_MODE PRE_TEST
     PROPERTIES LABELS "engine")
 set_target_properties(GoboComponentCapacityTests PROPERTIES FOLDER "Tests")
-target_sources(GoboEngineTests PRIVATE AssetConfigTests.cpp)
 target_link_libraries(GoboEngineTests PRIVATE GoboAssetConfig)
 add_dependencies(GoboEngineTests GoboAssetConfigTool)
 add_test(NAME AssetConfigAuthoring

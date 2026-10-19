@@ -10,6 +10,9 @@
 #include "../Entities/EntityObject.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
+#include <cmath>
+#include <stdexcept>
+
 
 // An Actor is a subclassification of Entity that is intended to be placed in the world. 
 // Actors come prebuilt with a Transform Component and a RigidBody Component. 
@@ -44,7 +47,10 @@ public:
 		transform->position = config.position; 
 		transform->scale = config.scale; 
 		transform->rotation = config.rotation;
-		rigidBody->velocity = config.velocity;
+		rigidBody->target.reset(); 
+		rigidBody->targetSpeed = 0.0f;
+		rigidBody->velocity = config.velocity; 
+		rigidBody->pointMoveOutcome = PointMoveOutcome::None;
 		this->Updates = config.updates;
 	}
 
@@ -201,6 +207,8 @@ public:
 			Logger::Error("Actor has no RigidBodyComponent. ");
 			return; 
 		}
+		rigidBody->target.reset(); 
+		rigidBody->targetSpeed = 0.0f; 
 		rigidBody->velocity = velocity; 
 	}
 	void SetVelocity(float xVelocity, float yVelocity)
@@ -211,7 +219,74 @@ public:
 			Logger::Error("Actor has no RigidBodyComponent. ");
 			return;
 		}
+		rigidBody->target.reset();
+		rigidBody->targetSpeed = 0.0f;
 		rigidBody->velocity = Vector2(xVelocity, yVelocity);
+	}
+
+	bool MoveTowardsPoint(float x, float y, float speed)
+	{
+		if (not std::isfinite(x) or not std::isfinite(y) or
+			not std::isfinite(speed) or speed <= 0.0f)
+		{
+			Logger::Error("MoveTowardsPoint requires a finite target and positive speed.");
+			return false;
+		}
+
+		TransformComponent* transform = GetTransform();
+		RigidBodyComponent* body = GetRigidBody();
+		if (not transform or not body)
+		{
+			Logger::Error("MoveTowardsPoint requires Transform and RigidBody.");
+			return false;
+		}
+
+		const Vector2 destination(x, y);
+		const Vector2 toward = destination - transform->position;
+		const float distance = Magnitude(toward);
+		if (not std::isfinite(distance))
+		{
+			Logger::Error("MoveTowardsPoint found an invalid starting position.");
+			return false;
+		}
+
+		if (distance == 0.0f)
+		{
+			body->target.reset();
+			body->targetSpeed = 0.0f;
+			body->velocity = Vector2{};
+			body->pointMoveOutcome = PointMoveOutcome::Arrived;
+			return true;
+		}
+
+		body->target = destination;
+		body->targetSpeed = speed;
+		body->velocity = toward * (speed / distance);
+		body->pointMoveOutcome = PointMoveOutcome::None;
+		return true;
+	}
+	void CancelMoveTowardsPoint()
+	{
+		RigidBodyComponent* body = GetRigidBody();
+		if (not body)
+		{
+			Logger::Error("CancelMoveTowardsPoint requires a RigidBody.");
+			return;
+		}
+
+		const bool wasMoving = body->target.has_value();
+		body->target.reset();
+		body->targetSpeed = 0.0f;
+		body->velocity = Vector2{};
+		if (wasMoving)
+			body->pointMoveOutcome = PointMoveOutcome::None;
+	}
+	PointMoveOutcome GetPointMoveOutcome() const
+	{
+		const auto* body = GetComponent<RigidBodyComponent>();
+		if (!body)
+			throw std::logic_error("Actor has no RigidBodyComponent.");
+		return body->pointMoveOutcome;
 	}
 
 	// Returns a pointer to the Actor's Transform Component

@@ -64,26 +64,26 @@ void EngineSystemPipeline::Install(World& world, EventManager& events) const
     }
 }
 
-void EngineSystemPipeline::Update(
-    World& world, Camera& camera, float deltaSeconds) const
+void EngineSystemPipeline::Update(World& world, Camera& camera, float deltaSeconds) const
 {
-    if (auto* system = world.GetSystem<MovementSystem>())
-        system->Update(deltaSeconds);
+    CollisionSystem* collisions = world.GetSystem<CollisionSystem>();
 
-    if (auto* system = world.GetSystem<AnimationSystem>())
-        system->Update(deltaSeconds);
+    if (auto* movement = world.GetSystem<MovementSystem>())
+        movement->Update(deltaSeconds, collisions);
+    if (auto* animation = world.GetSystem<AnimationSystem>())
+        animation->Update(deltaSeconds);
 
     if (!world.IsPaused())
     {
-        if (auto* system = world.GetSystem<CollisionSystem>())
-            system->Update(world);
+        if (collisions)
+            collisions->Update(world);
 
-        if (auto* system = world.GetSystem<CameraMovementSystem>())
-            system->Update(camera, world.GetWorldSize());
+        if (auto* cameraMovement = world.GetSystem<CameraMovementSystem>())
+            cameraMovement->Update(camera, world.GetWorldSize()); 
     }
 
-    if (auto* system = world.GetSystem<ProjectileLifecycleSystem>())
-        system->Update(deltaSeconds);
+    if (auto* projectiles = world.GetSystem<ProjectileLifecycleSystem>())
+        projectiles->Update(deltaSeconds); 
 }
 
 void EngineSystemPipeline::RenderBackground(World& world, AssetManager& assets, 

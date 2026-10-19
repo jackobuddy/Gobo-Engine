@@ -439,6 +439,7 @@ int Application::Run(IGame& game)
 		while (isRunning)
 		{
 			phase = "Game BeginFrame";
+			renderer->BeginDrawFrame(); 
 			game.BeginFrame(*context);
 			if (!isRunning) break;
 

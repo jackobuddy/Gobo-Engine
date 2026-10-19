@@ -27,6 +27,7 @@ public:
 		int height = 0;
 		int offsetX = 0;
 		int offsetY = 0;
+		bool blocksMovement = false; 
 	};
 	struct HealthConfig
 	{
@@ -48,7 +49,7 @@ public:
 		AddComponent<SpriteComponent>(c.sprite.asset, c.sprite.layer, c.sprite.alpha, 
 			c.sprite.isFixed, c.sprite.isHidden); 
 		AddComponent<BoxCollisionComponent>(c.collision.width, c.collision.height,
-			c.collision.offsetX, c.collision.offsetY);
+			c.collision.offsetX, c.collision.offsetY, c.collision.blocksMovement);
 		AddComponent<HealthComponent>(c.health.healthPercentage);
 	}
 
@@ -73,6 +74,7 @@ public:
 		collision->height = c.collision.height;
 		collision->offsetX = c.collision.offsetX;
 		collision->offsetY = c.collision.offsetY;
+		collision->blocksMovement = c.collision.blocksMovement; 
 		health->healthPercentage = c.health.healthPercentage;
 	}
 };

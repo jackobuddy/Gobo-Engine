@@ -9,6 +9,12 @@
 #include <Sprites/Sprite.h>
 #include <memory>
 #include <stdexcept>
+#include <Components/RigidBodyComponent.h>
+#include <Logger/Logger.h>
+#include <cstddef>
+#include <string>
+#include <Entities/Actor.h>
+#include <Systems/MovementSystem.h>
 
 
 namespace {
@@ -99,6 +105,158 @@ namespace {
             events.EmitEvent<Ping>();
         }
     };
+}
+namespace
+{
+    std::size_t SolidOverlapWarningCount()
+    {
+        std::size_t count = 0;
+        for (const LogEntry& entry : Logger::GetLog())
+        {
+            if (entry.type == LogType::WARNING &&
+                entry.message.find("Solid collision boxes overlap:") !=
+                std::string::npos)
+                ++count;
+        }
+        return count;
+    }
+}
+
+TEST_CASE("Initial solid overlap stops movement and warns once")
+{
+    Logger::Clear();
+    EventManager events;
+    World world;
+    world.SetEventManager(events);
+    world.AddSystem<CollisionSystem>();
+
+    int moverEnters = 0;
+    int wallEnters = 0;
+    Entity mover =
+        world.CreateObject<Contact>("mover", moverEnters).GetEntity();
+    Entity wall =
+        world.CreateObject<Contact>("wall", wallEnters).GetEntity();
+
+    mover.AddComponent<RigidBodyComponent>(Vector2(25.0f, 0.0f));
+    mover.GetComponent<BoxCollisionComponent>()->blocksMovement = true;
+    wall.GetComponent<BoxCollisionComponent>()->blocksMovement = true;
+    wall.GetComponent<TransformComponent>()->position =
+        Vector2(5.0f, 0.0f);
+    world.Update();
+
+    auto* collisions = world.GetSystem<CollisionSystem>();
+    REQUIRE(collisions != nullptr);
+
+    // A stationary spawn overlap is reported through normal callbacks.
+    REQUIRE_NOTHROW(collisions->Update(world));
+    CHECK(moverEnters == 1);
+    CHECK(wallEnters == 1);
+    CHECK(SolidOverlapWarningCount() == 1);
+
+    bool impacted = false;
+    REQUIRE_NOTHROW(
+        impacted = collisions->ResolveMovement(mover, 0.1f));
+    CHECK(impacted);
+    CHECK(mover.GetComponent<TransformComponent>()->position.x == 0.0f);
+    CHECK(mover.GetComponent<RigidBodyComponent>()->velocity.x == 0.0f);
+
+    REQUIRE_NOTHROW(collisions->Update(world));
+    CHECK(moverEnters == 1);
+    CHECK(wallEnters == 1);
+    CHECK(SolidOverlapWarningCount() == 1);
+
+    // Separation rearms the warning for a later overlap.
+    wall.GetComponent<TransformComponent>()->position =
+        Vector2(30.0f, 0.0f);
+    collisions->Update(world);
+    wall.GetComponent<TransformComponent>()->position =
+        Vector2(5.0f, 0.0f);
+    collisions->Update(world);
+    CHECK(SolidOverlapWarningCount() == 2);
+}
+
+TEST_CASE("Teleporting into a solid stops the next move")
+{
+    Logger::Clear();
+    EventManager events;
+    World world;
+    world.SetEventManager(events);
+    world.AddSystem<CollisionSystem>();
+
+    int moverEnters = 0;
+    int wallEnters = 0;
+    Entity mover =
+        world.CreateObject<Contact>("mover", moverEnters).GetEntity();
+    Entity wall =
+        world.CreateObject<Contact>("wall", wallEnters).GetEntity();
+
+    mover.AddComponent<RigidBodyComponent>(Vector2(50.0f, 0.0f));
+    mover.GetComponent<BoxCollisionComponent>()->blocksMovement = true;
+    wall.GetComponent<BoxCollisionComponent>()->blocksMovement = true;
+    wall.GetComponent<TransformComponent>()->position =
+        Vector2(30.0f, 0.0f);
+    world.Update();
+
+    auto* collisions = world.GetSystem<CollisionSystem>();
+    REQUIRE(collisions != nullptr);
+    collisions->Update(world);
+
+    mover.GetComponent<TransformComponent>()->position =
+        Vector2(25.0f, 0.0f); // Teleport five units into the wall.
+
+    bool impacted = false;
+    REQUIRE_NOTHROW(
+        impacted = collisions->ResolveMovement(mover, 0.1f));
+    CHECK(impacted);
+    CHECK(mover.GetComponent<TransformComponent>()->position.x == 25.0f);
+
+    REQUIRE_NOTHROW(collisions->Update(world));
+    CHECK(moverEnters == 1);
+    CHECK(wallEnters == 1);
+    CHECK(SolidOverlapWarningCount() == 1);
+}
+
+TEST_CASE("Normal swept solid impact still blocks and calls hooks")
+{
+    Logger::Clear();
+    EventManager events;
+    World world;
+    world.SetEventManager(events);
+    world.AddSystem<CollisionSystem>();
+
+    int moverEnters = 0;
+    int wallEnters = 0;
+    Entity mover =
+        world.CreateObject<Contact>("mover", moverEnters).GetEntity();
+    Entity wall =
+        world.CreateObject<Contact>("wall", wallEnters).GetEntity();
+
+    mover.AddComponent<RigidBodyComponent>(Vector2(100.0f, 0.0f));
+    mover.GetComponent<RigidBodyComponent>()->response =
+        CollisionResponse::Stop;
+    mover.GetComponent<BoxCollisionComponent>()->blocksMovement = true;
+    wall.GetComponent<BoxCollisionComponent>()->blocksMovement = true;
+    wall.GetComponent<TransformComponent>()->position =
+        Vector2(15.0f, 0.0f);
+    world.Update();
+
+    auto* collisions = world.GetSystem<CollisionSystem>();
+    REQUIRE(collisions != nullptr);
+
+    bool impacted = false;
+    REQUIRE_NOTHROW(
+        impacted = collisions->ResolveMovement(mover, 0.2f));
+    CHECK(impacted);
+    const float x =
+        mover.GetComponent<TransformComponent>()->position.x;
+    CHECK(x > 0.0f);
+    CHECK(x < 5.0f);
+    CHECK(mover.GetComponent<RigidBodyComponent>()->velocity.x == 0.0f);
+
+    REQUIRE_NOTHROW(collisions->Update(world));
+    CHECK(moverEnters == 1);
+    CHECK(wallEnters == 1);
+    CHECK(SolidOverlapWarningCount() == 0);
 }
 TEST_CASE("Object spawning does not invalidate Update iteration")
 {
@@ -211,4 +369,103 @@ TEST_CASE("Sprite alpha inputs are validated")
     SpriteComponent sprite;
     sprite.SetAlpha(-5); CHECK(sprite.GetAlpha() == 0);
     sprite.SetAlpha(300); CHECK(sprite.GetAlpha() == 255);
+}
+TEST_CASE("Stop collision ends a point move once")
+{
+    EventManager events;
+    World world;
+    world.SetEventManager(events);
+    world.AddSystem<CollisionSystem>();
+    world.AddSystem<MovementSystem>();
+
+    Actor& actor = world.CreateActor<Actor>("mover");
+    Entity mover = actor.GetEntity();
+    mover.AddComponent<BoxCollisionComponent>(10, 10, 0, 0, true);
+
+    Entity wall = world.CreateEntity("wall");
+    wall.AddComponent<TransformComponent>(Vector2(15.0f, 0.0f));
+    wall.AddComponent<BoxCollisionComponent>(10, 10, 0, 0, true);
+    world.Update();
+
+    auto* movement = world.GetSystem<MovementSystem>();
+    auto* collisions = world.GetSystem<CollisionSystem>();
+    REQUIRE(movement != nullptr);
+    REQUIRE(collisions != nullptr);
+
+    RigidBodyComponent* body = actor.GetRigidBody();
+    REQUIRE(body != nullptr);
+    body->response = CollisionResponse::Stop;
+
+    REQUIRE(actor.MoveTowardsPoint(100.0f, 0.0f, 100.0f));
+    CHECK(actor.GetPointMoveOutcome() == PointMoveOutcome::None);
+
+    REQUIRE_NOTHROW(movement->Update(0.2f, collisions));
+    const float stoppedX = actor.GetTransform()->position.x;
+    CHECK(stoppedX > 0.0f);
+    CHECK(stoppedX < 5.0f);
+    CHECK(actor.GetPointMoveOutcome() == PointMoveOutcome::Blocked);
+    CHECK_FALSE(body->target.has_value());
+    CHECK(body->targetSpeed == 0.0f);
+    CHECK(body->velocity.x == 0.0f);
+
+    collisions->Update(world);
+    REQUIRE_NOTHROW(movement->Update(0.2f, collisions));
+    CHECK(actor.GetTransform()->position.x == stoppedX);
+    CHECK(actor.GetPointMoveOutcome() == PointMoveOutcome::Blocked);
+}
+
+TEST_CASE("Unobstructed point move arrives exactly")
+{
+    World world;
+    world.AddSystem<CollisionSystem>();
+    world.AddSystem<MovementSystem>();
+    Actor& actor = world.CreateActor<Actor>("mover");
+    world.Update();
+
+    auto* movement = world.GetSystem<MovementSystem>();
+    auto* collisions = world.GetSystem<CollisionSystem>();
+    REQUIRE(movement != nullptr);
+    REQUIRE(collisions != nullptr);
+    REQUIRE(actor.MoveTowardsPoint(10.0f, 0.0f, 100.0f));
+
+    movement->Update(0.04f, collisions);
+    CHECK(actor.GetPointMoveOutcome() == PointMoveOutcome::None);
+    CHECK(actor.GetRigidBody()->target.has_value());
+
+    movement->Update(0.1f, collisions);
+    CHECK(actor.GetTransform()->position.x == 10.0f);
+    CHECK(actor.GetPointMoveOutcome() == PointMoveOutcome::Arrived);
+    CHECK_FALSE(actor.GetRigidBody()->target.has_value());
+    CHECK(actor.GetRigidBody()->velocity.x == 0.0f);
+
+    movement->Update(0.1f, collisions);
+    CHECK(actor.GetTransform()->position.x == 10.0f);
+}
+
+TEST_CASE("Starting inside a solid blocks a point move")
+{
+    World world;
+    world.AddSystem<CollisionSystem>();
+    world.AddSystem<MovementSystem>();
+
+    Actor& actor = world.CreateActor<Actor>("mover");
+    actor.GetEntity().AddComponent<BoxCollisionComponent>(
+        10, 10, 0, 0, true);
+
+    Entity wall = world.CreateEntity("wall");
+    wall.AddComponent<TransformComponent>(Vector2(5.0f, 0.0f));
+    wall.AddComponent<BoxCollisionComponent>(
+        10, 10, 0, 0, true);
+    world.Update();
+
+    auto* movement = world.GetSystem<MovementSystem>();
+    auto* collisions = world.GetSystem<CollisionSystem>();
+    REQUIRE(movement != nullptr);
+    REQUIRE(collisions != nullptr);
+    REQUIRE(actor.MoveTowardsPoint(100.0f, 0.0f, 100.0f));
+
+    REQUIRE_NOTHROW(movement->Update(0.1f, collisions));
+    CHECK(actor.GetTransform()->position.x == 0.0f);
+    CHECK(actor.GetPointMoveOutcome() == PointMoveOutcome::Blocked);
+    CHECK_FALSE(actor.GetRigidBody()->target.has_value());
 }
