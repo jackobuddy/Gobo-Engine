@@ -123,7 +123,7 @@ bool AssetManager::AddTexture(const std::string& assetID, const std::string& fil
 	}
 	estimatedTextureBytes += textureBytes; 
 	texture.release(); // AssetManager now owns this SDL texture.
-	Logger::Log("Imported static Sprite: " + assetID);
+	Logger::Log("Loaded texture: " + assetID);
 	return true;
 }
 
@@ -310,6 +310,10 @@ bool AssetManager::ImportSprites()
 			if (!DefineSprite(id, *definition))
 				Logger::Error("Cannot apply config for " + id +
 					"; retaining full-image static Sprite");
+			const auto imported = GetSprite(id);
+			const char* kind = dynamic_cast<const Animation*>(imported.get()) ? "Animation" :
+				dynamic_cast<const Tilemap*>(imported.get()) ? "Tilemap" : "static Sprite";
+			Logger::Log(std::string("Imported ") + kind + ": " + id);
 		}
 		Logger::Log("Imported " + std::to_string(files.size()) + " sprites.");
 		return true;

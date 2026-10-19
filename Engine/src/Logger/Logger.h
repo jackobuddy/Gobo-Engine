@@ -1,42 +1,39 @@
 #pragma once
 
+#include <deque>
 #include <string>
-#include <deque> 
-
-// TODO: Save the error log to an external file for auditing. 
 
 enum class LogType
 {
-	MESSAGE, WARNING, ERROR
+    MESSAGE, WARNING, ERROR
 };
 
 struct LogEntry
 {
-	LogType type;
-	std::string message; 
+    LogType type;
+    std::string message;
 };
 
 class Logger
 {
 public:
-	// Prints a normal message to log
-	static void Log(const std::string& message); 
-	// Prints a warning message to log
-	static void Warning(const std::string & message);
-	// Prints an error message to log
-	static void Error(const std::string& message); 
-	// Prints a normal SDL message to log
-	static void SDLLog(const std::string& message, const char* sdlerror);
-	// Prints and SDL error to log
-	static void SDLError(const std::string& message, const char* sdlerror); 
-	// Clears the log from memory
-	static void Clear(); 
-	// Gets a copy of the log
-	static std::deque<LogEntry>GetLog() { return messages; }
+    // gameRootUtf8 is the directory containing the game executable.
+    // Returns false if file logging is unavailable; other logging still works.
+    static bool BeginSession(const char* gameRootUtf8) noexcept;
+    static void EndSession() noexcept;
+
+    static void Log(const std::string& message);
+    static void Warning(const std::string& message);
+    static void Error(const std::string& message);
+    static void SDLLog(const std::string& message, const char* sdlerror);
+    static void SDLError(const std::string& message, const char* sdlerror);
+
+    // Clears only the in-memory log, never files from earlier runs.
+    static void Clear();
+    static std::deque<LogEntry> GetLog() { return messages; }
 
 private:
-	// A vector that stores all log messages
-	static std::deque<LogEntry> messages;
-	static std::string GetTimestamp(); 
-	static void AppendLog(LogEntry entry);
+    static std::deque<LogEntry> messages;
+    static std::string GetTimestamp();
+    static void AppendLog(LogEntry entry);
 };

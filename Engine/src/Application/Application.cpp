@@ -383,6 +383,9 @@ void Application::Shutdown()
 
 int Application::Run(IGame& game)
 {
+	// We start our Logger first to record Init events. 
+	Logger::BeginSession(SDL_GetBasePath()); 
+
 	int result = 0;
 	bool contentStarted = false;
 	const char* phase = "Configure";
@@ -562,6 +565,9 @@ int Application::Run(IGame& game)
 	game.ClearContext();
 	context.reset();
 	Shutdown();
+
+	// We end our Logger last to record Shutdown events. 
+	Logger::EndSession();
 	return result;
 }
 
