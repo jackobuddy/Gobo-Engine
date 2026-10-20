@@ -335,39 +335,66 @@ SpriteRef AssetManager::GetSprite(const std::string& id) const
 
 bool AssetManager::DefineSprite(const std::string& id, const Sprite& definition)
 {
-	SDL_Texture* texture = GetTexture(definition.GetTextureID()); 
-	float textureWidth = 0, textureHeight = 0; 
-	if (id.empty() or not texture or not SDL_GetTextureSize(texture, &textureWidth, &textureHeight))
+	SDL_Texture* texture = GetTexture(definition.GetTextureID());
+	float textureWidth = 0;
+	float textureHeight = 0;
+	if (id.empty() or not texture or
+		not SDL_GetTextureSize(
+			texture, &textureWidth, &textureHeight))
 	{
-		Logger::Error("Cannot register Sprite: " + id + " (missing texture or ID)");
-		return false; 
+		Logger::Error(
+			"Cannot register Sprite: " + id +
+			" (missing texture or ID)");
+		return false;
 	}
-	std::int64_t requiredWidth = static_cast<std::int64_t>(definition.GetSourceX()) + definition.GetWidth();
-	std::int64_t requiredHeight = static_cast<std::int64_t>(definition.GetSourceY()) + definition.GetHeight();
 
-	if (const auto* tilemap = dynamic_cast<const Tilemap*>(&definition))
+	std::int64_t requiredWidth =
+		static_cast<std::int64_t>(definition.GetSourceX()) +
+		definition.GetWidth();
+	std::int64_t requiredHeight =
+		static_cast<std::int64_t>(definition.GetSourceY()) +
+		definition.GetHeight();
+
+	if (const auto* tilemap =
+		dynamic_cast<const Tilemap*>(&definition))
 	{
-		requiredWidth = static_cast<std::int64_t>(tilemap->GetAtlasColumns()) *
-			definition.GetWidth();
-		requiredHeight = static_cast<std::int64_t>(tilemap->GetAtlasRows()) *
-			definition.GetHeight();
+		requiredWidth =
+			static_cast<std::int64_t>(definition.GetSourceX()) +
+			static_cast<std::int64_t>(
+				tilemap->GetAtlasColumns()) * definition.GetWidth();
+		requiredHeight =
+			static_cast<std::int64_t>(definition.GetSourceY()) +
+			static_cast<std::int64_t>(
+				tilemap->GetAtlasRows()) * definition.GetHeight();
 	}
-	else if (const auto* animation = dynamic_cast<const Animation*>(&definition))
+	else if (const auto* animation =
+		dynamic_cast<const Animation*>(&definition))
 	{
 		int maxFrames = 1;
 		for (int i = 0; i < animation->GetRowCount(); ++i)
-			maxFrames = std::max(maxFrames, animation->GetRow(i).frameCount);
-		requiredWidth = static_cast<std::int64_t>(maxFrames) * definition.GetWidth();
-		requiredHeight = static_cast<std::int64_t>(animation->GetRowCount()) *
-			definition.GetHeight();
+			maxFrames = std::max(
+				maxFrames, animation->GetRow(i).frameCount);
+
+		requiredWidth =
+			static_cast<std::int64_t>(definition.GetSourceX()) +
+			static_cast<std::int64_t>(maxFrames) *
+			definition.GetWidth();
+		requiredHeight =
+			static_cast<std::int64_t>(definition.GetSourceY()) +
+			static_cast<std::int64_t>(
+				animation->GetRowCount()) * definition.GetHeight();
 	}
-	if (requiredWidth > textureWidth or requiredHeight > textureHeight)
+
+	if (requiredWidth > textureWidth ||
+		requiredHeight > textureHeight)
 	{
-		Logger::Error("Sprite regions exceed texture bounds: " + id); 
-		return false; 
+		Logger::Error(
+			"Sprite regions exceed texture bounds: " + id);
+		return false;
 	}
+
 	sprites.insert_or_assign(id, definition.Clone());
-	return true; 
+	return true;
 }
 
 TilemapRef AssetManager::GetTilemap(const std::string& id) const

@@ -37,3 +37,12 @@ TEST_CASE("Tilemap component loads a complete CSV grid atomically")
     CHECK_FALSE(map.LoadCSV(badIndex));
     CHECK(map.GetTile(2, 1) == 5);
 }
+TEST_CASE("Tilemap source positions include its origin")
+{
+    Tilemap atlas("jungle", 32, 32, 10, 3, 5, 7);
+    CHECK(atlas.GetSourceX(21) == 37);
+    CHECK(atlas.GetSourceY(21) == 71);
+    CHECK_THROWS_AS(
+        (Tilemap("bad", 32, 32, 1, 1, -1, 0)),
+        std::invalid_argument);
+}

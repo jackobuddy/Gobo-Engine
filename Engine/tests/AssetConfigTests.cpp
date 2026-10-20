@@ -160,3 +160,71 @@ TEST_CASE("Runtime configs are independent of the authoring tree", "[asset-confi
     CHECK(fallback.sprite.at("width") == 32);
     CHECK(errors.size() == 1);
 }
+TEST_CASE("Animation and tilemap origins survive config generation",
+    "[asset-config]")
+{
+    const auto defaults = AssetConfig::ParseProject(
+        Json::parse(R"({
+            "animation": {
+                "width": 8, "height": 8,
+                "originX": 4, "originY": 8,
+                "defaultFrameCount": 2, "rowCount": 2
+            },
+            "tilemap": {
+                "width": 8, "height": 8,
+                "originX": 4, "originY": 8,
+                "atlasColumns": 2, "atlasRows": 2
+            }
+        })"));
+
+    const auto animationConfig =
+        AssetConfig::MakeConfig("animation", defaults, 20, 24);
+    CHECK(animationConfig.at("originX") == 4);
+    CHECK(animationConfig.at("originY") == 8);
+    auto animation = std::dynamic_pointer_cast<const Animation>(
+        AssetConfig::ParseSprite(
+            animationConfig, "walk", 20, 24, defaults));
+    REQUIRE(animation);
+    CHECK(animation->GetSourceX() == 4);
+    CHECK(animation->GetSourceY() == 8);
+    CHECK(animation->GetRowCount() == 2);
+
+    const auto tileConfig =
+        AssetConfig::MakeConfig("tilemap", defaults, 20, 24);
+    CHECK(tileConfig.at("originX") == 4);
+    CHECK(tileConfig.at("originY") == 8);
+    auto tilemap = std::dynamic_pointer_cast<const Tilemap>(
+        AssetConfig::ParseSprite(
+            tileConfig, "tiles", 20, 24, defaults));
+    REQUIRE(tilemap);
+    CHECK(tilemap->GetSourceX(3) == 12);
+    CHECK(tilemap->GetSourceY(3) == 16);
+}
+
+TEST_CASE("Config origins cannot move cells outside the image",
+    "[asset-config]")
+{
+    const auto defaults = AssetConfig::EngineDefaults();
+
+    CHECK_THROWS(AssetConfig::ParseSprite(
+        Json::parse(R"({
+            "type":"animation", "width":8, "height":8,
+            "originX":5, "defaultFrameCount":2,
+            "rowCount":1
+        })"),
+        "animation", 20, 24, defaults));
+
+    CHECK_THROWS(AssetConfig::ParseSprite(
+        Json::parse(R"({
+            "type":"tilemap", "width":8, "height":8,
+            "originY":9, "atlasColumns":1,
+            "atlasRows":2
+        })"),
+        "tilemap", 20, 24, defaults));
+
+    CHECK_THROWS(AssetConfig::ParseSprite(
+        Json::parse(R"({
+            "type":"animation", "originX":-1
+        })"),
+        "negative", 64, 64, defaults));
+}

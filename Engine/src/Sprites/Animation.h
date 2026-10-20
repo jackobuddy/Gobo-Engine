@@ -13,14 +13,17 @@ public:
 		int frameCount; 
 	};
 
-	Animation(std::string textureID, int width, int height, float defaultFPS, int defaultFrames,
-		int rowCount, int pivotX = 0, int pivotY = 0) : Sprite(std::move(textureID), width, height, 0, 0, 
-		pivotX, pivotY), defaultFPS(defaultFPS), defaultFrames(defaultFrames)
+	Animation(std::string textureID, int width, int height, float defaultFPS, int defaultFrames, 
+		int rowCount, int pivotX = 0, int pivotY = 0, int originX = 0, int originY = 0)
+		: Sprite(std::move(textureID), width, height, originX, originY, pivotX, pivotY),
+		defaultFPS(defaultFPS), defaultFrames(defaultFrames)
 	{
-		if (not std::isfinite(defaultFPS) or defaultFPS <= 0 or defaultFrames <= 0 or rowCount <= 0)
+		if (not std::isfinite(defaultFPS) or defaultFPS <= 0 or
+			defaultFrames <= 0 or rowCount <= 0)
 			throw std::invalid_argument("Invalid Animation defaults.");
+
 		for (int i = 0; i < rowCount; ++i)
-			rows.push_back({"row-" + std::to_string(i), defaultFrames});
+			rows.push_back({ "row-" + std::to_string(i), defaultFrames });
 	}
 
 	SpriteRef Clone() const override
