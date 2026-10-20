@@ -18,8 +18,8 @@ public:
 		: Sprite(std::move(textureID), width, height, originX, originY, pivotX, pivotY),
 		defaultFPS(defaultFPS), defaultFrames(defaultFrames)
 	{
-		if (not std::isfinite(defaultFPS) or defaultFPS <= 0 or
-			defaultFrames <= 0 or rowCount <= 0)
+		if (!std::isfinite(defaultFPS) || defaultFPS < 0 ||
+			defaultFrames <= 0 || rowCount <= 0)
 			throw std::invalid_argument("Invalid Animation defaults.");
 
 		for (int i = 0; i < rowCount; ++i)

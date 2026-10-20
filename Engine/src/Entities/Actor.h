@@ -265,6 +265,10 @@ public:
 		body->pointMoveOutcome = PointMoveOutcome::None;
 		return true;
 	}
+	bool MoveTowardsPoint(Vector2 point, float speed)
+	{
+		return MoveTowardsPoint(point.x, point.y, speed); 
+	}
 	void CancelMoveTowardsPoint()
 	{
 		RigidBodyComponent* body = GetRigidBody();

@@ -11,6 +11,8 @@
 #include "../Events/RightMouseButtonHeldEvent.h"
 #include "../Events/LeftMouseButtonReleasedEvent.h"
 #include "../Events/RightMouseButtonReleasedEvent.h"
+#include "../Events/LeftMouseLongHoldEvent.h"
+#include "../Events/RightMouseLongHoldEvent.h"
 #include "../Events/MouseEnteredEvent.h"
 #include "../Events/MouseHoveredEvent.h"
 #include "../Events/MouseLeftEvent.h"
@@ -85,12 +87,18 @@ public:
     // Triggered when the right mouse button is released. 
     // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
     virtual void OnRightMouseButtonReleased(RightMouseButtonReleasedEvent& event) {}
-    // Triggered when the left mouse button is being held down. 
-    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
+    // Triggered each focused frame while the left button is down and the
+    // cursor is inside the game view. Requires MouseControlledComponent.
     virtual void OnLeftMouseButtonHeld(LeftMouseButtonHeldEvent& event) {}
-    // Triggered when the right mouse button is being held down. 
-    // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent.
+    // Triggered each focused frame while the right button is down and the
+    // cursor is inside the game view. Requires MouseControlledComponent.
     virtual void OnRightMouseButtonHeld(RightMouseButtonHeldEvent& event) {}
+    // Triggered each eligible frame after the configured left-button
+    // threshold. Requires MouseControlledComponent; no collider is needed.
+    virtual void OnLeftMouseLongHold(LeftMouseLongHoldEvent& event) {}
+    // Triggered each eligible frame after the configured right-button
+    // threshold. Requires MouseControlledComponent; no collider is needed.
+    virtual void OnRightMouseLongHold(RightMouseLongHoldEvent& event) {}
     // Triggered once when the cursor first enteres this object's collision box. 
     // Requires a MouseControlComponent, TransformComponent, and BoxCollisionComponent. 
     virtual void OnMouseEntered(MouseEnteredEvent& event) {}

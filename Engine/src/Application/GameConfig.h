@@ -57,6 +57,9 @@ struct GameConfig
 	bool frameRateIsCapped = true; 
 	// Sets the target framerate to cap at if bool frameRateIsCapped = true. 
 	int targetFPS = 60; 
+	// Milliseconds before a pressed mouse button emits LongHold each frame.
+	// Zero activates LongHold on the first eligible frame.
+	std::uint32_t mouseLongHoldMilliseconds = 180;
 	// Sets the starting Clear Color used as the flat color of the canvas. 
 	ClearColor clearColor{}; 
 };

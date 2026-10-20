@@ -73,10 +73,14 @@ namespace AssetConfig
 			const auto& value = j.at("defaultFPS");
 			if (!value.is_number())
 				throw std::runtime_error("defaultFPS must be a number");
+
 			const double fps = value.get<double>();
-			if (!std::isfinite(fps) || fps <= 0 || fps > std::numeric_limits<float>::max() ||
-				static_cast<float>(fps) <= 0)
-					throw std::runtime_error("defaultFPS must be finite and positive");
+			if (!std::isfinite(fps) || fps < 0 ||
+				fps > std::numeric_limits<float>::max() ||
+				(fps > 0 && static_cast<float>(fps) == 0))
+				throw std::runtime_error(
+					"defaultFPS must be finite and non-negative");
+
 			return static_cast<float>(fps);
 		}
 

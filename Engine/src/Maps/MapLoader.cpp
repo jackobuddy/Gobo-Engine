@@ -106,22 +106,42 @@ MapDefinition MapLoader::Parse(std::istream& input)
     if (!entries.is_array() || entries.size() > 100000)
         throw std::runtime_error("Invalid map entities array");
     map.entities.reserve(entries.size());
-    std::unordered_set<std::string> names;
-    for (std::size_t i = 0; i < entries.size(); ++i) {
-        try {
+
+    std::unordered_set<std::string> explicitNames;
+
+    for (std::size_t i = 0; i < entries.size(); ++i)
+    {
+        try
+        {
             const Json& e = entries[i];
-            Keys(e, { "name", "type", "position" });
-            Keys(e["position"], { "x", "y" });
-            MapPlacement p{ Label(e["name"]), Label(e["type"]),
-                Vector2(Number(e["position"]["x"], false),
-                        Number(e["position"]["y"], false)) };
-            if (!names.insert(p.name).second)
-                throw std::runtime_error("Duplicate entity name: " + p.name);
+            if (!e.is_object())
+                throw std::runtime_error("Entity placement must be an object");
+
+            const bool hasName = e.contains("name");
+            if (e.size() != (hasName ? 3U : 2U) ||
+                !e.contains("type") || !e.contains("position"))
+                throw std::runtime_error("Unexpected map object fields");
+
+            Keys(e.at("position"), { "x", "y" });
+
+            MapPlacement p{
+                hasName ? Label(e.at("name")) : std::string{},
+                Label(e.at("type")),
+                Vector2(
+                    Number(e.at("position").at("x"), false),
+                    Number(e.at("position").at("y"), false))
+            };
+
+            if (hasName && !explicitNames.insert(p.name).second)
+                throw std::runtime_error(
+                    "Duplicate entity name: " + p.name);
+
             map.entities.push_back(std::move(p));
         }
-        catch (const std::exception& ex) {
-            throw std::runtime_error("entities[" + std::to_string(i) +
-                "]: " + ex.what());
+        catch (const std::exception& ex)
+        {
+            throw std::runtime_error(
+                "entities[" + std::to_string(i) + "]: " + ex.what());
         }
     }
     return map;
@@ -148,26 +168,66 @@ void MapLoader::LoadIntoScene(GameContext& context, const std::string& mapId,
     MapDefinition map = Parse(input);
     World& world = context.GetWorld();
 
-    for (std::size_t i = 0; i < map.entities.size(); ++i) {
-        const auto& p = map.entities[i];
+    std::unordered_set<std::string> reservedNames;
+    reservedNames.reserve(map.entities.size());
+
+    for (std::size_t i = 0; i < map.entities.size(); ++i)
+    {
+        const MapPlacement& p = map.entities[i];
+
         if (!registry.Contains(p.type))
-            throw std::runtime_error("Unregistered map type at entities[" +
+            throw std::runtime_error(
+                "Unregistered map type at entities[" +
                 std::to_string(i) + "]: " + p.type);
+
+        if (p.name.empty())
+            continue;
+
+        if (!reservedNames.insert(p.name).second)
+            throw std::runtime_error(
+                "Duplicate entity name at entities[" +
+                std::to_string(i) + "]: " + p.name);
+
         if (world.FindEntity(p.name).IsAlive())
-            throw std::runtime_error("Name already exists at entities[" +
+            throw std::runtime_error(
+                "Name already exists at entities[" +
                 std::to_string(i) + "]: " + p.name);
     }
 
     if (!context.SetViewSize(map.viewWidth, map.viewHeight))
         throw std::runtime_error("Could not apply map view: " + mapId);
     world.SetWorldSize(map.worldSize);
-    for (std::size_t i = 0; i < map.entities.size(); ++i) {
-        try {
-            registry.Spawn(world, map.entities[i]);
+    for (std::size_t i = 0; i < map.entities.size(); ++i)
+    {
+        MapPlacement placement = map.entities[i];
+
+        if (placement.name.empty())
+        {
+            const std::string base =
+                "__map_" + mapId + "_" + std::to_string(i);
+            std::string candidate = base;
+            std::uint64_t suffix = 1;
+
+            while (reservedNames.contains(candidate) ||
+                world.FindEntity(candidate).IsAlive())
+            {
+                candidate =
+                    base + "_" + std::to_string(suffix++);
+            }
+
+            placement.name = std::move(candidate);
+            reservedNames.insert(placement.name);
         }
-        catch (const std::exception& ex) {
-            throw std::runtime_error("Map " + mapId + " entities[" + 
-            std::to_string(i) + "]: " + ex.what());
+
+        try
+        {
+            registry.Spawn(world, placement);
+        }
+        catch (const std::exception& ex)
+        {
+            throw std::runtime_error(
+                "Map " + mapId + " entities[" +
+                std::to_string(i) + "]: " + ex.what());
         }
     }
 }

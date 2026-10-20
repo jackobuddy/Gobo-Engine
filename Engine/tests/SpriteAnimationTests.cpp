@@ -9,6 +9,42 @@
 #include <limits>
 
 
+TEST_CASE("Zero FPS holds a selected frame and can resume", "[animation]")
+{
+    Animation definition("floor", 64, 64, 0.0f, 12, 1);
+    World world;
+    world.AddSystem<AnimationSystem>();
+
+    auto entity = world.CreateEntity("floor");
+    entity.AddComponent<SpriteComponent>(definition.Clone());
+    world.Update();
+
+    auto* sprite = entity.GetComponent<SpriteComponent>();
+    auto* system = world.GetSystem<AnimationSystem>();
+    REQUIRE(sprite);
+    REQUIRE(system);
+    REQUIRE(sprite->Play("row-0", false));
+    CHECK(sprite->GetFrameCount() == 12);
+
+    REQUIRE(sprite->SetFrame(7));
+    system->Update(100.0f);
+    CHECK(sprite->GetCurrentFrame() == 7);
+    CHECK_FALSE(sprite->IsFinished());
+
+    CHECK_FALSE(sprite->SetFrame(-1));
+    CHECK_FALSE(sprite->SetFrame(12));
+    CHECK(sprite->GetCurrentFrame() == 7);
+
+    REQUIRE(sprite->SetFPS(4.0f));
+    system->Update(0.25f);
+    CHECK(sprite->GetCurrentFrame() == 8);
+
+    REQUIRE(sprite->SetFPS(0.0f));
+    system->Update(100.0f);
+    CHECK(sprite->GetCurrentFrame() == 8);
+    CHECK_FALSE(sprite->IsFinished());
+    CHECK_FALSE(sprite->SetFPS(-1.0f));
+}
 TEST_CASE("Animation rows inherit defaults and own their names")
 {
     Animation a("sheet", 64, 64, 10, 4, 5);
@@ -20,7 +56,7 @@ TEST_CASE("Animation rows inherit defaults and own their names")
     CHECK_THROWS_AS(a.SetRow(1, "WALK-UP"), std::invalid_argument);
     CHECK_THROWS_AS(a.SetRow(5, "bad"), std::invalid_argument);
     CHECK_THROWS_AS(a.SetRow(0, "bad", -1), std::invalid_argument);
-    CHECK_THROWS_AS((Animation("bad", 64, 64, 0, 4, 1)), std::invalid_argument);
+    CHECK_THROWS_AS((Animation("bad", 64, 64, -1.0f, 4, 1)), std::invalid_argument);
     Animation other("other", 64, 64, 10, 4, 1);
     CHECK_NOTHROW(other.SetRow(0, "walk-up"));
     auto frozen = a.Clone();

@@ -242,18 +242,19 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
     return true;
 }
 
-void SceneManager::ProcessPending(GameContext& context)
+bool SceneManager::ProcessPending(GameContext& context)
 {
     if (!pendingSceneID)
-        return;
+        return false;
+
     std::string requestedID = std::move(*pendingSceneID);
     pendingSceneID.reset();
     if (!Activate(requestedID, context))
     {
-        Logger::Error(
-            "Scene transition failed: " + requestedID
-        );
+        Logger::Error("Scene transition failed: " + requestedID);
+        return false;
     }
+    return true;
 }
 
 void SceneManager::BeginFrame(GameContext& context)

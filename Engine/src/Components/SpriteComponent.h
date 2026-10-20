@@ -83,16 +83,37 @@ public:
 
 	bool SetFPS(float value)
 	{
-		if (not RequireAnimation("SetFPS")) return false; 
-		if (not std::isfinite(value) or value <= 0)
-			return Error("Animation FPS must be positive and finite."); 
-		fps = value; return true; 
+		if (!RequireAnimation("SetFPS")) return false;
+		if (!std::isfinite(value) || value < 0)
+			return Error("Animation FPS must be finite and non-negative.");
+
+		fps = value;
+		return true;
+	}
+
+	bool SetFrame(int frameIndex)
+	{
+		const Animation* animation = RequireAnimation("SetFrame");
+		if (!animation) return false;
+
+		const int frameCount = animation->GetRow(row).frameCount;
+		if (frameIndex < 0 || frameIndex >= frameCount)
+			return Error("SetFrame index is outside the current animation row.");
+
+		cursor = static_cast<double>(frameIndex);
+		finished = false;
+		return true;
 	}
 
 	bool IsAnimated() const { return AsAnimation() != nullptr; }
 	bool IsPlaying() const { return playing; }
 	bool IsFinished() const { return finished; }
 	int GetCurrentFrame() const { return static_cast<int>(cursor); }
+	int GetFrameCount() const
+	{
+		const Animation* animation = AsAnimation();
+		return animation ? animation->GetRow(row).frameCount : 0;
+	}
 
 	std::string GetAnimationID() const
 	{

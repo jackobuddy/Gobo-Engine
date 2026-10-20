@@ -54,7 +54,7 @@ private:
 	bool RegisterFactory(const std::string& id, SceneFactory factory); 
 	bool StartInitial(const std::string& id, GameContext& context);
 	bool Activate(const std::string& id, GameContext& context);
-	void ProcessPending(GameContext& context);
+	bool ProcessPending(GameContext& context);
 	void BeginFrame(GameContext& context);
 	void Update(GameContext& context, float deltaSeconds);
 	void Render(GameContext& context);

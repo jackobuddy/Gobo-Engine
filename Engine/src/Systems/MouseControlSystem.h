@@ -3,13 +3,18 @@
 #include "ObjectInputDispatch.h"
 #include "../Components/MouseControlledComponent.h"
 #include "../Events/EventManager.h"
+#include "../Events/LeftMouseLongHoldEvent.h"
+#include "../Events/RightMouseLongHoldEvent.h"
 #include "../Events/MouseWheelEvent.h"
-
 
 class MouseControlSystem : public System
 {
 public:
-    MouseControlSystem() { RequireComponent<MouseControlledComponent>(); }
+    MouseControlSystem()
+    {
+        RequireComponent<MouseControlledComponent>();
+    }
+
     void SubscribeToEvents(EventManager& events)
     {
         events.SubscribeToEvent<LeftMouseButtonPressedEvent>(
@@ -20,6 +25,10 @@ public:
             this, &MouseControlSystem::OnLeftMouseButtonHeld);
         events.SubscribeToEvent<RightMouseButtonHeldEvent>(
             this, &MouseControlSystem::OnRightMouseButtonHeld);
+        events.SubscribeToEvent<LeftMouseLongHoldEvent>(
+            this, &MouseControlSystem::OnLeftMouseLongHold);
+        events.SubscribeToEvent<RightMouseLongHoldEvent>(
+            this, &MouseControlSystem::OnRightMouseLongHold);
         events.SubscribeToEvent<LeftMouseButtonReleasedEvent>(
             this, &MouseControlSystem::OnLeftMouseButtonReleased);
         events.SubscribeToEvent<RightMouseButtonReleasedEvent>(
@@ -27,36 +36,55 @@ public:
         events.SubscribeToEvent<MouseWheelEvent>(
             this, &MouseControlSystem::OnMouseWheel);
     }
-    void OnLeftMouseButtonPressed(LeftMouseButtonPressedEvent& e)
+
+    void OnLeftMouseButtonPressed(LeftMouseButtonPressedEvent& event)
     {
-        DispatchObjectInput(GetSystemEntities(), e, 
+        DispatchObjectInput(GetSystemEntities(), event,
             &EntityObject::OnLeftMouseButtonPressed);
     }
-    void OnRightMouseButtonPressed(RightMouseButtonPressedEvent& e)
+
+    void OnRightMouseButtonPressed(RightMouseButtonPressedEvent& event)
     {
-        DispatchObjectInput(GetSystemEntities(), e,
+        DispatchObjectInput(GetSystemEntities(), event,
             &EntityObject::OnRightMouseButtonPressed);
     }
-    void OnLeftMouseButtonHeld(LeftMouseButtonHeldEvent& e)
+
+    void OnLeftMouseButtonHeld(LeftMouseButtonHeldEvent& event)
     {
-        DispatchObjectInput(GetSystemEntities(), e,
+        DispatchObjectInput(GetSystemEntities(), event,
             &EntityObject::OnLeftMouseButtonHeld);
     }
-    void OnRightMouseButtonHeld(RightMouseButtonHeldEvent& e)
+
+    void OnRightMouseButtonHeld(RightMouseButtonHeldEvent& event)
     {
-        DispatchObjectInput(GetSystemEntities(), e,
+        DispatchObjectInput(GetSystemEntities(), event,
             &EntityObject::OnRightMouseButtonHeld);
     }
-    void OnLeftMouseButtonReleased(LeftMouseButtonReleasedEvent& e)
+
+    void OnLeftMouseLongHold(LeftMouseLongHoldEvent& event)
     {
-        DispatchObjectInput(GetSystemEntities(), e,
+        DispatchObjectInput(GetSystemEntities(), event,
+            &EntityObject::OnLeftMouseLongHold);
+    }
+
+    void OnRightMouseLongHold(RightMouseLongHoldEvent& event)
+    {
+        DispatchObjectInput(GetSystemEntities(), event,
+            &EntityObject::OnRightMouseLongHold);
+    }
+
+    void OnLeftMouseButtonReleased(LeftMouseButtonReleasedEvent& event)
+    {
+        DispatchObjectInput(GetSystemEntities(), event,
             &EntityObject::OnLeftMouseButtonReleased);
     }
-    void OnRightMouseButtonReleased(RightMouseButtonReleasedEvent& e)
+
+    void OnRightMouseButtonReleased(RightMouseButtonReleasedEvent& event)
     {
-        DispatchObjectInput(GetSystemEntities(), e,
+        DispatchObjectInput(GetSystemEntities(), event,
             &EntityObject::OnRightMouseButtonReleased);
     }
+
     void OnMouseWheel(MouseWheelEvent& event)
     {
         DispatchObjectInput(GetSystemEntities(), event,

@@ -19,6 +19,8 @@
 #include "../Events/RightMouseButtonReleasedEvent.h"
 #include "../Events/MouseMotionEvent.h"
 #include "../Events/MouseWheelEvent.h"
+#include "../Events/LeftMouseLongHoldEvent.h"
+#include "../Events/RightMouseLongHoldEvent.h"
 #include "../Logger/Logger.h"
 #include "../Math/Math.h"
 #include "../Modules/ModuleManager.h"
@@ -46,6 +48,9 @@ bool Application::Initialize(const GameConfig& config)
 	isShutdown = false;
 	heldKeys.clear();
 	acceptedLeft = acceptedRight = false;
+	leftLongHold.Reset(); 
+	rightLongHold.Reset(); 
+	mouseLongHoldThreshold = std::chrono::milliseconds(config.mouseLongHoldMilliseconds); 
 	inputFocused = true;
 	debugOverlayElapsedSeconds = 0.0f;
 	debugOverlayFrameCount = 0;
@@ -115,6 +120,8 @@ void Application::CancelTrackedInput(GameContext& context)
 	const bool releaseRight = acceptedRight;
 	acceptedLeft = false;
 	acceptedRight = false;
+	leftLongHold.Reset(); 
+	rightLongHold.Reset(); 
 
 	float x = 0.0f;
 	float y = 0.0f;
@@ -256,23 +263,39 @@ void Application::ProcessInput(GameContext& context)
 		else if (inputFocused && event.type == SDL_EVENT_MOUSE_BUTTON_DOWN)
 		{
 			if (event.button.button == SDL_BUTTON_LEFT)
+			{
 				acceptedLeft = emitMouse.template operator() <
-				LeftMouseButtonPressedEvent > (event.button.x, event.button.y);
+					LeftMouseButtonPressedEvent > (
+						event.button.x, event.button.y);
+				if (acceptedLeft)
+					leftLongHold.Press(MouseLongHoldTracker::Clock::now());
+				else
+					leftLongHold.Reset();
+			}
 			if (event.button.button == SDL_BUTTON_RIGHT)
+			{
 				acceptedRight = emitMouse.template operator() <
-				RightMouseButtonPressedEvent > (event.button.x, event.button.y);
+					RightMouseButtonPressedEvent > (
+						event.button.x, event.button.y);
+				if (acceptedRight)
+					rightLongHold.Press(MouseLongHoldTracker::Clock::now());
+				else
+					rightLongHold.Reset();
+			}
 		}
 		else if (event.type == SDL_EVENT_MOUSE_BUTTON_UP)
 		{
 			if (event.button.button == SDL_BUTTON_LEFT && acceptedLeft)
 			{
 				acceptedLeft = false;
+				leftLongHold.Reset();
 				emitRelease.template operator() < LeftMouseButtonReleasedEvent > (
 					event.button.x, event.button.y, false);
 			}
 			if (event.button.button == SDL_BUTTON_RIGHT && acceptedRight)
 			{
 				acceptedRight = false;
+				rightLongHold.Reset();
 				emitRelease.template operator() < RightMouseButtonReleasedEvent > (
 					event.button.x, event.button.y, false);
 			}
@@ -303,9 +326,17 @@ void Application::ProcessInput(GameContext& context)
 	else if (acceptedLeft)
 	{
 		acceptedLeft = false;
+		leftLongHold.Reset();
 		emitRelease.template operator() < LeftMouseButtonReleasedEvent > (
 			x, y, true);
 	}
+	CommitPendingPause(context);
+	if (!context.IsRunning()) return;
+
+	if (acceptedLeft && (buttons & SDL_BUTTON_LMASK) &&
+		leftLongHold.Ready(MouseLongHoldTracker::Clock::now(),
+			mouseLongHoldThreshold))
+		emitMouse.template operator() < LeftMouseLongHoldEvent > (x, y);
 	CommitPendingPause(context);
 	if (!context.IsRunning()) return;
 
@@ -314,9 +345,17 @@ void Application::ProcessInput(GameContext& context)
 	else if (acceptedRight)
 	{
 		acceptedRight = false;
+		rightLongHold.Reset();
 		emitRelease.template operator() < RightMouseButtonReleasedEvent > (
 			x, y, true);
 	}
+	CommitPendingPause(context);
+	if (!context.IsRunning()) return;
+
+	if (acceptedRight && (buttons & SDL_BUTTON_RMASK) &&
+		rightLongHold.Ready(MouseLongHoldTracker::Clock::now(),
+			mouseLongHoldThreshold))
+		emitMouse.template operator() < RightMouseLongHoldEvent > (x, y);
 	CommitPendingPause(context);
 	if (!context.IsRunning()) return;
 
@@ -348,6 +387,9 @@ void Application::Shutdown()
 
 	Logger::Log("Game is shutting down...");
 	isRunning = false; 
+
+	leftLongHold.Reset(); 
+	rightLongHold.Reset(); 
 
 	// Ensure the game shuts down in the proper order. 
 	if (window and window->GetSDLWindow() and SDL_TextInputActive(window->GetSDLWindow()))
@@ -486,7 +528,13 @@ int Application::Run(IGame& game)
 			if (!isRunning) break;
 
 			phase = "Scene transition";
-			sceneManager->ProcessPending(*context);
+			if (sceneManager->ProcessPending(*context))
+			{
+				acceptedLeft = false;
+				acceptedRight = false;
+				leftLongHold.Reset();
+				rightLongHold.Reset();
+			}
 			if (!isRunning) break;
 
 			SyncTextInput(*context); 

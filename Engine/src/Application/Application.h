@@ -2,6 +2,7 @@
 
 #include "GameConfig.h"
 #include "../Rendering/Camera.h"
+#include "MouseLongHoldTracker.h"
 #include <cstdint>
 #include <memory>
 #include <unordered_set>
@@ -61,6 +62,9 @@ private:
 	std::unordered_set<SDL_Keycode> heldKeys; 
 	bool acceptedLeft = false;
 	bool acceptedRight = false;
+	MouseLongHoldTracker leftLongHold;
+	MouseLongHoldTracker rightLongHold;
+	std::chrono::milliseconds mouseLongHoldThreshold{ 180 };
 	bool inputFocused = true;
 	bool isRunning = false; 
 	bool isShutdown = false; 
