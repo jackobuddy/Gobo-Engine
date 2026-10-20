@@ -37,7 +37,7 @@ public:
 
 	// Resolve a UTF-8 path relative to Assets beside the game executable.
 	std::string GetAssetPath(const std::string& relativePath) const;
-	// Startup-only: recursively load PNGs from Assets/Sprites.
+	// Startup-only: load every sprite from Assets/sprites.gobopack.
 	bool ImportSprites();
 	// Quiet lookup for optional assets and validation.
 	bool HasTexture(const std::string& assetID) const; 
@@ -54,6 +54,7 @@ public:
 
 private:
 	bool LoadBuiltinFont(); 
+	bool AddTextureSurface(const std::string& assetID, SDL_Surface* surface);
 
 	// Keeps track of if an Asset Manager Instance already exists
 	static bool managerExists;

@@ -44,6 +44,22 @@ add_custom_command(TARGET GoboAssetConfigTool POST_BUILD
 set_target_properties(GoboAssetConfigTool PROPERTIES
     RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tools"
     FOLDER "Tools")
+
+add_library(GoboSpritePack STATIC
+    src/AssetManager/SpritePack.cpp
+    src/AssetManager/SpritePack.h)
+target_include_directories(GoboSpritePack PUBLIC
+    "${CMAKE_CURRENT_SOURCE_DIR}/src")
+target_link_libraries(GoboSpritePack PUBLIC
+    nlohmann_json::nlohmann_json)
+target_compile_features(GoboSpritePack PUBLIC cxx_std_20)
+set_target_properties(GoboSpritePack PROPERTIES FOLDER "Engine")
+add_executable(GoboSpritePackTool tools/SpritePackTool.cpp)
+target_link_libraries(GoboSpritePackTool PRIVATE GoboSpritePack)
+set_target_properties(GoboSpritePackTool PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/tools"
+    FOLDER "Tools")
+
 set(GOBO_DEFAULT_FONT_FILE
     "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/Roboto/Roboto-Regular.ttf")
 if(NOT EXISTS "${GOBO_DEFAULT_FONT_FILE}")
@@ -90,5 +106,5 @@ target_include_directories(GoboEngine
 target_link_libraries(GoboEngine
     PUBLIC SDL3::SDL3 SDL3_image::SDL3_image-shared
         SDL3_mixer::SDL3_mixer SDL3_ttf::SDL3_ttf
-    PRIVATE GoboAssetConfig nlohmann_json::nlohmann_json)
+    PRIVATE GoboAssetConfig GoboSpritePack nlohmann_json::nlohmann_json)
 set_target_properties(GoboEngine PROPERTIES FOLDER "Engine")

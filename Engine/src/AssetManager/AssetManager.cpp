@@ -3,6 +3,7 @@
 #include "../Logger/Logger.h"
 #include "../Rendering/Renderer.h"
 #include "AssetConfig.h"
+#include "SpritePack.h"
 #include <SDL3_image/SDL_image.h>
 #include <SDL3_ttf/SDL_ttf.h>
 #include <stdexcept>
@@ -81,36 +82,45 @@ void AssetManager::ClearAssets()
 }
 
 bool AssetManager::AddTexture(const std::string& assetID, const std::string& filepath)
-{	
-	if (assetID.empty() || textures.contains(assetID) || sprites.contains(assetID))
-	{
-		Logger::Error("Empty or duplicate texture/Sprite ID: " + assetID);
-		return false;
-	}
-
-	using SurfacePtr = std::unique_ptr<SDL_Surface, decltype(&SDL_DestroySurface)>;
-	using TexturePtr = std::unique_ptr<SDL_Texture, decltype(&SDL_DestroyTexture)>;
-
+{
+	using SurfacePtr = std::unique_ptr<SDL_Surface,
+		decltype(&SDL_DestroySurface)>;
 	SurfacePtr surface(IMG_Load(filepath.c_str()), SDL_DestroySurface);
 	if (!surface)
 	{
-		Logger::SDLError("Failed to load texture: " + filepath, SDL_GetError());
+		Logger::SDLError("Failed to load texture: " + filepath,
+			SDL_GetError());
 		return false;
 	}
+	return AddTextureSurface(assetID, surface.get());
+}
 
-	TexturePtr texture(SDL_CreateTextureFromSurface(renderer.GetNaitiveRenderer(), 
-		surface.get()), SDL_DestroyTexture);
-	if (!texture || !SDL_SetTextureScaleMode(texture.get(), SDL_SCALEMODE_NEAREST))
+bool AssetManager::AddTextureSurface(const std::string& assetID, SDL_Surface* surface)
+{
+	if (assetID.empty() || !surface || surface->w <= 0 ||
+		surface->h <= 0 || textures.contains(assetID) ||
+		sprites.contains(assetID))
 	{
-		Logger::SDLError("Failed to create texture: " + filepath, SDL_GetError());
+		Logger::Error("Empty, invalid or duplicate texture/Sprite ID: " +
+			assetID);
 		return false;
 	}
-
-	const std::uint64_t textureBytes = static_cast<std::uint64_t>(surface->w) * 
+	using TexturePtr = std::unique_ptr<SDL_Texture,
+		decltype(&SDL_DestroyTexture)>;
+	TexturePtr texture(SDL_CreateTextureFromSurface(
+		renderer.GetNaitiveRenderer(), surface), SDL_DestroyTexture);
+	if (!texture || !SDL_SetTextureScaleMode(
+		texture.get(), SDL_SCALEMODE_NEAREST))
+	{
+		Logger::SDLError("Failed to create texture: " + assetID,
+			SDL_GetError());
+		return false;
+	}
+	const std::uint64_t textureBytes =
+		static_cast<std::uint64_t>(surface->w) *
 		static_cast<std::uint64_t>(surface->h) * 4ULL;
-
-	// Import as one static Sprite covering the complete image.
-	auto definition = std::make_shared<const Sprite>(assetID, surface->w, surface->h);
+	auto definition = std::make_shared<const Sprite>(
+		assetID, surface->w, surface->h);
 	textures.emplace(assetID, texture.get());
 	try
 	{
@@ -121,8 +131,8 @@ bool AssetManager::AddTexture(const std::string& assetID, const std::string& fil
 		textures.erase(assetID);
 		throw;
 	}
-	estimatedTextureBytes += textureBytes; 
-	texture.release(); // AssetManager now owns this SDL texture.
+	estimatedTextureBytes += textureBytes;
+	texture.release();
 	Logger::Log("Loaded texture: " + assetID);
 	return true;
 }
@@ -241,81 +251,82 @@ bool AssetManager::HasTexture(const std::string& assetID) const
 
 bool AssetManager::ImportSprites()
 {
-	namespace fs = std::filesystem;
 	try
 	{
-		// Strip a real filename component, not a trailing separator.
-		const fs::path assets = fs::u8path(GetAssetPath("Sprites")).parent_path();
-		if (!fs::is_directory(assets))
+		SpritePack::Reader pack(std::filesystem::u8path(
+			GetAssetPath("sprites.gobopack")));
+		auto defaults = AssetConfig::EngineDefaults();
+		if (pack.ProjectConfig())
 		{
-			Logger::Error("Assets directory is missing: " + PathToUTF8(assets));
-			return false;
-		}
-		AssetConfig::Errors errors;
-		const auto defaults = AssetConfig::LoadProject(
-			assets.parent_path() / "project.config", errors);
-		for (const auto& error : errors) Logger::Error(error);
-		errors.clear();
-		const fs::path root = assets / "Sprites";
-		if (!fs::exists(root))
-		{
-			Logger::Warning("Imported 0 sprites (Assets/Sprites is absent).");
-			return true;
-		}
-		if (!fs::is_directory(root))
-		{
-			Logger::Error("Assets/Sprites is not a directory.");
-			return false;
-		}
-		std::vector<std::pair<std::string, std::string>> files;
-		for (const auto& entry : fs::recursive_directory_iterator(root))
-		{
-			if (entry.is_symlink() || !entry.is_regular_file()) continue;
-			std::string extension = PathToUTF8(entry.path().extension());
-			std::transform(extension.begin(), extension.end(), extension.begin(),
-				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-			const bool supportedImage =
-				extension == ".png" || extension == ".jpg" || extension == ".jpeg" ||
-				extension == ".webp" || extension == ".bmp" || extension == ".tga";
-
-			if (!supportedImage) continue;
-			fs::path relative = entry.path().lexically_relative(root);
-			relative.replace_extension();
-			files.emplace_back(PathToUTF8(relative), PathToUTF8(entry.path()));
-		}
-		std::sort(files.begin(), files.end());
-		for (std::size_t i = 0; i < files.size(); ++i)
-		{
-			const auto& id = files[i].first;
-			if (HasTexture(id) || (i > 0 && files[i - 1].first == id))
+			try
 			{
-				Logger::Error("Duplicate imported texture ID: " + id);
-				return false;
+				defaults = AssetConfig::ParseProject(
+					AssetConfig::Json::parse(*pack.ProjectConfig()));
+			}
+			catch (const std::exception& error)
+			{
+				Logger::Error(std::string("Packed project.config: ") +
+					error.what() + "; using Engine defaults");
 			}
 		}
-		for (const auto& [id, file] : files)
+		for (const auto& entry : pack.Entries())
 		{
-			if (!AddTexture(id, file))
+			if (HasTexture(entry.id))
 			{
-				Logger::Error("Sprite import failed: " + file + " (ID: " + id + ")");
+				Logger::Error("Duplicate imported texture ID: " + entry.id);
 				return false;
 			}
-			// AddTexture retains its original full-image behavior.
-			// Its initial definition provides exact decoded image dimensions.
-			const auto original = GetSprite(id);
-			const auto definition = AssetConfig::LoadSprite(fs::u8path(file), id,
-				original->GetWidth(), original->GetHeight(), defaults, errors);
-			for (const auto& error : errors) Logger::Error(error);
-			errors.clear();
-			if (!DefineSprite(id, *definition))
-				Logger::Error("Cannot apply config for " + id +
-					"; retaining full-image static Sprite");
-			const auto imported = GetSprite(id);
-			const char* kind = dynamic_cast<const Animation*>(imported.get()) ? "Animation" :
-				dynamic_cast<const Tilemap*>(imported.get()) ? "Tilemap" : "static Sprite";
-			Logger::Log(std::string("Imported ") + kind + ": " + id);
+			const auto imageBytes = pack.Read(entry.image);
+			SDL_IOStream* stream = SDL_IOFromConstMem(
+				imageBytes.data(), imageBytes.size());
+			if (!stream)
+			{
+				Logger::SDLError("Cannot open packed sprite: " + entry.id,
+					SDL_GetError());
+				return false;
+			}
+			using SurfacePtr = std::unique_ptr<SDL_Surface,
+				decltype(&SDL_DestroySurface)>;
+			const std::string type = entry.extension.substr(1);
+			SurfacePtr surface(IMG_LoadTyped_IO(
+				stream, true, type.c_str()), SDL_DestroySurface);
+			if (!surface)
+			{
+				Logger::SDLError("Cannot decode packed sprite: " + entry.id,
+					SDL_GetError());
+				return false;
+			}
+			if (!AddTextureSurface(entry.id, surface.get()))
+				return false;
+			if (entry.config)
+			{
+				try
+				{
+					const auto bytes = pack.Read(*entry.config);
+					const std::string text(bytes.begin(), bytes.end());
+					auto definition = AssetConfig::ParseSprite(
+						AssetConfig::Json::parse(text), entry.id,
+						surface->w, surface->h, defaults);
+					if (!DefineSprite(entry.id, *definition))
+						Logger::Error("Cannot apply config for " + entry.id +
+							"; retaining full-image static Sprite");
+				}
+				catch (const std::exception& error)
+				{
+					Logger::Error("Packed config for " + entry.id + ": " +
+						error.what() + "; using full-image static Sprite");
+				}
+			}
+			const auto imported = GetSprite(entry.id);
+			const char* kind =
+				dynamic_cast<const Animation*>(imported.get()) ?
+				"Animation" :
+				dynamic_cast<const Tilemap*>(imported.get()) ?
+				"Tilemap" : "static Sprite";
+			Logger::Log(std::string("Imported ") + kind + ": " + entry.id);
 		}
-		Logger::Log("Imported " + std::to_string(files.size()) + " sprites.");
+		Logger::Log("Imported " +
+			std::to_string(pack.Entries().size()) + " sprites.");
 		return true;
 	}
 	catch (const std::exception& error)

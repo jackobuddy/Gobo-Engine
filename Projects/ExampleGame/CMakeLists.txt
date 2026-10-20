@@ -35,12 +35,13 @@ add_custom_target(GoboExampleGame_Assets
     COMMAND "$<TARGET_FILE:GoboAssetConfigTool>"
         "${CMAKE_CURRENT_SOURCE_DIR}"
     COMMAND ${CMAKE_COMMAND}
-        "-DGOBO_ASSETS=${CMAKE_CURRENT_SOURCE_DIR}/Assets"
+    "-DGOBO_ASSETS=${CMAKE_CURRENT_SOURCE_DIR}/Assets"
         "-DGOBO_RUNTIME=$<TARGET_FILE_DIR:GoboExampleGame>"
         "-DGOBO_BUILD_ROOT=${CMAKE_BINARY_DIR}"
         "-DGOBO_ENGINE=${GOBO_ENGINE_ROOT}"
+        "-DGOBO_SPRITE_PACKER=$<TARGET_FILE:GoboSpritePackTool>"
         -P "${GOBO_SUITE_ROOT}/scripts/Stage-GameAssets.cmake"
-    DEPENDS GoboAssetConfigTool
+    DEPENDS GoboAssetConfigTool GoboSpritePackTool
     VERBATIM)
 add_dependencies(GoboExampleGame GoboExampleGame_Assets)
 set_property(DIRECTORY PROPERTY VS_STARTUP_PROJECT GoboExampleGame)

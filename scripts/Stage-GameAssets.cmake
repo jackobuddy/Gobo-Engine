@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.28)
-foreach(name GOBO_ASSETS GOBO_RUNTIME GOBO_BUILD_ROOT GOBO_ENGINE)
+foreach(name GOBO_ASSETS GOBO_RUNTIME GOBO_BUILD_ROOT
+        GOBO_ENGINE GOBO_SPRITE_PACKER)
     if(NOT DEFINED ${name} OR "${${name}}" STREQUAL "")
         message(FATAL_ERROR "Missing staging argument: ${name}")
     endif()
 endforeach()
 if(NOT IS_DIRECTORY "${GOBO_ASSETS}")
     message(FATAL_ERROR "Project Assets directory is missing: ${GOBO_ASSETS}")
+endif()
+if(NOT EXISTS "${GOBO_SPRITE_PACKER}" OR
+        IS_DIRECTORY "${GOBO_SPRITE_PACKER}")
+    message(FATAL_ERROR "Sprite packer is missing: ${GOBO_SPRITE_PACKER}")
 endif()
 if(NOT EXISTS "${GOBO_BUILD_ROOT}/CMakeCache.txt")
     message(FATAL_ERROR "Staging requires a configured build directory")
@@ -32,22 +37,29 @@ if(EXISTS "${destination}")
 endif()
 file(REMOVE_RECURSE "${destination}")
 file(MAKE_DIRECTORY "${destination}")
-file(COPY "${sourceAssets}/" DESTINATION "${destination}")
-# The project root is the parent of its Assets directory.
+file(COPY "${sourceAssets}/" DESTINATION "${destination}"
+    PATTERN "Sprites" EXCLUDE
+    PATTERN "sprites.gobopack" EXCLUDE)
 get_filename_component(projectRoot "${sourceAssets}" DIRECTORY)
 set(sourceConfig "${projectRoot}/project.config")
+execute_process(
+    COMMAND "${GOBO_SPRITE_PACKER}"
+        "${sourceAssets}/Sprites" "${sourceConfig}"
+        "${destination}/sprites.gobopack"
+    RESULT_VARIABLE packResult
+    OUTPUT_VARIABLE packOutput
+    ERROR_VARIABLE packError)
+if(NOT "${packResult}" STREQUAL "0")
+    message(FATAL_ERROR "Sprite packer failed: ${packError}")
+endif()
+if(NOT "${packOutput}" STREQUAL "")
+    message(STATUS "${packOutput}")
+endif()
 set(runtimeConfig "${runtime}/project.config")
 if(IS_SYMLINK "${runtimeConfig}" OR IS_DIRECTORY "${runtimeConfig}")
     message(FATAL_ERROR "Runtime project.config must be a regular file")
 endif()
-if(EXISTS "${sourceConfig}")
-    if(IS_DIRECTORY "${sourceConfig}")
-        message(FATAL_ERROR "Source project.config is a directory")
-    endif()
-    configure_file("${sourceConfig}" "${runtimeConfig}" COPYONLY)
-else()
-    file(REMOVE "${runtimeConfig}")
-endif()
+file(REMOVE "${runtimeConfig}")
 file(MAKE_DIRECTORY "${runtime}/licenses/Roboto")
 configure_file("${GOBO_ENGINE}/assets/fonts/Roboto/OFL.txt"
     "${runtime}/licenses/Roboto/OFL.txt" COPYONLY)

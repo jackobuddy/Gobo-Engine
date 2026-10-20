@@ -46,8 +46,9 @@ add_custom_target(GoboGameTemplate_Assets
         "-DGOBO_RUNTIME=$<TARGET_FILE_DIR:GoboGameTemplate>"
         "-DGOBO_BUILD_ROOT=${CMAKE_BINARY_DIR}"
         "-DGOBO_ENGINE=${GOBO_ENGINE_ROOT}"
+        "-DGOBO_SPRITE_PACKER=$<TARGET_FILE:GoboSpritePackTool>"
         -P "${GOBO_SUITE_ROOT}/scripts/Stage-GameAssets.cmake"
-    DEPENDS GoboAssetConfigTool
+    DEPENDS GoboAssetConfigTool GoboSpritePackTool
     VERBATIM)
 
 add_dependencies(GoboGameTemplate GoboGameTemplate_Assets)
