@@ -1,0 +1,8 @@
+bin/
+obj/
+.dotnet/
+.nuget/
+Tests/.test-output/
+Tests/bin/
+Tests/obj/
+editor-settings.json
