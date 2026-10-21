@@ -20,6 +20,7 @@
 #include "../Modules/ModuleManager.h"
 #include <string>
 #include <utility>
+#include <optional>
 
 
 class AssetManager; 
@@ -48,6 +49,8 @@ public:
 	virtual void OnCreated() {}
     // This function runs once every frame, if the object Updates. 
     virtual void Update(float deltaSeconds) {}
+    // Triggered when an alarm runs out. AlarmID represents what alarm was activated. 
+    virtual void OnAlarm(int alarmID) {}
     // Triggered when a collision first occurs with another Entity. 
     // Requires a TransformComponent and a BoxCollisionComponent. 
     virtual void OnCollisionEnter(const Entity& other) {}
@@ -192,6 +195,14 @@ public:
         return entity.BelongsToGroup(group);
     }
     
+    // Sets the alarmID to trigger after the given number of seconds. Running this on 
+    // an already running alarmID will set that alarm to the new given seconds value. 
+    bool SetAlarm(int alarmID, float seconds); 
+    // Clears an alarm with the given alarmID without triggering it. 
+    bool ClearAlarm(int alarmID); 
+    // Returns the amount of time remaining on a given alarmID. 
+    std::optional<float> GetAlarmRemaining(int alarmID) const; 
+
     // Does this Entity run the Update function every frame. 
     bool Updates = true; 
 

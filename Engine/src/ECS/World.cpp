@@ -3,6 +3,7 @@
 #include "../Systems/MovementSystem.h"
 #include "../Events/EventManager.h"
 #include "../Components/PausePolicyComponent.h"
+#include <cmath>
 #include <stdexcept>
 #include <concepts>
 #include <type_traits>
@@ -26,6 +27,8 @@ void World::Shutdown()
 
 	// Prevents multiple Shutdown() calls. 
 	isShuttingDown = true; 
+
+	activeAlarms.clear();
 
 	// Objects that survived until World shutdown still receive their lifecycle callback 
 	// exactly once. Already destroyed slots are null. 
@@ -153,6 +156,8 @@ void World::CancelEntityCreation(Entity entity)
 
 	if (!IsEntityAlive(entity))
 		return;
+
+	activeAlarms.erase(entity);
 
 	const int id = entity.GetID();
 
@@ -293,6 +298,8 @@ void World::DestroyEntity(Entity entity)
 void World::ProcessEntityDestruction(const Entity& entity)
 {
 	if (!IsEntityAlive(entity)) return;
+
+	activeAlarms.erase(entity);
 
 	const int id = entity.GetID();
 	std::exception_ptr failure;
@@ -553,10 +560,16 @@ void World::Update()
 
 void World::UpdateObjects(float deltaSeconds)
 {
+	if (Busy())
+		throw std::logic_error("World object update inside callback"); 
+
 	std::vector<Entity> snapshot;
 	snapshot.reserve(entityObjects.size());
 	for (const auto& object : entityObjects)
 		if (object) snapshot.push_back(object->GetEntity());
+
+	AdvanceAlarms(deltaSeconds); 
+
 	CallbackScope callback(*this);
 	for (auto entity : snapshot)
 	{
@@ -592,4 +605,96 @@ bool World::CanRender(Entity entity) const
 	const auto* policy = GetComponent<PausePolicyComponent>(entity);
 	return !policy || policy->activity != PauseActivity::PauseOnly
 		|| IsPaused();
+}
+
+bool World::SetAlarm(Entity entity, int alarmID, float seconds)
+{
+	if (alarmID < 1 or alarmID > 99)
+		throw std::out_of_range("Alarm ID must be 1 through 99");
+	if (not std::isfinite(seconds) or seconds <= 0.0f)
+		throw std::invalid_argument("Alarm duration must be positive and finite"); 
+	if (not CanMutate(entity))
+		return false; 
+
+	activeAlarms[entity][alarmID] = static_cast<double>(seconds); 
+	return true; 
+}
+
+bool World::ClearAlarm(Entity entity, int alarmID)
+{
+	if (alarmID < 1 or alarmID > 99)
+		throw std::out_of_range("Alarm ID must be 1 through 99");
+
+	auto owner = activeAlarms.find(entity); 
+	if (owner == activeAlarms.end())
+		return false; 
+
+	const bool removed = owner->second.erase(alarmID) != 0; 
+	if (owner->second.empty()) 
+		activeAlarms.erase(owner); 
+	return removed;
+}
+
+std::optional<float> World::GetAlarmRemaining(Entity entity, int alarmID) const
+{
+	if (alarmID < 1 or alarmID > 99)
+		throw std::out_of_range("Alarm ID must be 1 through 99"); 
+	if (not CanRunCallbacks(entity))
+		return std::nullopt; 
+
+	const auto owner = activeAlarms.find(entity); 
+	if (owner == activeAlarms.end())
+		return std::nullopt; 
+	const auto alarm = owner->second.find(alarmID); 
+	if (alarm == owner->second.end())
+		return std::nullopt; 
+
+	return static_cast<float>(std::max(0.0, alarm->second)); 
+}
+
+void World::AdvanceAlarms(float deltaSeconds)
+{
+	if (!std::isfinite(deltaSeconds) || deltaSeconds < 0.0f)
+		throw std::invalid_argument("Alarm update requires finite nonnegative deltaSeconds");
+
+	std::vector<std::pair<Entity, int>> due;
+
+	for (auto owner = activeAlarms.begin(); owner != activeAlarms.end(); )
+	{
+		if (!CanRunCallbacks(owner->first))
+		{
+			owner = activeAlarms.erase(owner);
+			continue;
+		}
+		if (CanUpdate(owner->first))
+		{
+			for (auto& [alarmID, remaining] : owner->second)
+			{
+				remaining -= static_cast<double>(deltaSeconds);
+				if (remaining <= 0.0)
+					due.emplace_back(owner->first, alarmID);
+			}
+		}
+		++owner;
+	}
+
+	for (const auto& [entity, alarmID] : due)
+	{
+		if (!CanUpdate(entity))
+			continue;
+		auto owner = activeAlarms.find(entity);
+		if (owner == activeAlarms.end())
+			continue;
+		auto alarm = owner->second.find(alarmID);
+		if (alarm == owner->second.end() || alarm->second > 0.0)
+			continue;
+		owner->second.erase(alarm);
+		if (owner->second.empty())
+			activeAlarms.erase(owner);
+		if (EntityObject* object = GetObject(entity))
+		{
+			CallbackScope callback(*this);
+			object->OnAlarm(alarmID);
+		}
+	}
 }

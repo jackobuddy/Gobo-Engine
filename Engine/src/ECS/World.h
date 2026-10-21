@@ -23,6 +23,8 @@
 #include <deque>
 #include <exception>
 #include <vector>
+#include <map>
+#include <optional>
 
 class AssetManager;
 class DrawManager; 
@@ -66,6 +68,11 @@ public:
 			!IsPendingDestroy(e);
 	}
 	void UpdateObjects(float deltaSeconds);
+	
+	bool SetAlarm(Entity entity, int alarmID, float seconds); 
+	bool ClearAlarm(Entity entity, int alarmID); 
+	std::optional<float> GetAlarmRemaining(Entity entity, int alarmID) const; 
+
 	class CallbackScope
 	{
 		World& owner;
@@ -276,6 +283,9 @@ private:
 	std::set<std::type_index> pendingSystemRemovals;
 	std::set<std::string> requestedPauseOwners; 
 	std::set<std::string> activePauseOwners; 
+
+	void AdvanceAlarms(float deltaSeconds); 
+	std::map<Entity, std::map<int, double>> activeAlarms; 
 
 	bool Busy() const
 	{

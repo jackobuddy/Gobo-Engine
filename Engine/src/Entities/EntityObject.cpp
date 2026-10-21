@@ -27,3 +27,21 @@ ModuleManager* EntityObject::GetModules() const noexcept
 	World* world = entity.GetWorld();
 	return world ? world->GetModuleManager() : nullptr;
 }
+
+bool EntityObject::SetAlarm(int alarmID, float seconds)
+{
+	World* world = GetWorld(); 
+	return world && world->SetAlarm(entity, alarmID, seconds); 
+}
+
+bool EntityObject::ClearAlarm(int alarmID)
+{
+	World* world = GetWorld(); 
+	return world && world->ClearAlarm(entity, alarmID); 
+}
+
+std::optional<float> EntityObject::GetAlarmRemaining(int alarmID) const
+{
+	World* world = GetWorld(); 
+	return world ? world->GetAlarmRemaining(entity, alarmID) : std::nullopt; 
+}
