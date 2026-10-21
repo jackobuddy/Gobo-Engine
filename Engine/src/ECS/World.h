@@ -250,6 +250,9 @@ public:
 	template <typename TObject, typename... TArgs>
 	TObject& CreateObject(const std::string& name, TArgs&&... args);
 
+	template <typename TObject> requires std::derived_from<TObject, EntityObject>
+	bool IsEntityOfClassAtPosition(float x, float y) const;
+
 private:
 	friend class EntityObject;
 	friend class SceneManager; 
@@ -603,6 +606,42 @@ TObject& World::CreateAutoNamedObject(const std::string& baseName, TArgs&&... ar
 		GenerateUniqueName(baseName),
 		std::forward<TArgs>(args)...
 	);
+}
+
+template <typename TObject> requires std::derived_from<TObject, EntityObject>
+bool World::IsEntityOfClassAtPosition(float x, float y) const
+{
+	if (!std::isfinite(x) || !std::isfinite(y))
+		return false;
+
+	for (const auto& object : entityObjects)
+	{
+		if (!object || !CanRunCallbacks(object->GetEntity()) ||
+			!dynamic_cast<const TObject*>(object.get()))
+			continue;
+
+		const Entity entity = object->GetEntity();
+		const auto* transform = GetComponent<TransformComponent>(entity);
+		const auto* collider = GetComponent<BoxCollisionComponent>(entity);
+		if (!transform || !collider)
+			continue;
+
+		const double left = double(transform->position.x) + collider->offsetX;
+		const double top = double(transform->position.y) + collider->offsetY;
+		const double width = double(collider->width) * transform->scale.x;
+		const double height = double(collider->height) * transform->scale.y;
+
+		if (!(width > 0.0 && height > 0.0) ||
+			!std::isfinite(left) || !std::isfinite(top) ||
+			!std::isfinite(width) || !std::isfinite(height))
+			continue;
+
+		if (x >= left && x < left + width &&
+			y >= top && y < top + height)
+			return true;
+	}
+
+	return false;
 }
 
 #include "EntityTemplates.h"

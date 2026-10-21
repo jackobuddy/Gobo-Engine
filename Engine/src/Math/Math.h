@@ -4,6 +4,10 @@
 #include <cstddef>
 #include <cmath>
 #include <cstdint>
+#include <chrono>
+#include <limits>
+#include <random>
+#include <stdexcept>
 
 // ----------------------------------------------------------------------------
 // A 2-Deminsional Vector that stores values x and y. 
@@ -232,6 +236,67 @@ inline Vector3 operator -(const Vector3& a, const Vector3& b)
 inline float Dot(const Vector3& a, const Vector3& b)
 {
 	return (a.x * b.x + a.y * b.y + a.z * b.z);
+}
+
+// ----------------------------------------------------------------------------
+// Random Functions
+// ----------------------------------------------------------------------------
+
+namespace GoboRandomDetail
+{
+	inline std::mt19937& Generator()
+	{
+		thread_local std::mt19937 generator = [] {
+			std::random_device device;
+			const auto ticks = static_cast<std::uint64_t>(
+				std::chrono::steady_clock::now().time_since_epoch().count());
+
+			std::seed_seq seed{
+				device(), device(), device(), device(),
+				static_cast<std::uint32_t>(ticks),
+				static_cast<std::uint32_t>(ticks >> 32)
+			};
+			return std::mt19937(seed);
+			}();
+
+		return generator;
+	}
+}
+
+inline int random_range(int min, int max)
+{
+	if (min > max)
+		throw std::invalid_argument("random_range: min exceeds max");
+
+	std::uniform_int_distribution<int> distribution(min, max);
+	return distribution(GoboRandomDetail::Generator());
+}
+
+inline float random_range(float min, float max)
+{
+	if (!std::isfinite(min) || !std::isfinite(max) || min > max)
+		throw std::invalid_argument("random_range: invalid float range");
+
+	if (min == max)
+		return min;
+
+	// Include both endpoints. uniform_real_distribution excludes its upper bound.
+	constexpr std::uint32_t steps = 1u << 24;
+	std::uniform_int_distribution<std::uint32_t> distribution(0u, steps);
+	const double fraction =
+		static_cast<double>(distribution(GoboRandomDetail::Generator())) /
+		static_cast<double>(steps);
+
+	return static_cast<float>(
+		std::lerp(static_cast<double>(min),
+			static_cast<double>(max),
+			fraction));
+}
+
+inline bool random_flip()
+{
+	std::bernoulli_distribution distribution(0.5);
+	return distribution(GoboRandomDetail::Generator());
 }
 
 // ----------------------------------------------------------------------------
