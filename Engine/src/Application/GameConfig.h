@@ -28,7 +28,6 @@ struct SystemsConfig
 	bool useMouseCollisionSystem = true; 
 	bool useMouseControlSystem = true; 
 	bool useMovementSystem = true; 
-	bool useProjectileLifecycleSystem = true; 
 	bool useRenderCollisionSystem = true; 
 	bool useRenderingSystem = true; 
 	bool useTextInputSystem = true; 

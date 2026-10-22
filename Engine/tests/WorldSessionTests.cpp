@@ -19,7 +19,6 @@ namespace
         config.useCollisionSystem = false;
         config.useKeyboardControlSystem = false;
         config.useMovementSystem = false;
-        config.useProjectileLifecycleSystem = false;
         config.useRenderCollisionSystem = false;
         config.useRenderingSystem = false;
         return config;

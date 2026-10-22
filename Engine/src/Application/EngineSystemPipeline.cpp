@@ -12,7 +12,6 @@
 #include "../Systems/MouseCollisionSystem.h"
 #include "../Systems/MouseControlSystem.h"
 #include "../Systems/MovementSystem.h"
-#include "../Systems/ProjectileLifecycleSystem.h"
 #include "../Systems/RenderCollisionSystem.h"
 #include "../Systems/RenderSystem.h"
 #include "../Systems/TextInputSystem.h"
@@ -38,8 +37,6 @@ void EngineSystemPipeline::Install(World& world, EventManager& events) const
         world.AddSystem<RenderCollisionSystem>();
     if (config.useCameraMovementSystem)
         world.AddSystem<CameraMovementSystem>();
-    if (config.useProjectileLifecycleSystem)
-        world.AddSystem<ProjectileLifecycleSystem>();
     if (config.useTilemapRenderSystem)
         world.AddSystem<TilemapRenderSystem>(); 
     if (config.useTextInputSystem)
@@ -81,9 +78,6 @@ void EngineSystemPipeline::Update(World& world, Camera& camera, float deltaSecon
         if (auto* cameraMovement = world.GetSystem<CameraMovementSystem>())
             cameraMovement->Update(camera, world.GetWorldSize()); 
     }
-
-    if (auto* projectiles = world.GetSystem<ProjectileLifecycleSystem>())
-        projectiles->Update(deltaSeconds); 
 }
 
 void EngineSystemPipeline::RenderBackground(World& world, AssetManager& assets, 
