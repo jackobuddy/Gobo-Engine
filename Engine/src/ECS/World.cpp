@@ -3,6 +3,7 @@
 #include "../Systems/MovementSystem.h"
 #include "../Events/EventManager.h"
 #include "../Components/PausePolicyComponent.h"
+#include "../Rendering/Camera.h"
 #include <cmath>
 #include <stdexcept>
 #include <concepts>
@@ -697,4 +698,17 @@ void World::AdvanceAlarms(float deltaSeconds)
 			object->OnAlarm(alarmID);
 		}
 	}
+}
+
+std::optional<Vector2> World::GetMouseScreenPosition() const noexcept
+{
+	return mouseScreenPosition;
+}
+
+std::optional<Vector2> World::GetMouseWorldPosition() const noexcept
+{
+	if (!mouseScreenPosition || !mouseCamera)
+		return std::nullopt;
+
+	return *mouseScreenPosition + mouseCamera->position;
 }

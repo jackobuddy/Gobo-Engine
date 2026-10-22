@@ -32,6 +32,8 @@ class EventManager;
 class SceneManager; 
 class TextManager; 
 class ModuleManager; 
+class Application; 
+class Camera; 
 
 
 // The World manages the creation and destruction of entities, systems, 
@@ -183,6 +185,10 @@ public:
 	}
 	Vector2 GetWorldSize() const { return worldSize; }
 
+	// Empty when the pointer is outside the logical game view or input is unfocused.
+	std::optional<Vector2> GetMouseScreenPosition() const noexcept;
+	std::optional<Vector2> GetMouseWorldPosition() const noexcept;
+
 	bool RequestPause(const std::string& owner); 
 	bool ReleasePause(const std::string& owner); 
 	bool IsPaused() const noexcept { return not activePauseOwners.empty(); }
@@ -263,6 +269,14 @@ public:
 private:
 	friend class EntityObject;
 	friend class SceneManager; 
+	friend class Application; 
+
+	void SetMouseCamera(const Camera& value) noexcept { mouseCamera = &value; }
+	void SetMouseScreenPosition(std::optional<Vector2> position) noexcept 
+		{ mouseScreenPosition = position; }
+
+	const Camera* mouseCamera = nullptr;
+	std::optional<Vector2> mouseScreenPosition;
 
 	void SetAssetManager(AssetManager& value) noexcept { assetManager = &value; }
 	AssetManager* GetAssetManager() const noexcept { return assetManager; }

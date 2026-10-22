@@ -293,6 +293,44 @@ public:
 		return body->pointMoveOutcome;
 	}
 
+	bool SetVelocityTowardsPoint(Vector2 point, float speed)
+	{
+		if (!std::isfinite(point.x) || !std::isfinite(point.y) ||
+			!std::isfinite(speed) || speed <= 0.0f)
+		{
+			Logger::Error("SetVelocityTowardsPoint requires a finite point and positive speed.");
+			return false;
+		}
+
+		TransformComponent* transform = GetTransform();
+		RigidBodyComponent* body = GetRigidBody();
+		if (!transform || !body || !std::isfinite(transform->position.x) ||
+			!std::isfinite(transform->position.y))
+		{
+			Logger::Error("SetVelocityTowardsPoint requires a valid Transform and RigidBody.");
+			return false;
+		}
+
+		const double dx = static_cast<double>(point.x) - transform->position.x;
+		const double dy = static_cast<double>(point.y) - transform->position.y;
+		const double distance = std::hypot(dx, dy);
+
+		if (!std::isfinite(distance) || distance == 0.0)
+		{
+			Logger::Error("SetVelocityTowardsPoint needs a point different from the Actor's position.");
+			return false;
+		}
+
+		const Vector2 velocity(static_cast<float>((dx / distance) * speed),
+			static_cast<float>((dy / distance) * speed));
+
+		body->target.reset();
+		body->targetSpeed = 0.0f;
+		body->pointMoveOutcome = PointMoveOutcome::None;
+		body->velocity = velocity;
+		return true;
+	}
+
 	// Returns a pointer to the Actor's Transform Component
 	TransformComponent* GetTransform() { return GetComponent<TransformComponent>(); }
 	// Returns a pointer to the Actor's Rigid Body Component

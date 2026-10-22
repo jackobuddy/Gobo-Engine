@@ -168,6 +168,7 @@ bool SceneManager::Activate(const std::string& id, GameContext& context)
 
     // Swapping the session destroys the old World and EventManager.
     worldHost.SetActiveSession(std::move(nextSession));
+    context.GetWorld().SetMouseCamera(context.GetCamera());
     context.GetWorld().SetAssetManager(context.GetAssets()); 
     context.GetWorld().SetDrawManager(context.GetDraw()); 
     context.GetWorld().SetTextManager(context.GetText());

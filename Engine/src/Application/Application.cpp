@@ -38,6 +38,8 @@
 #include <exception>
 #include <stdexcept>
 #include <utility>
+#include <cmath>
+#include <optional>
 
 Application::Application() = default; 
 
@@ -315,6 +317,7 @@ void Application::ProcessInput(GameContext& context)
 		SyncTextInput(context);
 	}
 	CommitPendingPause(context);
+	RefreshMousePosition(context); 
 	if (!context.IsRunning() || !inputFocused) return;
 
 	float x = 0.0f;
@@ -726,4 +729,36 @@ void Application::SyncTextInput(GameContext& context)
 	}
 	else if (!SDL_StopTextInput(native))
 		Logger::SDLError("SDL_StopTextInput failed", SDL_GetError());
+}
+
+void Application::RefreshMousePosition(GameContext& context)
+{
+	World& world = context.GetWorld();
+
+	if (!inputFocused || !renderer || !window || !window->GetSDLWindow() ||
+		SDL_GetMouseFocus() != window->GetSDLWindow())
+	{
+		world.SetMouseScreenPosition(std::nullopt);
+		return;
+	}
+
+	float x = 0.0f;
+	float y = 0.0f;
+	SDL_GetMouseState(&x, &y);
+
+	Vector2 screen;
+	if (!renderer->WindowToRender(Vector2(x, y), screen))
+	{
+		world.SetMouseScreenPosition(std::nullopt);
+		return;
+	}
+
+	const Vector2 viewSize = renderer->GetViewSize();
+	const bool insideView =
+		std::isfinite(screen.x) && std::isfinite(screen.y) &&
+		screen.x >= 0.0f && screen.y >= 0.0f &&
+		screen.x < viewSize.x && screen.y < viewSize.y;
+
+	world.SetMouseScreenPosition(
+		insideView ? std::optional<Vector2>(screen) : std::nullopt);
 }

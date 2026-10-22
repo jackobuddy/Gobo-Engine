@@ -33,6 +33,7 @@ public:
 private:
 	bool Initialize(const GameConfig& config); 
 	void ProcessInput(class GameContext& context); 
+	void RefreshMousePosition(GameContext& context);
 	void CancelTrackedInput(GameContext& context);
 	void CommitPendingPause(GameContext& context);
 	void Shutdown();
