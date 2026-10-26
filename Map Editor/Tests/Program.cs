@@ -16,10 +16,12 @@ internal static class Program
         Run("map round trip and unnamed placement", MapRoundTrip);
         Run("strict engine schema", StrictMapSchema);
         Run("map validation", MapValidation);
+        Run("editor layers stay outside engine maps", LayerFileRoundTrip);
         Run("loadout round trip", LoadoutRoundTrip);
         Run("legacy artwork migration", LegacyArtworkMigration);
         Run("UI scale preference and layout", UiScaleLayout);
         Run("grid placement and stacking", CanvasPlacement);
+        Run("layer draw order and label visibility", CanvasLayerRendering);
         Run("map edits wait for Save", MapEditsWaitForSave);
         Run("unsaved quit warning", UnsavedQuitWarning);
         Run("form startup and render", FormSmoke);
@@ -80,9 +82,37 @@ internal static class Program
         ExpectInvalid(() => MapFile.Save(Path.Combine(Output, "bad name.gobomap"), map));
     }
 
+    private static void LayerFileRoundTrip()
+    {
+        var path = Path.Combine(Output, "layers.gobomap");
+        File.Delete(MapLayersFile.PathFor(path));
+        var map = new MapDocument();
+        map.Entities.Add(new Placement { Type = "floor", X = 64, Y = 64, Layer = -3 });
+        map.Entities.Add(new Placement { Type = "enemy", X = 64, Y = 64, Layer = 1 });
+        MapFile.Save(path, map);
+        Check(!File.Exists(MapLayersFile.PathFor(path)), "Layer metadata was written before an explicit save.");
+        MapLayersFile.Save(path, map);
+        using (var json = JsonDocument.Parse(File.ReadAllText(path)))
+        {
+            foreach (var entity in json.RootElement.GetProperty("entities").EnumerateArray())
+                Check(!entity.TryGetProperty("layer", out _), "Editor layers leaked into the engine map format.");
+        }
+        var loaded = MapFile.Read(path);
+        MapLayersFile.Read(path, loaded);
+        Check(loaded.Entities[0].Layer == -3 && loaded.Entities[1].Layer == 1,
+            "Layer metadata did not round trip.");
+        File.WriteAllText(path, File.ReadAllText(path) + " ");
+        var changed = MapFile.Read(path);
+        ExpectInvalid(() => MapLayersFile.Read(path, changed));
+        Check(changed.Entities.All(e => e.Layer == 0), "Stale metadata assigned layers to a changed map.");
+        File.Delete(MapLayersFile.PathFor(path));
+        MapLayersFile.Read(path, changed);
+        Check(changed.Entities.All(e => e.Layer == 0), "A map without metadata did not default to layer 0.");
+    }
+
     private static void LoadoutRoundTrip()
     {
-        var loadout = new Loadout { Name = "Forest", GridWidth = 32, GridHeight = 48, AllowStacking = true };
+        var loadout = new Loadout { Name = "Forest", GridWidth = 32, GridHeight = 48, AllowStacking = true, ShowEntityLabels = false };
         var art = Path.Combine(Output, "sprite.png");
         using (var bitmap = new Bitmap(12, 12))
         {
@@ -99,7 +129,7 @@ internal static class Program
         LoadoutFile.Save(path, loadout);
         File.Delete(art);
         var loaded = LoadoutFile.Read(path);
-        Check(loaded.Name == "Forest" && loaded.GridWidth == 32 && loaded.GridHeight == 48 && loaded.AllowStacking,
+        Check(loaded.Name == "Forest" && loaded.GridWidth == 32 && loaded.GridHeight == 48 && loaded.AllowStacking && !loaded.ShowEntityLabels,
             "Loadout settings changed.");
         Check(loaded.Entities.Count == 1 && loaded.Entities[0].Type == "tree" &&
             loaded.Entities[0].ArtworkName == "sprite.png" &&
@@ -125,6 +155,7 @@ internal static class Program
              "entities":[{"type":"wall","color":"#508BD2","artwork":"old-sprite.png"}]}
             """);
         var loaded = LoadoutFile.Read(path);
+        Check(loaded.ShowEntityLabels, "Older loadouts should show labels by default.");
         Check(loaded.Entities[0].ArtworkData is { Length: > 0 }, "Legacy image was not imported.");
         LoadoutFile.Save(path, loaded);
         File.Delete(art);
@@ -186,7 +217,7 @@ internal static class Program
         canvas.SetView(1, 0, 0);
         var selected = -1;
         var removed = -1;
-        canvas.PlacementRequested += (x, y) => canvas.Map.Entities.Add(new Placement { Type = "tree", X = x, Y = y });
+        canvas.PlacementRequested += (x, y) => canvas.Map.Entities.Add(new Placement { Type = "tree", X = x, Y = y, Layer = canvas.ActiveLayer });
         canvas.SelectionRequested += index => selected = index;
         canvas.RemovalRequested += index => removed = index;
         var click = new MouseEventArgs(MouseButtons.Left, 1, 70, 70, 0);
@@ -195,11 +226,50 @@ internal static class Program
             "Left click did not snap to 64 × 64.");
         InvokePrivate(canvas, "OnMouseDown", click);
         Check(canvas.Map.Entities.Count == 1 && selected == 0, "Occupied position should select, not stack.");
+        canvas.ActiveLayer = 1;
+        InvokePrivate(canvas, "OnMouseDown", click);
+        Check(canvas.Map.Entities.Count == 2 && canvas.Map.Entities[1].Layer == 1,
+            "A second layer did not allow a placement at the same position.");
+        InvokePrivate(canvas, "OnMouseDown", click);
+        Check(canvas.Map.Entities.Count == 2 && selected == 1, "Occupancy should be checked within the active layer.");
         canvas.Loadout.AllowStacking = true;
         InvokePrivate(canvas, "OnMouseDown", click);
-        Check(canvas.Map.Entities.Count == 2, "Stacking toggle did not allow a second placement.");
+        Check(canvas.Map.Entities.Count == 3, "Stacking toggle did not allow a second placement on one layer.");
+        canvas.ActiveLayer = 0;
         InvokePrivate(canvas, "OnMouseDown", new MouseEventArgs(MouseButtons.Right, 1, 70, 70, 0));
-        Check(removed == 1, "Right click did not target the topmost placement.");
+        Check(removed == 2, "Right click did not target the topmost layer.");
+    }
+
+    private static void CanvasLayerRendering()
+    {
+        using var canvas = new EditorCanvas { Size = new Size(240, 240) };
+        canvas.SetView(1, 0, 0);
+        canvas.Loadout.Entities.Add(new EntityDefinition { Type = "top", ColorHex = "#00FF00" });
+        canvas.Loadout.Entities.Add(new EntityDefinition { Type = "bottom", ColorHex = "#FF0000" });
+        // Insert the high layer first to ensure painting does not follow insertion order.
+        canvas.Map.Entities.Add(new Placement { Type = "top", Name = "visible", X = 64, Y = 64, Layer = 3 });
+        canvas.Map.Entities.Add(new Placement { Type = "bottom", X = 64, Y = 64, Layer = -3 });
+        canvas.Loadout.ShowEntityLabels = false;
+        using var hidden = Render(canvas);
+        Check(hidden.GetPixel(96, 96).ToArgb() == Color.Lime.ToArgb(),
+            "The higher layer was not painted above the lower layer.");
+        Check((int)InvokePrivate(canvas, "HitTest", new Point(96, 96))! == 0,
+            "Hit testing did not select the topmost layer.");
+        canvas.Loadout.ShowEntityLabels = true;
+        using var shown = Render(canvas);
+        var labelChanged = false;
+        for (var y = 66; y < 92 && !labelChanged; y++)
+            for (var x = 66; x < 125; x++)
+                if (shown.GetPixel(x, y) != hidden.GetPixel(x, y)) { labelChanged = true; break; }
+        Check(labelChanged, "The label toggle did not change rendered entity text.");
+    }
+
+    private static Bitmap Render(EditorCanvas canvas)
+    {
+        var bitmap = new Bitmap(canvas.Width, canvas.Height);
+        using var graphics = Graphics.FromImage(bitmap);
+        InvokePrivate(canvas, "OnPaint", new PaintEventArgs(graphics, new Rectangle(0, 0, canvas.Width, canvas.Height)));
+        return bitmap;
     }
 
     private static void FormSmoke()
@@ -216,6 +286,7 @@ internal static class Program
     private static void MapEditsWaitForSave()
     {
         var path = Path.Combine(Output, "manual-save.gobomap");
+        File.Delete(MapLayersFile.PathFor(path));
         MapFile.Save(path, new MapDocument());
         var before = File.ReadAllBytes(path);
         using var form = new MainForm();
@@ -225,10 +296,16 @@ internal static class Program
         var canvas = (EditorCanvas)GetPrivate(form, "canvas")!;
         canvas.Map = map;
         canvas.ActiveType = "wall";
+        ((NumericUpDown)GetPrivate(form, "activeLayer")!).Value = 1;
         InvokePrivate(form, "AddPlacement", 64f, 64f);
         Check(before.SequenceEqual(File.ReadAllBytes(path)), "Editing changed the opened map before Save.");
+        Check(!File.Exists(MapLayersFile.PathFor(path)), "Editing wrote the layer file before Save.");
         var saved = (bool)InvokePrivate(form, "SaveMap", false)!;
         Check(saved && MapFile.Read(path).Entities.Count == 1, "Save did not write the edit.");
+        Check(File.Exists(MapLayersFile.PathFor(path)), "Save did not write layer metadata.");
+        var reopened = MapFile.Read(path);
+        MapLayersFile.Read(path, reopened);
+        Check(reopened.Entities[0].Layer == 1, "Save did not retain the active placement layer.");
     }
 
     private static void UnsavedQuitWarning()

@@ -21,6 +21,8 @@ internal sealed class EditorCanvas : Control
     public string? ActiveType { get; set; }
     [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int SelectedIndex { get; set; } = -1;
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
+    public int ActiveLayer { get; set; }
     public float Zoom => zoom;
     public float OriginX => originX;
     public float OriginY => originY;
@@ -100,7 +102,8 @@ internal sealed class EditorCanvas : Control
         if (!Loadout.AllowStacking)
         {
             for (var i = Map.Entities.Count - 1; i >= 0; i--)
-                if (Map.Entities[i].X == snappedX && Map.Entities[i].Y == snappedY)
+                if (Map.Entities[i].X == snappedX && Map.Entities[i].Y == snappedY &&
+                    Map.Entities[i].Layer == ActiveLayer)
                 {
                     SelectionRequested?.Invoke(i);
                     return;
@@ -168,7 +171,7 @@ internal sealed class EditorCanvas : Control
         DrawGrid(g);
         using var viewPen = new Pen(Color.FromArgb(236, 185, 91), 2) { DashStyle = DashStyle.Dash };
         g.DrawRectangle(viewPen, originX, originY, Map.ViewWidth * zoom, Map.ViewHeight * zoom);
-        for (var i = 0; i < Map.Entities.Count; i++)
+        foreach (var i in DrawOrder())
             DrawEntity(g, Map.Entities[i], i == SelectedIndex);
         g.Clip = oldClip;
         oldClip.Dispose();
@@ -225,10 +228,10 @@ internal sealed class EditorCanvas : Control
             using var pen = new Pen(Color.White, 2);
             g.DrawRectangle(pen, rect.X, rect.Y, rect.Width, rect.Height);
         }
-        if (zoom >= 0.55f)
+        if (Loadout.ShowEntityLabels && zoom >= 0.55f)
         {
             using var brush = new SolidBrush(Color.White);
-            g.DrawString(entity.Type, Font, brush, rect.X + 2, rect.Y + 2);
+            g.DrawString(entity.Name ?? entity.Type, Font, brush, rect.X + 2, rect.Y + 2);
         }
     }
 
@@ -238,11 +241,14 @@ internal sealed class EditorCanvas : Control
 
     private int HitTest(Point point)
     {
-        for (var i = Map.Entities.Count - 1; i >= 0; i--)
+        foreach (var i in DrawOrder().Reverse())
             if (EntityRect(Map.Entities[i]).Contains(point))
                 return i;
         return -1;
     }
+
+    private IEnumerable<int> DrawOrder() =>
+        Enumerable.Range(0, Map.Entities.Count).OrderBy(i => Map.Entities[i].Layer);
 
     private Image? GetImage(EntityDefinition definition)
     {

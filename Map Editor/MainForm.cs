@@ -37,11 +37,14 @@ internal sealed class MainForm : Form
     private readonly TextBox viewHeight = new() { Dock = DockStyle.Fill };
     private readonly NumericUpDown gridWidth = new() { Dock = DockStyle.Fill, Minimum = 1, Maximum = 4096, Value = 64 };
     private readonly NumericUpDown gridHeight = new() { Dock = DockStyle.Fill, Minimum = 1, Maximum = 4096, Value = 64 };
-    private readonly CheckBox allowStacking = new() { Text = "Allow multiple at one position", AutoSize = true };
+    private readonly NumericUpDown activeLayer = new() { Dock = DockStyle.Fill, Minimum = -3, Maximum = 3 };
+    private readonly CheckBox allowStacking = new() { Text = "Allow same-layer overlap", AutoSize = true };
+    private readonly CheckBox showEntityLabels = new() { Text = "Show names on map", AutoSize = true, Checked = true };
     private readonly Label selectedType = new() { Text = "No entity selected", Dock = DockStyle.Fill, AutoEllipsis = true };
     private readonly TextBox selectedName = new() { Dock = DockStyle.Fill };
     private readonly TextBox selectedX = new() { Dock = DockStyle.Fill };
     private readonly TextBox selectedY = new() { Dock = DockStyle.Fill };
+    private readonly NumericUpDown selectedLayer = new() { Dock = DockStyle.Fill, Minimum = -3, Maximum = 3 };
     private readonly ToolStripStatusLabel status = new() { Spring = true, TextAlign = ContentAlignment.MiddleLeft };
 
     public MainForm()
@@ -112,6 +115,26 @@ internal sealed class MainForm : Form
             if (updatingUi) return;
             loadout.AllowStacking = allowStacking.Checked;
             MarkLoadoutDirty();
+        };
+        showEntityLabels.CheckedChanged += (_, _) =>
+        {
+            if (updatingUi) return;
+            loadout.ShowEntityLabels = showEntityLabels.Checked;
+            canvas.Invalidate();
+            MarkLoadoutDirty();
+        };
+        activeLayer.ValueChanged += (_, _) =>
+        {
+            canvas.ActiveLayer = (int)activeLayer.Value;
+            UpdateStatus();
+        };
+        selectedLayer.ValueChanged += (_, _) =>
+        {
+            if (!updatingUi && canvas.SelectedIndex >= 0) MarkMapDirty();
+        };
+        selectedLayer.Leave += (_, _) =>
+        {
+            if (HasPendingPlacementEdits()) TryApplyPlacement();
         };
         foreach (var field in new[] { worldWidth, worldHeight, viewWidth, viewHeight })
         {
@@ -229,13 +252,13 @@ internal sealed class MainForm : Form
     private Control BuildLeftPanel()
     {
         var scroll = new Panel { Dock = DockStyle.Fill, AutoScroll = true, Padding = new Padding(8) };
-        var stack = new TableLayoutPanel { Dock = DockStyle.Top, Height = 734, ColumnCount = 1, RowCount = 4 };
+        var stack = new TableLayoutPanel { Dock = DockStyle.Top, Height = 830, ColumnCount = 1, RowCount = 4 };
         leftStack = stack;
         stack.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 190));
         stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 285));
         stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 145));
-        stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 114));
+        stack.RowStyles.Add(new RowStyle(SizeType.Absolute, 210));
         stack.Controls.Add(BuildLoadoutGroup());
         stack.Controls.Add(BuildPaletteGroup());
         stack.Controls.Add(BuildDimensionsGroup());
@@ -316,18 +339,26 @@ internal sealed class MainForm : Form
     private Control BuildGridGroup()
     {
         var group = new GroupBox { Text = "Placement settings", Dock = DockStyle.Fill, Padding = new Padding(8) };
-        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 3 };
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 6 };
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 50));
         table.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
         table.RowStyles.Add(new RowStyle(SizeType.Absolute, 31));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 22));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 31));
+        table.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         table.RowStyles.Add(new RowStyle(SizeType.Absolute, 30));
         table.Controls.Add(new Label { Text = "Grid width", AutoSize = true }, 0, 0);
         table.Controls.Add(new Label { Text = "Grid height", AutoSize = true }, 1, 0);
         table.Controls.Add(gridWidth, 0, 1);
         table.Controls.Add(gridHeight, 1, 1);
-        table.Controls.Add(allowStacking, 0, 2);
+        table.Controls.Add(new Label { Text = "Active layer (-3 to 3)", AutoSize = true }, 0, 2);
+        table.SetColumnSpan(table.GetControlFromPosition(0, 2)!, 2);
+        table.Controls.Add(activeLayer, 0, 3);
+        table.Controls.Add(allowStacking, 0, 4);
         table.SetColumnSpan(allowStacking, 2);
+        table.Controls.Add(showEntityLabels, 0, 5);
+        table.SetColumnSpan(showEntityLabels, 2);
         group.Controls.Add(table);
         return group;
     }
@@ -337,15 +368,15 @@ internal sealed class MainForm : Form
         var right = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(8), RowCount = 3 };
         right.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
         right.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
-        right.RowStyles.Add(new RowStyle(SizeType.Absolute, 210));
+        right.RowStyles.Add(new RowStyle(SizeType.Absolute, 241));
         rightHeader = new Label { Text = "Placed entities", Dock = DockStyle.Fill, Font = new Font(Font, FontStyle.Bold) };
         right.Controls.Add(rightHeader, 0, 0);
         right.Controls.Add(placements, 0, 1);
         var inspector = new GroupBox { Text = "Selected placement", Dock = DockStyle.Fill, Padding = new Padding(8) };
-        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 5 };
+        var table = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, RowCount = 6 };
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50));
         table.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
-        for (var i = 0; i < 4; i++) table.RowStyles.Add(new RowStyle(SizeType.Absolute, 31));
+        for (var i = 0; i < 5; i++) table.RowStyles.Add(new RowStyle(SizeType.Absolute, 31));
         table.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         table.Controls.Add(new Label { Text = "Type", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 0);
         table.Controls.Add(selectedType, 1, 0);
@@ -355,10 +386,12 @@ internal sealed class MainForm : Form
         table.Controls.Add(selectedX, 1, 2);
         table.Controls.Add(new Label { Text = "Y", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 3);
         table.Controls.Add(selectedY, 1, 3);
+        table.Controls.Add(new Label { Text = "Layer", Anchor = AnchorStyles.Left, AutoSize = true }, 0, 4);
+        table.Controls.Add(selectedLayer, 1, 4);
         var buttons = new FlowLayoutPanel { Dock = DockStyle.Fill, WrapContents = false };
         AddButton(buttons, "Apply", () => TryApplyPlacement());
         AddButton(buttons, "Delete", () => RemovePlacement(placements.SelectedIndex));
-        table.Controls.Add(buttons, 0, 4);
+        table.Controls.Add(buttons, 0, 5);
         table.SetColumnSpan(buttons, 2);
         inspector.Controls.Add(table);
         right.Controls.Add(inspector, 0, 2);
@@ -436,7 +469,7 @@ internal sealed class MainForm : Form
             control.Padding = ScalePadding(padding, layoutFactor);
             control.Margin = ScalePadding(margin, layoutFactor);
         }
-        if (leftStack is not null) leftStack.Height = (int)Math.Round(734 * layoutFactor);
+        if (leftStack is not null) leftStack.Height = (int)Math.Round(830 * layoutFactor);
         palette.ItemHeight = Math.Max(20, (int)Math.Round(28 * layoutFactor));
         var area = Screen.FromControl(this).WorkingArea;
         MinimumSize = new Size(
@@ -490,6 +523,7 @@ internal sealed class MainForm : Form
         gridWidth.Value = loadout.GridWidth;
         gridHeight.Value = loadout.GridHeight;
         allowStacking.Checked = loadout.AllowStacking;
+        showEntityLabels.Checked = loadout.ShowEntityLabels;
         palette.BeginUpdate();
         palette.Items.Clear();
         foreach (var definition in loadout.Entities) palette.Items.Add(definition);
@@ -586,7 +620,7 @@ internal sealed class MainForm : Form
             ShowError("The engine supports at most 100,000 entities per map.");
             return;
         }
-        map.Entities.Add(new Placement { Type = canvas.ActiveType, X = x, Y = y });
+        map.Entities.Add(new Placement { Type = canvas.ActiveType, X = x, Y = y, Layer = canvas.ActiveLayer });
         MarkMapDirty();
         RefreshPlacements();
         SelectPlacement(map.Entities.Count - 1);
@@ -633,6 +667,7 @@ internal sealed class MainForm : Form
             selectedName.Clear();
             selectedX.Clear();
             selectedY.Clear();
+            selectedLayer.Value = 0;
         }
         else
         {
@@ -641,6 +676,7 @@ internal sealed class MainForm : Form
             selectedName.Text = entity.Name ?? "";
             selectedX.Text = entity.X.ToString("g", CultureInfo.CurrentCulture);
             selectedY.Text = entity.Y.ToString("g", CultureInfo.CurrentCulture);
+            selectedLayer.Value = entity.Layer;
         }
         updatingUi = false;
         canvas.Invalidate();
@@ -653,7 +689,8 @@ internal sealed class MainForm : Form
         var entity = map.Entities[index];
         return selectedName.Text != (entity.Name ?? "") ||
             selectedX.Text != entity.X.ToString("g", CultureInfo.CurrentCulture) ||
-            selectedY.Text != entity.Y.ToString("g", CultureInfo.CurrentCulture);
+            selectedY.Text != entity.Y.ToString("g", CultureInfo.CurrentCulture) ||
+            selectedLayer.Value != entity.Layer;
     }
 
     private bool TryApplyPlacement()
@@ -680,15 +717,17 @@ internal sealed class MainForm : Form
             return false;
         }
         var entity = map.Entities[index];
-        if (entity.Name == name && entity.X == x && entity.Y == y) return true;
-        if (!loadout.AllowStacking && map.Entities.Where((_, i) => i != index).Any(e => e.X == x && e.Y == y))
+        var layer = (int)selectedLayer.Value;
+        if (entity.Name == name && entity.X == x && entity.Y == y && entity.Layer == layer) return true;
+        if (!loadout.AllowStacking && map.Entities.Where((_, i) => i != index).Any(e => e.X == x && e.Y == y && e.Layer == layer))
         {
-            ShowError("That position is occupied. Enable stacking in the loadout to allow it.");
+            ShowError("That position is occupied on this layer. Choose another layer or enable same-layer overlap.");
             return false;
         }
         entity.Name = name;
         entity.X = x;
         entity.Y = y;
+        entity.Layer = layer;
         MarkMapDirty();
         RefreshPlacements();
         SelectPlacement(index);
@@ -715,6 +754,7 @@ internal sealed class MainForm : Form
         map = new MapDocument();
         mapPath = null;
         mapDirty = false;
+        activeLayer.Value = 0;
         SyncMapUi();
         canvas.FitWorld();
         UpdateTitle();
@@ -734,13 +774,21 @@ internal sealed class MainForm : Form
         try
         {
             var loaded = MapFile.Read(dialog.FileName);
+            string? layerWarning = null;
+            try { MapLayersFile.Read(dialog.FileName, loaded); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or InvalidOperationException or KeyNotFoundException)
+            {
+                layerWarning = ex.Message;
+            }
             map = loaded;
             mapPath = dialog.FileName;
             mapDirty = false;
+            activeLayer.Value = 0;
             SyncMapUi();
             canvas.FitWorld();
             UpdateTitle();
             UpdateStatus();
+            if (layerWarning is not null) ShowError($"The map opened with all placements on layer 0. {layerWarning}");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or JsonException or InvalidDataException or InvalidOperationException or KeyNotFoundException)
         {
@@ -770,7 +818,10 @@ internal sealed class MainForm : Form
         }
         try
         {
+            if (map.Entities.Any(entity => entity.Layer is < -3 or > 3))
+                throw new InvalidDataException("Placement layers must be between -3 and 3.");
             MapFile.Save(target, map);
+            MapLayersFile.Save(target, map);
             mapPath = target;
             mapDirty = false;
             UpdateTitle();
@@ -933,7 +984,7 @@ internal sealed class MainForm : Form
         var coordinate = x.HasValue && y.HasValue ? $"  |  Cursor {x:g0}, {y:g0}" : "";
         status.Text = $"Map: {(mapPath ?? "unsaved")}{(mapDirty ? " *" : "")}  |  " +
             $"Loadout: {loadout.Name}{(loadoutDirty ? " *" : "")}  |  " +
-            $"Entities: {map.Entities.Count}  |  Zoom: {canvas.Zoom:P0}{coordinate}";
+            $"Entities: {map.Entities.Count}  |  Layer: {canvas.ActiveLayer:+0;-0;0}  |  Zoom: {canvas.Zoom:P0}{coordinate}";
     }
 
     private void ShowError(string message) =>

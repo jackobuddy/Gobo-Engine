@@ -15,9 +15,10 @@ internal sealed class Placement
     public string? Name { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
+    public int Layer { get; set; }
 
     public override string ToString() =>
-        $"{Type}{(Name is null ? "" : $" [{Name}]")}  ({X:g}, {Y:g})";
+        $"L{Layer:+0;-0;0}  {Type}{(Name is null ? "" : $" [{Name}]")}  ({X:g}, {Y:g})";
 }
 
 internal sealed class EntityDefinition
@@ -38,6 +39,7 @@ internal sealed class Loadout
     public int GridWidth { get; set; } = 64;
     public int GridHeight { get; set; } = 64;
     public bool AllowStacking { get; set; }
+    public bool ShowEntityLabels { get; set; } = true;
     public float Zoom { get; set; } = 1;
     public float OriginX { get; set; } = 32;
     public float OriginY { get; set; } = 32;

@@ -36,6 +36,7 @@ internal static class LoadoutFile
             GridWidth = root.GetProperty("gridWidth").GetInt32(),
             GridHeight = root.GetProperty("gridHeight").GetInt32(),
             AllowStacking = root.GetProperty("allowStacking").GetBoolean(),
+            ShowEntityLabels = !root.TryGetProperty("showEntityLabels", out var labels) || labels.GetBoolean(),
             Zoom = root.GetProperty("zoom").GetSingle(),
             OriginX = root.GetProperty("originX").GetSingle(),
             OriginY = root.GetProperty("originY").GetSingle()
@@ -99,6 +100,7 @@ internal static class LoadoutFile
             gridWidth = loadout.GridWidth,
             gridHeight = loadout.GridHeight,
             allowStacking = loadout.AllowStacking,
+            showEntityLabels = loadout.ShowEntityLabels,
             zoom = loadout.Zoom,
             originX = loadout.OriginX,
             originY = loadout.OriginY,
