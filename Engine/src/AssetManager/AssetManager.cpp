@@ -133,7 +133,6 @@ bool AssetManager::AddTextureSurface(const std::string& assetID, SDL_Surface* su
 	}
 	estimatedTextureBytes += textureBytes;
 	texture.release();
-	Logger::Log("Loaded texture: " + assetID);
 	return true;
 }
 

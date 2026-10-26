@@ -16,32 +16,58 @@
 #include <utility>
 
 
-StatBlock::StatBlock(RPGStatsModule& module, const StatProfile& profile):
-    owner(&module), profileID(profile.id), baseValues(profile.baseValues),
-    stringValues(profile.stringValues) {
+StatBlock::StatBlock(RPGStatsModule& module, const StatProfile& profile): 
+    owner(&module), profileID(profile.id), statSetID(profile.statSetID),
+    baseValues(profile.baseValues), stringValues(profile.stringValues) 
+{
 }
 
 bool StatBlock::AddPoints(const std::string& statID, double amount)
 {
     auto definition = owner->definitions.find(statID);
-    if (definition == owner->definitions.end() || !std::isfinite(amount)) return false;
-    if (definition->second.type == StatValueType::String) return false;
-    if (definition->second.type == StatValueType::Integer && std::floor(amount) != amount) 
+    if (!owner->HasStatInSet(statSetID, statID) ||
+        definition == owner->definitions.end() ||
+        !std::isfinite(amount) ||
+        definition->second.type == StatValueType::String ||
+        (definition->second.type == StatValueType::Integer &&
+            std::floor(amount) != amount))
         return false;
 
     const auto previous = allocatedPoints.find(statID);
-    const double next = (previous == allocatedPoints.end() ? 0.0 : previous->second)
-        + amount;
-    if (!std::isfinite(next) || next < 0.0) return false;
+    const bool hadPrevious = previous != allocatedPoints.end();
+    const double oldPoints = hadPrevious ? previous->second : 0.0;
+    const double next = oldPoints + amount;
+    if (!std::isfinite(next))
+        return false;
+
     allocatedPoints[statID] = next;
     dirty = true;
+
+    if (amount < 0.0 && definition->second.minimum)
+    {
+        double rawStableValue = 0.0;
+        if (!owner->Calculate(*this, &statID, &rawStableValue) ||
+            rawStableValue < *definition->second.minimum)
+        {
+            if (hadPrevious)
+                allocatedPoints[statID] = oldPoints;
+            else
+                allocatedPoints.erase(statID);
+
+            dirty = true; // Discard any caches from the trial.
+            return false;
+        }
+    }
+
     return true;
 }
 
 std::optional<double> StatBlock::GetPoints(const std::string& statID) const
 {
-    if (!owner->definitions.contains(statID)) return std::nullopt;
-    if (owner->definitions.at(statID).type == StatValueType::String)
+    auto definition = owner->definitions.find(statID);
+    if (!owner->HasStatInSet(statSetID, statID) ||
+        definition == owner->definitions.end() ||
+        definition->second.type == StatValueType::String)
         return std::nullopt;
     auto found = allocatedPoints.find(statID);
     return found == allocatedPoints.end() ? 0.0 : found->second;
@@ -49,14 +75,13 @@ std::optional<double> StatBlock::GetPoints(const std::string& statID) const
 
 bool StatBlock::SetBase(const std::string& statID, double value)
 {
-    const auto found = owner->definitions.find(statID);
-    if (found == owner->definitions.end() ||
+    auto found = owner->definitions.find(statID);
+    if (!owner->HasStatInSet(statSetID, statID) ||
+        found == owner->definitions.end() ||
         found->second.type == StatValueType::String ||
         !std::isfinite(value) ||
         (found->second.type == StatValueType::Integer &&
-            std::floor(value) != value))
-        return false;
-
+            std::floor(value) != value)) return false;
     baseValues[statID] = value;
     dirty = true;
     return true;
@@ -64,7 +89,8 @@ bool StatBlock::SetBase(const std::string& statID, double value)
 
 bool StatBlock::SetPermanentSource(const std::string& sourceID, std::vector<StatModifier> modifiers)
 {
-    if (sourceID.empty() || !owner->ValidModifiers(modifiers)) return false;
+    if (sourceID.empty() || !owner->ValidModifiers(*this, modifiers)) 
+        return false;
     permanentSources[sourceID] = std::move(modifiers);
     dirty = true;
     return true;
@@ -77,13 +103,12 @@ bool StatBlock::RemovePermanentSource(const std::string& sourceID)
     return true;
 }
 
-bool StatBlock::ApplyEffect(const std::string& effectID, float seconds,
+bool StatBlock::ApplyEffect(const std::string& effectID, float seconds, 
     std::vector<StatModifier> modifiers)
 {
     if (effectID.empty() || !std::isfinite(seconds) || seconds <= 0.0f ||
-        !owner->ValidModifiers(modifiers)) return false;
-    effects.insert_or_assign(effectID,
-        TimedEffect{ seconds, std::move(modifiers) });
+        !owner->ValidModifiers(*this, modifiers)) return false;
+    effects.insert_or_assign(effectID, TimedEffect{ seconds, std::move(modifiers) });
     dirty = true;
     return true;
 }
@@ -117,16 +142,50 @@ bool StatBlock::Recalculate()
 
 std::optional<double> StatBlock::Get(const std::string& statID, bool ignoreTempModifiers)
 {
-    if (!owner->definitions.contains(statID)) return std::nullopt;
-    if (owner->definitions.at(statID).type == StatValueType::String) return std::nullopt;
+    auto definition = owner->definitions.find(statID);
+    if (!owner->HasStatInSet(statSetID, statID) ||
+        definition == owner->definitions.end() ||
+        definition->second.type == StatValueType::String)
+        return std::nullopt;
     if (dirty && !Recalculate()) return std::nullopt;
-    const StatValues& values = ignoreTempModifiers ? stableCache : effectiveCache;
-    return values.at(statID);
+    const StatValues& values =
+        ignoreTempModifiers ? stableCache : effectiveCache;
+    return values.at(statID); 
 }
 
 bool RPGStatsModule::DefineCategory(const std::string& id)
 {
     return !started && !id.empty() && categories.insert(id).second;
+}
+
+bool RPGStatsModule::DefineStatSet(const std::string& id)
+{
+    return !started && !id.empty() && statSets.emplace(id, StatSet{}).second;
+}
+
+bool RPGStatsModule::IncludeStat(const std::string& setID, const std::string& statID)
+{
+    auto set = statSets.find(setID);
+    if (started || set == statSets.end() || !definitions.contains(statID)) return false;
+    return set->second.roots.insert(statID).second;
+}
+
+bool RPGStatsModule::OverrideStatExpression(const std::string& setID, const std::string& statID,
+    StatExpression expression)
+{
+    auto set = statSets.find(setID);
+    auto definition = definitions.find(statID);
+    if (started || set == statSets.end() || definition == definitions.end() ||
+        definition->second.type == StatValueType::String) return false;
+    set->second.roots.insert(statID);
+    set->second.expressionOverrides.insert_or_assign(statID, std::move(expression));
+    return true;
+}
+
+bool RPGStatsModule::HasStatInSet(const std::string& setID, const std::string& statID) const
+{
+    auto set = statSets.find(setID);
+    return set != statSets.end() && set->second.resolvedIDs.contains(statID);
 }
 
 bool RPGStatsModule::DefineStat(StatDefinition definition)
@@ -178,63 +237,71 @@ bool RPGStatsModule::DefineStat(StatDefinition definition)
     }
 
     const std::string id = definition.id;
-    return definitions.emplace(id, std::move(definition)).second;
+    const bool inserted = definitions.emplace(id, std::move(definition)).second;
+    if (inserted)
+        statSets.at("default").roots.insert(id);
+    return inserted;
 }
 
 bool RPGStatsModule::DefineProfile(StatProfile profile)
 {
-    if (started || profile.id.empty() || profiles.contains(profile.id)) return false;
+    if (started || profile.id.empty() || profiles.contains(profile.id) ||
+        !statSets.contains(profile.statSetID)) 
+            return false;
     const std::string id = profile.id;
     return profiles.emplace(id, std::move(profile)).second;
 }
 
-bool RPGStatsModule::UpdateProfile(const std::string& profileID, const std::string& statID, double value)
+bool RPGStatsModule::UpdateProfile(const std::string& profileID, const std::string& statID, 
+    double value)
 {
-    const auto profile = profiles.find(profileID);
+    auto profile = profiles.find(profileID);
     if (profile == profiles.end())
     {
         Logger::Error("Unknown RPG profile '" + profileID + "'");
         return false;
     }
-
-    const auto definition = definitions.find(statID);
+    auto definition = definitions.find(statID);
     if (definition == definitions.end() ||
-        definition->second.type == StatValueType::String)
+        definition->second.type == StatValueType::String ||
+        (started && !HasStatInSet(
+            profile->second.statSetID, statID)))
     {
         Logger::Error("Profile '" + profileID +
-            "' requires a defined numeric stat '" + statID + "'");
+            "' cannot use numeric stat '" + statID + "'");
         return false;
     }
-
-    if (!std::isfinite(value))
+    if (!std::isfinite(value) ||
+        (definition->second.type == StatValueType::Integer &&
+            std::floor(value) != value))
     {
         Logger::Error("Profile '" + profileID +
-            "' has a non-finite value for '" + statID + "'");
+            "' has an invalid value for '" + statID + "'");
         return false;
     }
-
     profile->second.baseValues[statID] = value;
     return true;
 }
 
-bool RPGStatsModule::UpdateProfile(const std::string& profileID, const std::string& statID, std::string value)
+bool RPGStatsModule::UpdateProfile(const std::string& profileID, const std::string& statID, 
+    std::string value)
 {
-    const auto profile = profiles.find(profileID);
+    auto profile = profiles.find(profileID);
     if (profile == profiles.end())
     {
         Logger::Error("Unknown RPG profile '" + profileID + "'");
         return false;
     }
-
-    const auto definition = definitions.find(statID);
+    auto definition = definitions.find(statID);
     if (definition == definitions.end() ||
-        definition->second.type != StatValueType::String)
+        definition->second.type != StatValueType::String ||
+        (started && !HasStatInSet(
+            profile->second.statSetID, statID)))
     {
         Logger::Error("Profile '" + profileID +
-            "' requires a defined string stat '" + statID + "'");
+            "' cannot use string stat '" + statID + "'");
         return false;
     }
-
     profile->second.stringValues[statID] = std::move(value);
     return true;
 }
@@ -265,71 +332,102 @@ std::vector<std::string> RPGStatsModule::GetStatIDsInCategory(const std::string&
 
 void RPGStatsModule::Start(ModuleServices&)
 {
-    if (started) throw std::logic_error("RPGStatsModule already started");
-    evaluationOrder.clear();
-    std::map<std::string, int> state;
-    std::function<void(const std::string&)> visit =
-        [&](const std::string& id)
-        {
-            if (state[id] == 1)
-                throw std::logic_error("Stat formula cycle: " + id);
-            if (state[id] == 2) return;
-            state[id] = 1;
-            const StatDefinition& definition = definitions.at(id);
-            std::set<std::string> seen;
-            for (const std::string& dependency : definition.expression.Dependencies())
+    if (started)
+        throw std::logic_error("RPGStatsModule already started");
+    for (auto& [setID, set] : statSets)
+    {
+        set.resolvedIDs.clear();
+        set.evaluationOrder.clear();
+        std::map<std::string, int> state;
+        std::function<void(const std::string&)> visit =
+            [&](const std::string& id)
             {
-                const auto found = definitions.find(dependency);
+                if (state[id] == 1)
+                    throw std::logic_error("Stat set '" + setID +
+                        "' has a formula cycle at '" + id + "'");
+                if (state[id] == 2) return;
+                auto found = definitions.find(id);
                 if (found == definitions.end())
-                    throw std::logic_error("Stat '" + id + "' references undefined stat '" +
-                        dependency + "'");
-                if (found->second.type == StatValueType::String)
-                    throw std::logic_error("Stat '" + id + "' references string stat '" +
-                        dependency + "'");
-                visit(dependency);
-            }
-            state[id] = 2;
-            evaluationOrder.push_back(id);
-        };
-    for (const auto& [id, definition] : definitions)
-        if (definition.type != StatValueType::String) visit(id);
+                    throw std::logic_error("Stat set '" + setID +
+                        "' references undefined stat '" + id + "'");
+                state[id] = 1;
+                const StatDefinition& definition = found->second;
+                auto replacement = set.expressionOverrides.find(id);
+                const StatExpression& expression =
+                    replacement == set.expressionOverrides.end()
+                    ? definition.expression : replacement->second;
+                if (definition.type != StatValueType::String)
+                {
+                    for (const std::string& dependency :
+                        expression.Dependencies())
+                    {
+                        auto dep = definitions.find(dependency);
+                        if (dep == definitions.end())
+                            throw std::logic_error("Stat set '" + setID +
+                                "', stat '" + id +
+                                "' references undefined stat '" +
+                                dependency + "'");
+                        if (dep->second.type == StatValueType::String)
+                            throw std::logic_error("Stat set '" + setID +
+                                "', stat '" + id +
+                                "' references string stat '" +
+                                dependency + "'");
+                        visit(dependency);
+                    }
+                    set.evaluationOrder.push_back(id);
+                }
+                state[id] = 2;
+                set.resolvedIDs.insert(id);
+            };
+        for (const std::string& root : set.roots)
+            visit(root);
+    }
     for (const auto& [profileID, profile] : profiles)
     {
+        auto set = statSets.find(profile.statSetID);
+        if (set == statSets.end())
+            throw std::logic_error("RPG profile '" + profileID +
+                "' has unknown stat set '" + profile.statSetID + "'");
         for (const auto& [statID, value] : profile.baseValues)
         {
-            const auto found = definitions.find(statID);
-            const std::string entry =
-                "RPG profile '" + profileID + "', numeric stat '" + statID + "': ";
-
+            const std::string entry = "RPG profile '" + profileID +
+                "', numeric stat '" + statID + "': ";
+            auto found = definitions.find(statID);
             if (found == definitions.end())
                 throw std::logic_error(entry + "stat is not defined");
+            if (!set->second.resolvedIDs.contains(statID))
+                throw std::logic_error(entry + "stat is outside set '" +
+                    profile.statSetID + "'");
             if (found->second.type == StatValueType::String)
                 throw std::logic_error(entry + "stat is defined as String");
             if (!std::isfinite(value))
                 throw std::logic_error(entry + "value is not finite");
         }
-
-        for (const auto& entry : profile.stringValues)
+        for (const auto& [statID, value] : profile.stringValues)
         {
-            const std::string& statID = entry.first;
-            const auto found = definitions.find(statID);
-            const std::string label = "RPG profile '" + profileID + "', string stat '" + statID + "': ";
-
+            const std::string entry = "RPG profile '" + profileID +
+                "', string stat '" + statID + "': ";
+            auto found = definitions.find(statID);
             if (found == definitions.end())
-                throw std::logic_error(label + "stat is not defined");
+                throw std::logic_error(entry + "stat is not defined");
+            if (!set->second.resolvedIDs.contains(statID))
+                throw std::logic_error(entry + "stat is outside set '" +
+                    profile.statSetID + "'");
             if (found->second.type != StatValueType::String)
-                throw std::logic_error(label + "stat is not defined as String");
+                throw std::logic_error(entry + "stat is not String");
         }
     }
     started = true;
 }
 
-bool RPGStatsModule::ValidModifiers(const std::vector<StatModifier>& modifiers) const
+bool RPGStatsModule::ValidModifiers(const StatBlock& block,
+    const std::vector<StatModifier>& modifiers) const
 {
     for (const StatModifier& modifier : modifiers)
     {
         auto found = definitions.find(modifier.statID);
-        if (found == definitions.end() ||
+        if (!HasStatInSet(block.statSetID, modifier.statID) ||
+            found == definitions.end() ||
             found->second.type == StatValueType::String ||
             !std::isfinite(modifier.flat) ||
             !std::isfinite(modifier.percent)) return false;
@@ -337,26 +435,37 @@ bool RPGStatsModule::ValidModifiers(const std::vector<StatModifier>& modifiers) 
     return true;
 }
 
-bool RPGStatsModule::Calculate(StatBlock& block)
+bool RPGStatsModule::Calculate(StatBlock& block, const std::string* rawStatID, double* rawStableValue)
 {
     if (!started) return false;
+    auto set = statSets.find(block.statSetID);
+    if (set == statSets.end()) return false;
     try
     {
         auto calculatePass = [&](bool withEffects)
             {
                 StatValues values;
-                for (const std::string& id : evaluationOrder)
+                for (const std::string& id :
+                    set->second.evaluationOrder)
                 {
-                    const StatDefinition& definition = definitions.at(id);
+                    const StatDefinition& definition =
+                        definitions.at(id);
+                    auto replacement =
+                        set->second.expressionOverrides.find(id);
+                    const StatExpression& expression =
+                        replacement ==
+                        set->second.expressionOverrides.end()
+                        ? definition.expression : replacement->second;
                     double result = block.baseValues.contains(id)
                         ? block.baseValues.at(id) : 0.0;
                     if (block.allocatedPoints.contains(id))
                         result += block.allocatedPoints.at(id);
-                    if (definition.expression)
-                        result += definition.expression.Evaluate(values);
+                    if (expression)
+                        result += expression.Evaluate(values);
                     double flat = 0.0;
                     double percent = 0.0;
-                    const auto apply = [&](const std::vector<StatModifier>& source)
+                    const auto apply =
+                        [&](const std::vector<StatModifier>& source)
                         {
                             for (const StatModifier& modifier : source)
                                 if (modifier.statID == id)
@@ -365,23 +474,35 @@ bool RPGStatsModule::Calculate(StatBlock& block)
                                     percent += modifier.percent;
                                 }
                         };
-                    for (const auto& [sourceID, modifiers] : block.permanentSources)
+                    for (const auto& [sourceID, modifiers] :
+                        block.permanentSources)
                         apply(modifiers);
                     if (withEffects)
-                        for (const auto& [effectID, effect] : block.effects)
+                        for (const auto& [effectID, effect] :
+                            block.effects)
                             apply(effect.modifiers);
-                    result = (result + flat) * std::max(0.0, 1.0 + percent);
+                    result = (result + flat) *
+                        std::max(0.0, 1.0 + percent);
                     if (!std::isfinite(result))
-                        throw std::runtime_error("Non-finite stat: " + id);
-                    if (definition.minimum) result = std::max(result, *definition.minimum);
-                    if (definition.maximum) result = std::min(result, *definition.maximum);
-                    if (definition.type == StatValueType::Integer) result = std::round(result);
+                        throw std::runtime_error(
+                            "Non-finite stat: " + id);
+                    if (!withEffects && rawStatID && rawStableValue &&
+                        id == *rawStatID)
+                        *rawStableValue = result;
+                    if (definition.minimum)
+                        result = std::max(result, *definition.minimum);
+                    if (definition.maximum)
+                        result = std::min(result,
+                            *definition.maximum);
+                    if (definition.type == StatValueType::Integer)
+                        result = std::round(result);
                     values.emplace(id, result);
                 }
                 return values;
             };
         StatValues stable = calculatePass(false);
-        StatValues effective = block.effects.empty() ? stable : calculatePass(true);
+        StatValues effective = block.effects.empty()
+            ? stable : calculatePass(true);
         block.stableCache.swap(stable);
         block.effectiveCache.swap(effective);
         block.dirty = false;
@@ -389,12 +510,14 @@ bool RPGStatsModule::Calculate(StatBlock& block)
     }
     catch (const std::exception& error)
     {
-        Logger::Error(std::string("RPG stat calculation failed: ") + error.what());
+        Logger::Error(std::string(
+            "RPG stat calculation failed: ") + error.what());
         return false;
     }
     catch (...)
     {
-        Logger::Error("RPG stat calculation failed with an unknown exception");
+        Logger::Error(
+            "RPG stat calculation failed with an unknown exception");
         return false;
     }
 }
@@ -526,7 +649,8 @@ void RPGStatsModule::Shutdown()
     persistentBindings.clear();
     persistentBlocks.clear();
     activeWorld = nullptr;
-    evaluationOrder.clear();
+    statSets.clear();
+    statSets.emplace("default", StatSet{});
     definitions.clear();
     profiles.clear();
     categories.clear();
@@ -538,18 +662,20 @@ void RPGStatsModule::Shutdown()
 bool StatBlock::SetString(const std::string& statID, std::string value)
 {
     auto found = owner->definitions.find(statID);
-    if (found == owner->definitions.end() ||
+    if (!owner->HasStatInSet(statSetID, statID) ||
+        found == owner->definitions.end() ||
         found->second.type != StatValueType::String) return false;
     stringValues[statID] = std::move(value);
     return true;
 }
 
-std::optional<std::string> StatBlock::GetString(
-    const std::string& statID) const
+std::optional<std::string> StatBlock::GetString(const std::string& statID) const
 {
     auto found = owner->definitions.find(statID);
-    if (found == owner->definitions.end() ||
-        found->second.type != StatValueType::String) return std::nullopt;
+    if (!owner->HasStatInSet(statSetID, statID) ||
+        found == owner->definitions.end() ||
+        found->second.type != StatValueType::String)
+        return std::nullopt;
     auto value = stringValues.find(statID);
     return value == stringValues.end()
         ? std::nullopt : std::optional<std::string>(value->second);
@@ -558,7 +684,8 @@ std::optional<std::string> StatBlock::GetString(
 bool StatBlock::ClearString(const std::string& statID)
 {
     auto found = owner->definitions.find(statID);
-    if (found == owner->definitions.end() ||
+    if (!owner->HasStatInSet(statSetID, statID) ||
+        found == owner->definitions.end() ||
         found->second.type != StatValueType::String) return false;
     return stringValues.erase(statID) != 0;
 }
@@ -669,20 +796,40 @@ bool RPGStatsModule::CreateDebugReport()
             file << ' ' << dependency;
         file << '\n';
     }
-    file << "Evaluation order (numeric only)\n";
-    for (const auto& id : evaluationOrder) file << "  " << id << '\n';
+    file << "Stat sets\n";
+    for (const auto& [setID, set] : statSets)
+    {
+        file << "  " << setID << "\n";
+        file << "    roots\n";
+        for (const auto& id : set.roots)
+            file << "      " << id << '\n';
+        file << "    resolved IDs\n";
+        for (const auto& id : set.resolvedIDs)
+            file << "      " << id << '\n';
+        file << "    evaluation order (numeric only)\n";
+        for (const auto& id : set.evaluationOrder)
+            file << "      " << id << '\n';
+        file << "    expression overrides\n";
+        for (const auto& [id, expression] :
+            set.expressionOverrides)
+            file << "      " << id << " = "
+            << (expression
+                ? quoted(expression.ToString()) : "none")
+            << '\n';
+    }
     file << "Profiles\n";
     for (const auto& [id, profile] : profiles)
     {
-        file << "  " << id << "\n  numeric base values\n";
-        numbers(profile.baseValues);
+        file << "  " << id << " set=" << profile.statSetID
+            << "\n  numeric base values\n";
         file << "  string base values\n";
         strings(profile.stringValues);
     }
 
     const auto block = [&](const std::string& label, StatBlock& value)
         {
-            file << "  " << label << " profile=" << value.profileID << '\n';
+            file << "  " << label << " profile=" << value.profileID
+                << " set=" << value.statSetID << '\n';
             const bool calculated = started &&
                 (!value.dirty || Calculate(value));
             file << "    calculated=" << calculated

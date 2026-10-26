@@ -45,6 +45,7 @@ struct StatProfile
 	std::string id; 
 	StatValues baseValues; 
 	StringStatValues stringValues; 
+	std::string statSetID = "default"; 
 };
 
 class StatBlock final
@@ -70,6 +71,7 @@ public:
 	bool Recalculate(); 
 	std::optional<double> Get(const std::string& statID, bool ignoreTempModifiers = false); 
 	const std::string& GetProfileID() const noexcept { return profileID; }
+	const std::string& GetStatSetID() const noexcept { return statSetID; }
 
 private:
 	struct TimedEffect
@@ -83,6 +85,7 @@ private:
 
 	RPGStatsModule* owner; 
 	std::string profileID; 
+	std::string statSetID; 
 	StatValues baseValues; 
 	StringStatValues stringValues; 
 	StatValues allocatedPoints; 
@@ -100,6 +103,10 @@ class RPGStatsModule final : public Module
 public:
 	bool DefineCategory(const std::string& id); 
 	bool DefineStat(StatDefinition definition); 
+	bool DefineStatSet(const std::string& id); 
+	bool IncludeStat(const std::string& setID, const std::string& statID); 
+	bool OverrideStatExpression(const std::string& setID, const std::string& statID, StatExpression expression);
+	bool HasStatInSet(const std::string& setID, const std::string& statID) const; 
 	bool DefineProfile(StatProfile profile); 
 	bool UpdateProfile(const std::string& profileID, const std::string& statID, double value);
 	bool UpdateProfile(const std::string& profileID, const std::string& statID, std::string value);
@@ -130,16 +137,24 @@ public:
 	bool CreateDebugReport();
 
 private:
-	bool ValidModifiers(const std::vector<StatModifier>& modifiers) const; 
-	bool Calculate(StatBlock& block); 
+	bool ValidModifiers(const StatBlock& block, const std::vector<StatModifier>& modifiers) const;
+	bool Calculate(StatBlock& block, const std::string* rawStatID = nullptr, double* rawStableValue = nullptr);
 	bool CanAttach(Entity entity) const; 
 	void PruneDeadEntities(); 
 
+	struct StatSet
+	{
+		std::set<std::string> roots; 
+		std::map<std::string, StatExpression> expressionOverrides; 
+		std::set<std::string> resolvedIDs; 
+		std::vector<std::string> evaluationOrder; 
+	};
+
+	std::map<std::string, StatSet> statSets{{"default", StatSet{}}}; 
 	std::set<std::string> categories;
 	std::map<std::string, StatDefinition> definitions;
 	std::map<std::string, StatProfile> profiles;
 	std::set<std::string> damageTypes;
-	std::vector<std::string> evaluationOrder;
 	std::map<Entity, std::unique_ptr<StatBlock>> sceneBlocks;
 	std::map<std::string, std::unique_ptr<StatBlock>> persistentBlocks;
 	std::map<Entity, std::string> persistentBindings;
