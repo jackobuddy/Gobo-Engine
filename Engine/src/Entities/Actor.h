@@ -116,6 +116,11 @@ public:
 		}
 		return transform->position; 
 	}
+	Vector2 GetPosition()
+	{
+		return GetLocation(); 
+	}
+
 	void SetLocation(Vector2 location)
 	{
 		TransformComponent* transform = GetTransform(); 

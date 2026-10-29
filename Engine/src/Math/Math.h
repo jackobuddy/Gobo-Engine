@@ -333,6 +333,16 @@ inline int FloorToInt(float value)
 	return static_cast<int>(std::floor(value));
 }
 
+inline int Square(int value)
+{
+	return (value * value); 
+}
+
+inline float Square(float value)
+{
+	return (value * value); 
+}
+
 // A set of Red / Green / Blue / and Alpha values between 0 and 255. 
 struct Color
 {
