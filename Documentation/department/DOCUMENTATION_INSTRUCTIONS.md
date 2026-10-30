@@ -1,6 +1,6 @@
 # Gobo Engine Documentation - Standing Instructions
 
-Last updated: 2026-10-01 CDT
+Last updated: 2026-10-30 CDT
 
 ## Authority and boundaries
 
@@ -16,7 +16,7 @@ Last updated: 2026-10-01 CDT
 - Do not expose internal ownership, raw SDL setup, implementation-only system mechanics, or unfinished APIs as normal designer workflows.
 - Never link from the Designer Guide to the Engineering Wiki. Keep the designer learning path self-contained.
 - Explain every EntityObject callback in the designer reference: exact signature, required components/system, when it fires, event fields, practical use, and common mistakes. Distinguish object callbacks, hit-tested interactions, and explicit EventManager subscriptions.
-- Teach through complete, placed examples: identify the class/file/callback, setup, required artwork/config, and expected result. Use Character for the introductory player tutorial and current ExampleGame as a verified reference.
+- Teach through complete, placed examples: identify the class/file/callback, setup, required artwork/config, and expected result. Use Character for the introductory player tutorial and the current template as the baseline. ExampleGame was removed; do not send readers to absent source or assume sample assets are bundled.
 
 ## Every review
 
@@ -30,6 +30,8 @@ Last updated: 2026-10-01 CDT
 8. Recheck source changes reported during a review before keeping a limitation in the guide. Remove completed or no-longer-applicable QA queue entries only after verification.
 9. Keep one canonical definition per wiki page in content/wiki-data.js. Do not accumulate historical overrides or leave obsolete instructions searchable. Retain a small compatibility comment in wiki-data-extra.js while existing entry points load it.
 10. Verify callback coverage against EntityObject.h, and trace system subscriptions/dispatch instead of assuming a declared hook is connected. Check search against function names inside article text, plus links, navigation, and mobile readability.
+11. Cover maps, the optional Map Editor, packed sprite staging, modules, pause policies, alarms, solid movement, and text input as they evolve. Explain editor-only settings separately from runtime behavior. Distinguish implemented modules from placeholders.
+12. Maintain the README's MIT license summary and links to the actual Engine and third-party license files. Verify packaging notice paths against the current script; do not modify license texts or claim that Engine licensing covers game-owned assets.
 
 ## Site organization
 
