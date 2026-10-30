@@ -48,20 +48,24 @@ For Visual Studio, open **your game's folder**, wait for CMake configuration, se
 
 ### Where to put your work
 
+These paths are relative to the game you create, such as `Projects/MyGame/`. The template supplies the source files, `project.config`, and an empty `Assets/Sprites/` folder. You add your own gameplay classes and assets; `out/` is created by the build.
+
 | Location inside your game | Purpose |
 | --- | --- |
 | `src/Game.cpp` | Configure the window/view, register scenes, map types and modules, and load shared audio/fonts. |
 | `src/Scenes/MainScene.cpp` | Create or load the initial level in `OnStart`; implement scene rules. |
 | `src/Entities/` | Your Character, Actor, and ClickTarget subclasses. Create this folder as needed. |
 | `Assets/Sprites/` | Original artwork and matching JSON `.config` files. |
-| `Assets/Maps/` | Entity-placement maps such as `level01.gobomap`. |
-| Other `Assets/` subfolders | Sounds, fonts, and tile-grid CSV files owned by your game. |
+| `Assets/Maps/` | Create this folder for your entity-placement maps, such as `level01.gobomap`. |
+| Other `Assets/` subfolders | Create these as needed for sounds, fonts, and tile-grid CSV files owned by your game. |
 | `project.config` | Optional defaults for sprite, animation, and tile-atlas metadata. |
 | `out/` | Generated output. Do not use it as your source asset folder. |
 
 ## 4. Add artwork, maps, and behavior
 
 ### Artwork and packed assets
+
+The artwork, animation config, sound, and map names below are examples for content you supply. They are not bundled sample files.
 
 Place images in `Assets/Sprites/`. PNG, JPG/JPEG, WebP, BMP, and TGA are supported. An image's ID is its relative path without the extension: `Assets/Sprites/ui/heart.png` becomes `"ui/heart"`. Keep IDs unique, including across image formats.
 
@@ -113,21 +117,23 @@ The current packaging script requires the Engine license, third-party notices, a
 - **Missing sprite pack or old artwork:** rebuild the game project, not just the Engine. Do not copy loose images into runtime output as a substitute for packing.
 - **A sheet draws as one large image:** inspect the matching image config and runtime log for metadata errors.
 - **A map fails to load:** check its filename/ID, registered type strings, unique explicit names, and view dimensions (width greater than 400 and height greater than 300).
-- **A game exits during startup:** inspect `Logs/` beside its executable. Engine keeps up to five matching session logs and caps each at approximately 2 MiB; file-logging failure falls back to console/in-memory logging.
+- **A game exits during startup:** inspect the runtime-created `Logs/` folder beside its executable. Engine keeps up to five matching session logs and caps each at approximately 2 MiB; file-logging failure falls back to console/in-memory logging.
 - **A button or player stops responding:** check required components, enabled systems, pause policy, and whether a text field has keyboard focus.
 
 ## Repository layout
 
+The following paths are tracked in this repository:
+
 | Folder/file | Purpose |
 | --- | --- |
-| `Engine/` | Reusable Engine library, source, tests, tools, and bundled dependencies. |
+| `Engine/` | Reusable Engine library, source, tests, tools, and the vcpkg dependency submodule initialized by bootstrap. |
 | `Projects/GoboGameTemplate/` | Starting point copied by the new-project script. |
-| `Projects/<YourGame>/` | Your local game project. |
 | `Map Editor/` | Optional .NET Windows map-authoring tool. |
 | `Documentation/` | Offline Designer Guide. |
-| `docs/Documentation/` | Offline Engineering Wiki. |
 | `scripts/` | Bootstrap, asset staging, testing, and packaging helpers. |
 | `New-GoboProject.ps1` | Project-creation script at the suite root. |
+
+`Projects/MyGame/` is an example local project created by the new-project script, not a supplied game. Build output, executable files, sprite packs, runtime logs, and packaged `licenses/` directories are generated locally and are not included in a fresh clone.
 
 Both the suite and generated game projects provide `windows-x64` (configure), `windows-x64-debug` (build), and `windows-x64-release` (build) presets.
 
