@@ -137,6 +137,18 @@ The following paths are tracked in this repository:
 
 Both the suite and generated game projects provide `windows-x64` (configure), `windows-x64-debug` (build), and `windows-x64-release` (build) presets.
 
+## AI Usage
+
+AI has been used in this project to:
+
+- Assist with Engine development. Most Engine code was written by humans, and all code was reviewed by humans.
+- Create the optional Map Editor tool.
+- Create Engine test files.
+- Assist with quality assurance and issue tracking.
+- Update Engine documentation.
+
+AI was not used to blindly write Engine code. Throughout the project's lifetime, no AI agent has directly edited Engine implementation code; all Engine code was added by human coders. Direct AI edits to tool implementation were limited to the separate, optional Map Editor. AI contributions to test files and documentation are distinct from changes to the Engine implementation.
+
 ## License
 
 Gobo Engine is released under the [MIT License](LICENSE.txt), copyright © 2026 Geeky Goblin Games, LLC. It permits use, modification, and redistribution, including commercial use, subject to retaining the copyright and permission notice in copies or substantial portions of the software. The software is provided without warranty; see the license for the complete terms.
