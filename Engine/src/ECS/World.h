@@ -25,6 +25,7 @@
 #include <vector>
 #include <map>
 #include <optional>
+#include <cstddef>
 
 class AssetManager;
 class DrawManager; 
@@ -148,8 +149,13 @@ public:
 	{
 		return dynamic_cast<TObject*>(FindObject(name));
 	}
-	// Returns if an Entity is still considered alive by the World
+	// Returns if an Entity is still considered alive by the World. 
 	bool IsEntityAlive(const Entity& entity) const; 
+	// Returns a count of how many entities currently exist. 
+	std::size_t GetEntityCount() const noexcept
+	{
+		return entitiesByName.size();
+	}
 	// Queues an Entity to be destroyed. 
 	void DestroyEntity(Entity entity);
 

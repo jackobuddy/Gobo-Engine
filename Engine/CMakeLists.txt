@@ -95,7 +95,8 @@ set(GOBO_ENGINE_SOURCES
     src/Modules/ModuleManager.cpp
     src/Modules/RPGStatsModule.cpp
     src/Maps/MapLoader.cpp
-    src/Entities/EntityObject.cpp)
+    src/Entities/EntityObject.cpp
+    src/Components/TextInputComponent.cpp)
 file(GLOB_RECURSE GOBO_ENGINE_HEADERS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
 add_library(GoboEngine STATIC ${GOBO_ENGINE_SOURCES} ${GOBO_ENGINE_HEADERS})

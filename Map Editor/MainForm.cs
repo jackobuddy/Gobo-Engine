@@ -173,8 +173,8 @@ internal sealed class MainForm : Form
         file.DropDownItems.Add(Item("New map", Keys.Control | Keys.N, NewMap));
         file.DropDownItems.Add(Item("Open map…", Keys.Control | Keys.O, OpenMap));
         file.DropDownItems.Add(new ToolStripSeparator());
-        file.DropDownItems.Add(Item("Save map", Keys.Control | Keys.S, () => SaveMap(false)));
-        file.DropDownItems.Add(Item("Save map as…", Keys.Control | Keys.Shift | Keys.S, () => SaveMap(true)));
+        file.DropDownItems.Add(Item("Save Map", Keys.Control | Keys.S, () => SaveMap(false)));
+        file.DropDownItems.Add(Item("Save Map As…", Keys.Control | Keys.Shift | Keys.S, () => SaveMap(true)));
         file.DropDownItems.Add(new ToolStripSeparator());
         file.DropDownItems.Add(Item("Exit", Keys.Alt | Keys.F4, Close));
         var loadouts = new ToolStripMenuItem("Loadout");
@@ -209,8 +209,8 @@ internal sealed class MainForm : Form
         var bar = new ToolStrip { GripStyle = ToolStripGripStyle.Hidden };
         AddToolButton(bar, "New", NewMap);
         AddToolButton(bar, "Open…", OpenMap);
-        AddToolButton(bar, "Save", () => SaveMap(false));
-        AddToolButton(bar, "Save As…", () => SaveMap(true));
+        AddToolButton(bar, "Save Map", () => SaveMap(false));
+        AddToolButton(bar, "Save Map As…", () => SaveMap(true));
         bar.Items.Add(new ToolStripSeparator());
         AddToolButton(bar, "Fit world", canvas.FitWorld);
         uiScaleButton = new ToolStripDropDownButton();
@@ -369,7 +369,7 @@ internal sealed class MainForm : Form
         right.RowStyles.Add(new RowStyle(SizeType.Absolute, 36));
         right.RowStyles.Add(new RowStyle(SizeType.Percent, 100));
         right.RowStyles.Add(new RowStyle(SizeType.Absolute, 241));
-        rightHeader = new Label { Text = "Placed entities", Dock = DockStyle.Fill, Font = new Font(Font, FontStyle.Bold) };
+        rightHeader = new Label { Text = "Placed actors (0 total)", Dock = DockStyle.Fill, Font = new Font(Font, FontStyle.Bold) };
         right.Controls.Add(rightHeader, 0, 0);
         right.Controls.Add(placements, 0, 1);
         var inspector = new GroupBox { Text = "Selected placement", Dock = DockStyle.Fill, Padding = new Padding(8) };
@@ -642,6 +642,7 @@ internal sealed class MainForm : Form
         placements.Items.Clear();
         foreach (var entity in map.Entities) placements.Items.Add(entity);
         placements.EndUpdate();
+        if (rightHeader is not null) rightHeader.Text = $"Placed actors ({map.Entities.Count:N0} total)";
         updatingUi = false;
         canvas.SelectedIndex = -1;
         SelectPlacement(-1);
@@ -984,7 +985,7 @@ internal sealed class MainForm : Form
         var coordinate = x.HasValue && y.HasValue ? $"  |  Cursor {x:g0}, {y:g0}" : "";
         status.Text = $"Map: {(mapPath ?? "unsaved")}{(mapDirty ? " *" : "")}  |  " +
             $"Loadout: {loadout.Name}{(loadoutDirty ? " *" : "")}  |  " +
-            $"Entities: {map.Entities.Count}  |  Layer: {canvas.ActiveLayer:+0;-0;0}  |  Zoom: {canvas.Zoom:P0}{coordinate}";
+            $"Actors: {map.Entities.Count:N0}  |  Layer: {canvas.ActiveLayer:+0;-0;0}  |  Zoom: {canvas.Zoom:P0}{coordinate}";
     }
 
     private void ShowError(string message) =>

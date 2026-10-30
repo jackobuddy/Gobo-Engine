@@ -452,10 +452,6 @@ int Application::Run(IGame& game)
 		phase = "RegisterModules";
 		game.RegisterModules(*moduleManager); 
 
-		phase = "Create debug overlay";
-		if (not CreateDebugOverlay())
-			throw std::runtime_error("Debug overlay initialization failed");
-
 		phase = "RegisterScenes";
 		game.RegisterScenes(*sceneManager);
 		if (!sceneManager->HasScene(config.startingScene))
@@ -484,6 +480,8 @@ int Application::Run(IGame& game)
 		std::uint64_t previousTick = SDL_GetTicks();
 		float deltaSeconds = 0.0f;
 		const double frameMS = 1000.0 / config.targetFPS;
+		float elapsedSeconds = 0.0f;
+
 		while (isRunning)
 		{
 			phase = "Game BeginFrame";
@@ -571,6 +569,8 @@ int Application::Run(IGame& game)
 				Logger::Error("One or more layered draw commands failed.");
 
 			phase = "Text/Present/Audio";
+			if (game.GetDebugMode() || debugOverlayCreated)
+				UpdateDebugOverlay(game.GetDebugMode(), elapsedSeconds);
 			if (!renderer->RenderText(camera))
 				Logger::Error("One or more text labels failed to render.");
 
@@ -585,9 +585,8 @@ int Application::Run(IGame& game)
 			}
 
 			tick = SDL_GetTicks();
-			const float elapsedSeconds = static_cast<float>(tick - previousTick) / 1000.0f; 
-			deltaSeconds = Clamp(static_cast<float>(tick - previousTick) / 1000.0f, 0.0f, 0.2f);
-			UpdateDebugOverlay(game.GetDebugMode(), elapsedSeconds); 
+			elapsedSeconds = static_cast<float>(tick - previousTick) / 1000.0f;
+			deltaSeconds = Clamp(elapsedSeconds, 0.0f, 0.2f);
 			previousTick = tick;
 		}
 	}
@@ -635,17 +634,19 @@ bool Application::CreateDebugOverlay()
 	}
 
 	TextLabelConfig config;
-	config.text = "Debug overlay initializing...";
+	config.text = "Debug data collecting...";
 	config.position = Vector2(8.0f, 8.0f);
 	config.color = Color{ 255, 255, 255, 255 };
 	config.scale = 1.0f;
 	config.layer = std::numeric_limits<int>::max();
-	config.visible = false;
-	if (!renderer->GetTextManager().Create(DebugOverlayLabelID, config))
+	config.visible = true;
+
+	if (!text.Create(DebugOverlayLabelID, config))
 	{
 		Logger::Error("Failed to create the debug overlay label.");
 		return false;
 	}
+
 	debugOverlayElapsedSeconds = 0.0f;
 	debugOverlayFrameCount = 0;
 	debugOverlayCreated = true;
@@ -654,53 +655,63 @@ bool Application::CreateDebugOverlay()
 
 void Application::UpdateDebugOverlay(bool debugMode, float elapsedSeconds)
 {
-	if (!renderer || !assetManager)
+	if (!renderer)
 		return;
-
-	TextManager& text = renderer->GetTextManager();
 
 	if (!debugMode)
 	{
-		text.SetVisible(DebugOverlayLabelID, false);
+		if (debugOverlayCreated)
+			renderer->GetTextManager().Remove(DebugOverlayLabelID);
+
+		debugOverlayCreated = false;
 		debugOverlayElapsedSeconds = 0.0f;
 		debugOverlayFrameCount = 0;
 		return;
 	}
 
-	if (!text.Has(DebugOverlayLabelID))
+	if (!assetManager || !sceneManager || !worldHost)
+		return;
+
+	TextManager& text = renderer->GetTextManager();
+
+	if (!debugOverlayCreated || !text.Has(DebugOverlayLabelID))
 	{
 		debugOverlayCreated = false;
-
-		if (!CreateDebugOverlay())
-			return;
-	}
-
-	if (!text.SetVisible(DebugOverlayLabelID, true))
-	{
-		Logger::Error("Failed to show the debug overlay label.");
+		CreateDebugOverlay();
 		return;
 	}
 
 	if (elapsedSeconds <= 0.0f)
 		return;
+
 	debugOverlayElapsedSeconds += elapsedSeconds;
 	++debugOverlayFrameCount;
+
 	if (debugOverlayElapsedSeconds < DebugOverlayRefreshSeconds)
 		return;
 
-	const float fps = static_cast<float>(debugOverlayFrameCount) /
+	const float fps =
+		static_cast<float>(debugOverlayFrameCount) /
 		debugOverlayElapsedSeconds;
-	const double textureMiB = static_cast<double>(
-		assetManager->GetEstimatedTextureBytes()) /
+
+	const double textureMiB =
+		static_cast<double>(assetManager->GetEstimatedTextureBytes()) /
 		(1024.0 * 1024.0);
+
+	const World& world = worldHost->GetWorld();
 
 	std::ostringstream message;
 	message << std::fixed << std::setprecision(1)
 		<< "FPS: " << fps
-		<< " | Frame: " << (1000.0f / fps) << " ms"
-		<< " | Textures: " << assetManager->GetTextureCount()
-		<< " | Texture memory: " << textureMiB << " MiB"
-		<< " | Sprite definitions: " << assetManager->GetSpriteCount();
+		<< " | " << (1000.0f / fps) << " ms"
+		<< " | Scene: " << sceneManager->GetActiveSceneID()
+		<< " | Entities: " << world.GetEntityCount();
+
+	if (world.IsPaused())
+		message << " | PAUSED";
+
+	message << "\nTextures: " << assetManager->GetTextureCount()
+		<< " | ~" << textureMiB << " MiB";
 
 	if (!text.SetText(DebugOverlayLabelID, message.str()))
 		Logger::Error("Failed to update the debug overlay label.");

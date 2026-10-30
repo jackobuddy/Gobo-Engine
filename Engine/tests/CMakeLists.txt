@@ -22,7 +22,8 @@ add_executable(GoboEngineTests
     SpritePackTests.cpp
     MouseHoldTests.cpp
     MapLoaderTests.cpp
-    AlarmTests.cpp)
+    AlarmTests.cpp
+    TextInputComponentTests.cpp)
 target_link_libraries(GoboEngineTests PRIVATE
     Gobo::Engine
     Catch2::Catch2WithMain
